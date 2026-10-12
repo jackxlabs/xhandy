@@ -68,6 +68,12 @@
 
     let parts = [fmtAge(now - info.time)];
     if (stale) parts.push(t("stale"));
+    const rel = s.showRel && S.rel[info.handle.toLowerCase()];
+    if (rel) {
+      const key = rel.f && rel.fb ? "rel_mutual" : rel.f ? "rel_following" : rel.fb ? "rel_follower" : "rel_none";
+      const old = now - rel.t > s.relStaleDays * 86400000;
+      parts.push(t(key) + (old ? t("rel_stale") : ""));
+    }
     if (p && p.likes + p.replies > 0) {
       const days = Math.floor((now - p.last) / 86400000);
       parts.push(
@@ -291,6 +297,33 @@
     }
   }, TICK * 1000);
 
+  // ---------- follow relationships (read from X's own responses by page-hook.js) ----------
+
+  let relPending = {};
+  let relTimer = null;
+
+  window.addEventListener("xh-relations", (e) => {
+    let users;
+    try {
+      users = JSON.parse(e.detail);
+    } catch (_) {
+      return;
+    }
+    const now = Date.now();
+    for (const u of users) {
+      relPending[u.handle.toLowerCase()] = { f: u.following, fb: u.followedBy, id: u.id, t: now };
+    }
+    clearTimeout(relTimer);
+    relTimer = setTimeout(() => {
+      const batch = relPending;
+      relPending = {};
+      store.update((s) => {
+        Object.assign(s.rel, batch);
+        s.relMeta.last = Date.now();
+      });
+    }, 1000);
+  });
+
   // ---------- wiring ----------
 
   let annotateTimer = null;
@@ -310,6 +343,9 @@
     annotateAll();
     renderHud();
   });
+
+  // Ask page-hook.js to replay relationships it saw before this script loaded.
+  window.dispatchEvent(new CustomEvent("xh-ready"));
 
   // Refresh ages once a minute.
   setInterval(annotateAll, 60000);

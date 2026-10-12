@@ -22,12 +22,25 @@
         <button data-testid="reply">reply</button>
         <button data-testid="like">like</button>
       </article>
+      <article data-testid="tweet" id="carol">
+        <div data-testid="User-Name">
+          <a href="/carol">Carol</a>
+          <a href="/carol/status/444"><time id="t-carol"></time></a>
+        </div>
+        <p>carol post</p>
+      </article>
     </main>
     <div role="dialog" id="composer">
       <div data-testid="tweetTextarea_0" contenteditable="true" role="textbox"></div>
       <button data-testid="tweetButton">Reply</button>
     </div>
     <script>
+      // Like X: timeline data arrives via fetch and XHR, before the content script has loaded.
+      fetch("/i/api/graphql/abc/HomeTimeline").then((r) => r.json());
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "/i/api/graphql/def/UserTweets");
+      xhr.send();
+      document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());
       document.getElementById("t-fresh").setAttribute("datetime", new Date(Date.now() - 2 * 3600e3).toISOString());
       document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
       // Like X: the composer is cleared after send. Done synchronously because headless

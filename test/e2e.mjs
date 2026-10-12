@@ -10,6 +10,10 @@ import assert from "node:assert";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixture = readFileSync(join(root, "test/fixtures/timeline.html"), "utf8");
+const api = {
+  HomeTimeline: readFileSync(join(root, "test/fixtures/home-timeline.json"), "utf8"),
+  UserTweets: readFileSync(join(root, "test/fixtures/user-tweets.json"), "utf8"),
+};
 
 const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "xh-")), {
   executablePath: process.env.CHROMIUM || "/usr/bin/chromium",
@@ -30,9 +34,11 @@ const step = async (name, fn) => {
 };
 
 try {
-  await ctx.route("https://x.com/**", (r) =>
-    r.fulfill({ status: 200, contentType: "text/html", body: fixture })
-  );
+  await ctx.route("https://x.com/**", (r) => {
+    const name = Object.keys(api).find((k) => r.request().url().endsWith("/" + k));
+    if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
+    return r.fulfill({ status: 200, contentType: "text/html", body: fixture });
+  });
   const page = await ctx.newPage();
   await page.goto("https://x.com/home");
   await page.bringToFront();
@@ -40,8 +46,14 @@ try {
   await step("badges show post age, old post is marked stale", async () => {
     await page.waitForSelector("#fresh .xh-badge");
     assert.match(await page.textContent("#fresh .xh-badge"), /^2h/);
-    assert.match(await page.textContent("#old .xh-badge"), /3d · old post/);
+    assert.match(await page.textContent("#old .xh-badge"), /^3d · old post/);
     assert.ok(await page.$("#old .xh-badge.xh-stale"));
+  });
+
+  await step("follow relationships from fetch and XHR responses show on badges", async () => {
+    await page.waitForFunction(() => /⇄ mutual/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /← follows you/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /→ you follow/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
   });
 
   await step("liking counts in the HUD and the author's badge", async () => {

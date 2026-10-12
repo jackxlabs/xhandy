@@ -1,0 +1,215 @@
+{
+ "data": {
+  "home": {
+   "home_timeline_urt": {
+    "instructions": [
+     {
+      "type": "TimelineShowAlert",
+      "usersResults": [
+       {
+        "result": {
+         "__typename": "User",
+         "core": {
+          "name": "Alert_Gina",
+          "screen_name": "alert_gina"
+         },
+         "rest_id": "7",
+         "relationship_perspectives": {
+          "blocked_by": false,
+          "blocking": false,
+          "followed_by": true,
+          "following": true,
+          "muting": false
+         }
+        }
+       }
+      ]
+     },
+     {
+      "type": "TimelineAddEntries",
+      "entries": [
+       {
+        "entryId": "tweet-111",
+        "content": {
+         "itemContent": {
+          "tweet_results": {
+           "result": {
+            "__typename": "Tweet",
+            "rest_id": "111",
+            "core": {
+             "user_results": {
+              "result": {
+               "__typename": "User",
+               "core": {
+                "name": "Alice",
+                "screen_name": "alice"
+               },
+               "rest_id": "1",
+               "relationship_perspectives": {
+                "blocked_by": false,
+                "blocking": false,
+                "followed_by": true,
+                "following": true,
+                "muting": false
+               }
+              }
+             }
+            },
+            "legacy": {
+             "full_text": "post 111"
+            },
+            "quoted_status_result": {
+             "result": {
+              "__typename": "Tweet",
+              "rest_id": "900",
+              "core": {
+               "user_results": {
+                "result": {
+                 "__typename": "User",
+                 "core": {
+                  "name": "Quoted_Dave",
+                  "screen_name": "quoted_dave"
+                 },
+                 "rest_id": "4",
+                 "relationship_perspectives": {
+                  "blocked_by": false,
+                  "blocking": false,
+                  "followed_by": false,
+                  "following": true,
+                  "muting": false
+                 }
+                }
+               }
+              },
+              "legacy": {
+               "full_text": "post 900"
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       },
+       {
+        "entryId": "tweet-222",
+        "content": {
+         "itemContent": {
+          "tweet_results": {
+           "result": {
+            "__typename": "Tweet",
+            "rest_id": "222",
+            "core": {
+             "user_results": {
+              "result": {
+               "__typename": "User",
+               "core": {
+                "name": "Bob",
+                "screen_name": "bob"
+               },
+               "rest_id": "2",
+               "relationship_perspectives": {
+                "blocked_by": false,
+                "blocking": false,
+                "followed_by": true,
+                "following": false,
+                "muting": false
+               }
+              }
+             }
+            },
+            "legacy": {
+             "full_text": "video",
+             "entities": {
+              "media": [
+               {
+                "source_user_results": {
+                 "result": {
+                  "__typename": "User",
+                  "core": {
+                   "name": "Video_Erin",
+                   "screen_name": "video_erin"
+                  },
+                  "rest_id": "5",
+                  "relationship_perspectives": {
+                   "blocked_by": false,
+                   "blocking": false,
+                   "followed_by": false,
+                   "following": false,
+                   "muting": false
+                  }
+                 }
+                }
+               }
+              ]
+             }
+            }
+           }
+          }
+         }
+        }
+       },
+       {
+        "entryId": "promoted-333",
+        "content": {
+         "itemContent": {
+          "promotedMetadata": {
+           "advertiser_results": {
+            "result": {
+             "__typename": "User",
+             "core": {
+              "name": "Ad_Frank",
+              "screen_name": "ad_frank"
+             },
+             "rest_id": "6",
+             "relationship_perspectives": {
+              "blocked_by": false,
+              "blocking": false,
+              "followed_by": false,
+              "following": false,
+              "muting": false
+             }
+            }
+           }
+          },
+          "tweet_results": {
+           "result": {
+            "__typename": "TweetWithVisibilityResults",
+            "tweet": {
+             "__typename": "Tweet",
+             "rest_id": "333",
+             "core": {
+              "user_results": {
+               "result": {
+                "__typename": "User",
+                "core": {
+                 "name": "Ad_Frank",
+                 "screen_name": "ad_frank"
+                },
+                "rest_id": "6",
+                "relationship_perspectives": {
+                 "blocked_by": false,
+                 "blocking": false,
+                 "followed_by": false,
+                 "following": false,
+                 "muting": false
+                }
+               }
+              }
+             },
+             "legacy": {
+              "full_text": "post 333"
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

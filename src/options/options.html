@@ -30,6 +30,16 @@
     <label for="staleHours">Mark posts older than (hours) / 超过多少小时算旧帖</label>
     <input id="staleHours" type="number" min="1" />
 
+    <h2>Follow relationship / 关注关系</h2>
+    <label><input id="showRel" type="checkbox" /> Show mutual / you follow / follows you on posts / 在帖子上显示互关状态</label>
+    <label for="relStaleDays">Mark as possibly outdated after (days) / 超过多少天标为可能过时</label>
+    <input id="relStaleDays" type="number" min="1" />
+    <p class="hint" id="relStatus"></p>
+    <p class="hint">
+      Read from data X already sends to your browser while you browse. No extra requests. It is display only:
+      x-helper never follows or unfollows anyone. / 只读取你浏览时 X 本来就发给浏览器的数据，不额外请求；只显示，不会关注或取关任何人。
+    </p>
+
     <h2>Duplicate-reply warning / 防重复提醒</h2>
     <label for="dupThreshold">Similarity threshold (0–1) / 相似度阈值</label>
     <input id="dupThreshold" type="number" min="0.1" max="1" step="0.05" />

@@ -1,13 +1,22 @@
 (async function () {
   const { store } = globalThis.XH;
   const $ = (id) => document.getElementById(id);
-  const NUMS = ["staleHours", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal"];
+  const NUMS = ["staleHours", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays"];
 
   async function load() {
-    const s = (await store.get()).settings;
+    const all = await store.get();
+    const s = all.settings;
     $("targets").value = s.targets.join("\n");
     for (const k of NUMS) $(k).value = s[k];
     $("hud").checked = s.hud;
+    $("showRel").checked = s.showRel;
+    const n = Object.keys(all.rel).length;
+    const last = all.relMeta.last;
+    const mins = last ? Math.round((Date.now() - last) / 60000) : null;
+    // If X renames its fields, this stops updating: that is the signal to update x-helper.
+    $("relStatus").textContent = last
+      ? `${n} accounts known · last update ${mins} min ago / 已记录 ${n} 个账号 · 最近更新 ${mins} 分钟前`
+      : "No relationship data yet. Open x.com and scroll a bit. / 还没有数据，打开 x.com 刷一会儿。";
   }
 
   $("save").addEventListener("click", async () => {
@@ -21,6 +30,7 @@
         if (Number.isFinite(v)) s.settings[k] = v;
       }
       s.settings.hud = $("hud").checked;
+      s.settings.showRel = $("showRel").checked;
     });
     $("status").textContent = "Saved / 已保存";
     setTimeout(() => ($("status").textContent = ""), 1500);

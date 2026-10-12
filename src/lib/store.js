@@ -12,11 +12,16 @@
       repeatShort: 3, // warn when the same short text was sent this many times
       hud: true,
       dailyReplyGoal: 0, // 0 = no goal
+      showRel: true, // follow relationship in post badges
+      relStaleDays: 30,
     },
     people: {}, // handle -> { likes, replies, last }
     sent: [], // { t, text, kind: "reply" | "post", to }
     days: {}, // "YYYY-MM-DD" -> { likes, replies, posts, seconds }
+    rel: {}, // handle (lowercase) -> { f: I follow them, fb: they follow me, id, t: seen at }
+    relMeta: { last: 0 }, // when relationships were last read from X's responses
   };
+  const MAX_REL = 30000;
   const MAX_SENT = 300;
 
   function dayKey(d = new Date()) {
@@ -31,6 +36,8 @@
       people: s.people || {},
       sent: s.sent || [],
       days: s.days || {},
+      rel: s.rel || {},
+      relMeta: { ...DEFAULTS.relMeta, ...(s.relMeta || {}) },
     };
   }
 
@@ -46,6 +53,13 @@
       const s = await get();
       fn(s);
       if (s.sent.length > MAX_SENT) s.sent = s.sent.slice(-MAX_SENT);
+      const handles = Object.keys(s.rel);
+      if (handles.length > MAX_REL) {
+        handles
+          .sort((a, b) => s.rel[a].t - s.rel[b].t)
+          .slice(0, handles.length - MAX_REL)
+          .forEach((h) => delete s.rel[h]);
+      }
       await chrome.storage.local.set({ [KEY]: s });
       return s;
     });
