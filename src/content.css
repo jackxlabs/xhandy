@@ -1,0 +1,56 @@
+.xh-badge {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: rgb(83, 100, 113);
+  background: rgba(29, 155, 240, 0.1);
+}
+.xh-badge.xh-stale {
+  color: rgb(140, 90, 0);
+  background: rgba(255, 173, 31, 0.18);
+}
+article.xh-target {
+  box-shadow: inset 3px 0 0 rgb(29, 155, 240);
+}
+
+.xh-hud,
+.xh-dup {
+  position: fixed;
+  z-index: 2147483000;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+.xh-hud {
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  color: #fff;
+  background: rgba(15, 20, 25, 0.82);
+  pointer-events: auto;
+}
+.xh-hud.xh-goal-met {
+  background: rgba(0, 120, 70, 0.9);
+}
+.xh-dup {
+  right: 16px;
+  bottom: 16px;
+  max-width: 340px;
+  padding: 10px 12px;
+  color: #3d2a00;
+  background: #fff4d6;
+  border: 1px solid #f0c040;
+}
+.xh-dup blockquote {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 3px solid #f0c040;
+  color: #5c4a1a;
+}
+.xh-hud[hidden],
+.xh-dup[hidden] {
+  display: none;
+}

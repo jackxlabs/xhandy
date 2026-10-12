@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "x-helper",
+  "version": "0.1.0",
+  "description": "Automation-free helpers for engaging on X: post age, interaction memory, duplicate-reply warnings and daily stats. All data stays in your browser.",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": [
+        "src/lib/i18n.js",
+        "src/lib/similarity.js",
+        "src/lib/store.js",
+        "src/content.js"
+      ],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "x-helper",
+    "default_popup": "src/popup/popup.html"
+  },
+  "options_page": "src/options/options.html"
+}

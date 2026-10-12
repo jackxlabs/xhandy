@@ -1,0 +1,58 @@
+(async function () {
+  const { store } = globalThis.XH;
+  const $ = (id) => document.getElementById(id);
+  const NUMS = ["staleHours", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal"];
+
+  async function load() {
+    const s = (await store.get()).settings;
+    $("targets").value = s.targets.join("\n");
+    for (const k of NUMS) $(k).value = s[k];
+    $("hud").checked = s.hud;
+  }
+
+  $("save").addEventListener("click", async () => {
+    await store.update((s) => {
+      s.settings.targets = $("targets")
+        .value.split("\n")
+        .map((h) => h.trim().replace(/^@/, ""))
+        .filter(Boolean);
+      for (const k of NUMS) {
+        const v = Number($(k).value);
+        if (Number.isFinite(v)) s.settings[k] = v;
+      }
+      s.settings.hud = $("hud").checked;
+    });
+    $("status").textContent = "Saved / 已保存";
+    setTimeout(() => ($("status").textContent = ""), 1500);
+  });
+
+  $("export").addEventListener("click", async () => {
+    const data = await store.get();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `x-helper-${store.dayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  $("import").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      await store.replaceAll(JSON.parse(await file.text()));
+      await load();
+      $("status").textContent = "Imported / 已导入";
+    } catch (err) {
+      alert("Invalid file / 文件无效: " + err.message);
+    }
+  });
+
+  $("reset").addEventListener("click", async () => {
+    if (!confirm("Delete all x-helper data in this browser? / 确定清空本浏览器里的全部数据？")) return;
+    await store.reset();
+    await load();
+  });
+
+  load();
+})();

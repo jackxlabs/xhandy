@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { margin: 0; padding: 12px 14px; width: 280px; font: 13px/1.5 system-ui, sans-serif; color: #0f1419; }
+      h1 { font-size: 14px; margin: 0 0 8px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: right; padding: 2px 4px; }
+      th:first-child, td:first-child { text-align: left; }
+      tr.today td { font-weight: 600; }
+      .muted { color: #536471; font-size: 12px; }
+      a { color: #1d9bf0; }
+    </style>
+  </head>
+  <body>
+    <h1>x-helper</h1>
+    <table>
+      <thead><tr><th>Day</th><th>❤</th><th>💬</th><th>📝</th><th>⏱</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="muted">Data stays in this browser. <a href="#" id="opts">Settings</a></p>
+    <script src="../lib/i18n.js"></script>
+    <script src="../lib/store.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

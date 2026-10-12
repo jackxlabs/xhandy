@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><title>fake timeline</title></head>
+  <body>
+    <!-- Minimal copy of the X DOM attributes x-helper relies on. Times are filled in by the script below. -->
+    <main>
+      <article data-testid="tweet" id="fresh">
+        <div data-testid="User-Name">
+          <a href="/alice">Alice</a>
+          <a href="/alice/status/111"><time id="t-fresh"></time></a>
+        </div>
+        <p>fresh post</p>
+        <button data-testid="reply">reply</button>
+        <button data-testid="like">like</button>
+      </article>
+      <article data-testid="tweet" id="old">
+        <div data-testid="User-Name">
+          <a href="/bob">Bob</a>
+          <a href="/bob/status/222"><time id="t-old"></time></a>
+        </div>
+        <p>old post</p>
+        <button data-testid="reply">reply</button>
+        <button data-testid="like">like</button>
+      </article>
+    </main>
+    <div role="dialog" id="composer">
+      <div data-testid="tweetTextarea_0" contenteditable="true" role="textbox"></div>
+      <button data-testid="tweetButton">Reply</button>
+    </div>
+    <script>
+      document.getElementById("t-fresh").setAttribute("datetime", new Date(Date.now() - 2 * 3600e3).toISOString());
+      document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
+      // Like X: the composer is cleared after send. Done synchronously because headless
+      // Chromium throttles timers, which made a delayed clear wipe the next test input.
+      document.querySelector('[data-testid="tweetButton"]').addEventListener("click", () => {
+        document.querySelector('[data-testid="tweetTextarea_0"]').textContent = "";
+      });
+    </script>
+  </body>
+</html>
