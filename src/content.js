@@ -1,7 +1,7 @@
 // x-helper content script.
 // Rule for this file: it only READS the page and the user's own clicks/typing, and shows hints.
 // It never clicks, types, sends, likes or follows on the user's behalf. The follow assistant
-// only opens X's own hover card and focuses its Follow button; the user presses Enter.
+// only finds and focuses X's own Follow button; the user presses Enter.
 (function () {
   const XH = globalThis.XH;
   const { store, sim, t } = XH;
@@ -15,7 +15,6 @@
     send: '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]',
     textarea: '[data-testid^="tweetTextarea_"]',
     avatar: '[data-testid="Tweet-User-Avatar"]',
-    hoverCard: '[data-testid="HoverCard"]',
     followBtn: '[data-testid$="-follow"]',
     unfollowBtn: '[data-testid$="-unfollow"]',
   };
@@ -385,12 +384,15 @@
   }
 
   // ---------- follow assistant: Shift+F on a focused post ----------
-  // Opens X's own hover card for the author, focuses its Follow button and waits.
-  // The user presses Enter to follow (or Esc). Nothing is clicked by x-helper.
+  // Finds the author's own Follow button (already on the page, in X's hover card, or on the
+  // author's profile as a fallback), focuses it and waits. The user presses Enter to follow
+  // (or Esc). Nothing is clicked by x-helper.
 
+  const PENDING_KEY = "xh-follow-pending";
   let followTarget = null; // { handle, button, hoverEl }
 
   function hover(el, on) {
+    if (!el) return;
     const types = on ? ["pointerover", "pointerenter", "mouseover", "mouseenter"] : ["pointerout", "pointerleave", "mouseout", "mouseleave"];
     for (const type of types) {
       const Ev = type.startsWith("pointer") ? PointerEvent : MouseEvent;
@@ -405,68 +407,104 @@
     followTarget = null;
   }
 
+  // Handle a Follow/Following button belongs to, from its aria-label ("Follow @name", "关注 @name").
+  function buttonHandle(btn) {
+    const m = (btn.getAttribute("aria-label") || "").match(/@([A-Za-z0-9_]{1,15})/);
+    return m ? m[1] : null;
+  }
+
+  // The author's Follow (or Following) button anywhere on the page: hover card, "Who to follow",
+  // profile header. Matched by user id when known, else by the @handle in its aria-label.
   function findFollowButton(handle) {
     const rel = S.rel[handle.toLowerCase()];
     if (rel && rel.id) {
-      const exact = document.querySelector(
-        `${SEL.hoverCard} [data-testid="${rel.id}-follow"], ${SEL.hoverCard} [data-testid="${rel.id}-unfollow"]`
-      );
+      const exact = document.querySelector(`[data-testid="${rel.id}-follow"], [data-testid="${rel.id}-unfollow"]`);
       if (exact) return exact;
     }
-    // Without a known id, only trust a hover card that is clearly about this handle.
     const lower = handle.toLowerCase();
-    const card = [...document.querySelectorAll(SEL.hoverCard)].find(
-      (c) =>
-        [...c.querySelectorAll("a[href]")].some((a) => a.getAttribute("href").toLowerCase() === "/" + lower) ||
-        c.textContent.toLowerCase().includes("@" + lower)
+    return [...document.querySelectorAll(SEL.followBtn + "," + SEL.unfollowBtn)].find(
+      (b) => (buttonHandle(b) || "").toLowerCase() === lower
     );
-    return card ? card.querySelector(SEL.followBtn + "," + SEL.unfollowBtn) : null;
+  }
+
+  async function waitForButton(handle, ms) {
+    for (let waited = 0; waited <= ms; waited += 100) {
+      const b = findFollowButton(handle);
+      if (b) return b;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return null;
+  }
+
+  function armButton(handle, button, hoverEl, onProfile) {
+    if (button.matches(SEL.unfollowBtn)) {
+      hover(hoverEl, false);
+      return toast(t("follow_already", { h: handle }));
+    }
+    followTarget = { handle, button, hoverEl };
+    button.classList.add("xh-follow-focus");
+    const r = button.getBoundingClientRect();
+    const visible = r.top >= 0 && r.bottom <= innerHeight;
+    button.focus({ preventScroll: visible });
+    if (!visible) button.scrollIntoView({ block: "center" });
+    toast(t(onProfile ? "follow_confirm_profile" : "follow_confirm", { h: handle }), "focus", 0);
   }
 
   async function startFollow() {
     const article = document.activeElement && document.activeElement.closest(SEL.tweet);
     const info = article && tweetInfo(article);
     if (!info) return toast(t("follow_pick"), "warn");
-    const rel = S.rel[info.handle.toLowerCase()];
-    if (rel && rel.f) return toast(t("follow_already", { h: info.handle }));
+    const handle = info.handle;
+    const rel = S.rel[handle.toLowerCase()];
+    if (rel && rel.f) return toast(t("follow_already", { h: handle }));
 
     clearFollowTarget();
-    const hoverEl =
-      (article.querySelector(SEL.avatar) && article.querySelector(SEL.avatar).querySelector("a, div")) ||
-      article.querySelector(`${SEL.userName} a[href="/${info.handle}"]`) ||
-      article.querySelector(SEL.userName);
-    if (!hoverEl) return toast(t("follow_missing"), "warn", 4000);
-    hover(hoverEl, true);
-    toast(t("follow_opening", { h: info.handle }), "info", 0);
 
-    let button = null;
-    for (let i = 0; i < 30 && !button; i++) {
-      await new Promise((r) => setTimeout(r, 100));
-      button = findFollowButton(info.handle);
-    }
-    if (!button) {
-      hover(hoverEl, false);
-      return toast(t("follow_missing"), "warn", 4000);
-    }
-    if (button.matches(SEL.unfollowBtn)) {
-      hover(hoverEl, false);
-      return toast(t("follow_already", { h: info.handle }));
-    }
-    followTarget = { handle: info.handle, button, hoverEl };
-    button.classList.add("xh-follow-focus");
-    button.focus({ preventScroll: true });
-    toast(t("follow_confirm", { h: info.handle }), "focus", 0);
+    // 1. Already on the page (e.g. "Who to follow")?
+    let button = findFollowButton(handle);
+    if (button) return armButton(handle, button, null);
+
+    // 2. Ask X to show its hover card for the author.
+    const hoverEl =
+      article.querySelector(`[data-testid="UserAvatar-Container-${handle}"]`) ||
+      article.querySelector(SEL.avatar) ||
+      article.querySelector(`${SEL.userName} a[href="/${handle}"]`);
+    hover(hoverEl, true);
+    toast(t("follow_opening", { h: handle }), "info", 0);
+    button = await waitForButton(handle, 1500);
+    if (button) return armButton(handle, button, hoverEl);
+    hover(hoverEl, false);
+
+    // 3. Fall back to the author's profile; the button is armed there after the page loads.
+    try {
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ handle, t: Date.now() }));
+    } catch (_) {}
+    toast(t("follow_profile", { h: handle }), "info", 0);
+    location.assign("/" + handle);
   }
 
-  // Count follows the user makes (Enter on the focused button, or any click on a Follow button).
+  async function resumePendingFollow() {
+    let pending = null;
+    try {
+      pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null");
+      sessionStorage.removeItem(PENDING_KEY);
+    } catch (_) {}
+    if (!pending || Date.now() - pending.t > 30000) return;
+    if (location.pathname.split("/")[1].toLowerCase() !== pending.handle.toLowerCase()) return;
+    const button = await waitForButton(pending.handle, 8000);
+    if (button) armButton(pending.handle, button, null, true);
+    else toast(t("follow_missing"), "warn", 4000);
+  }
+
+  // Count follows the user makes: Enter on the focused button, or any click on a Follow button.
   document.addEventListener(
     "click",
     (e) => {
       const btn = e.target.closest(SEL.followBtn);
       if (!btn) return;
       const handle =
-        (followTarget && followTarget.button === btn && followTarget.handle) ||
-        (location.pathname.split("/")[1] || null);
+        (followTarget && followTarget.button === btn && followTarget.handle) || buttonHandle(btn);
+      const onProfile = handle && location.pathname.split("/")[1].toLowerCase() === handle.toLowerCase();
       store.update((s) => {
         const d = store.today(s);
         d.follows = (d.follows || 0) + 1;
@@ -477,7 +515,7 @@
       });
       const over = ((S.days[store.dayKey()] || {}).follows || 0) + 1 > S.settings.followLimit;
       if (over) toast(t("follow_limit", { n: S.settings.followLimit }), "warn", 5000);
-      else toast(t("follow_done", { h: handle || "" }), "ok");
+      else toast(t(onProfile ? "follow_done_profile" : "follow_done", { h: handle || "" }), "ok", onProfile ? 5000 : 2500);
       if (followTarget && followTarget.button === btn) {
         btn.classList.remove("xh-follow-focus");
         // Only close this card: the user may already have started on the next post.
@@ -565,6 +603,8 @@
     S = s;
     annotateAll();
     renderHud();
+    // Arrived here from Shift+F's profile fallback? Arm the Follow button.
+    resumePendingFollow();
   });
 
   // Ask page-hook.js to replay relationships it saw before this script loaded.

@@ -14,8 +14,9 @@ That is the point: you get faster without anything that looks like a bot to X.
   (⇄ mutual, → you follow, ← follows you, not following). It is read from the data X already sends
   to your browser while you scroll; x-helper makes no extra requests. Display only: it never follows or
   unfollows anyone, and it has no bulk-unfollow list on purpose.
-- **Follow assistant** (`Shift+F` on a post selected with `j`/`k`): opens X's own hover card for the author
-  and focuses its Follow button. You press `Enter` to follow or `Esc` to cancel; x-helper never clicks it.
+- **Follow assistant** (`Shift+F` on a post selected with `j`/`k`): finds the author's own Follow button
+  (already on the page, in X's hover card, or else on the author's profile) and focuses it. You press `Enter`
+  to follow or `Esc` to cancel (`Alt+←` returns from the profile); x-helper never clicks it.
   Counts follows per day and reminds you above a soft daily limit (default 20), because following fast is
   what gets accounts limited.
 - **Duplicate-reply warning**: while you type, warns if the reply is very similar to one you sent recently,

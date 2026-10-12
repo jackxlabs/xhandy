@@ -10,6 +10,7 @@ import assert from "node:assert";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixture = readFileSync(join(root, "test/fixtures/timeline.html"), "utf8");
+const profile = readFileSync(join(root, "test/fixtures/profile.html"), "utf8");
 const api = {
   HomeTimeline: readFileSync(join(root, "test/fixtures/home-timeline.json"), "utf8"),
   UserTweets: readFileSync(join(root, "test/fixtures/user-tweets.json"), "utf8"),
@@ -38,6 +39,7 @@ try {
   await ctx.route("https://x.com/**", (r) => {
     const name = Object.keys(api).find((k) => r.request().url().endsWith("/" + k));
     if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
+    if (new URL(r.request().url()).pathname === "/eve") return r.fulfill({ status: 200, contentType: "text/html", body: profile });
     return r.fulfill({ status: 200, contentType: "text/html", body: fixture });
   });
   const page = await ctx.newPage();
@@ -179,6 +181,17 @@ try {
       return new Promise((r) => setTimeout(() => r(n), 2000));
     });
     assert.strictEqual(clicks, 0);
+  });
+  await step("no hover card: Shift+F falls back to the author's profile, Enter follows there", async () => {
+    await page.focus("#eve");
+    await page.keyboard.press("Shift+F");
+    await page.waitForURL("https://x.com/eve", { timeout: 6000 });
+    await page.waitForSelector(".xh-follow-focus", { timeout: 6000 });
+    assert.strictEqual(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Follow @eve");
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => /Alt\+← back/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
+    await page.keyboard.press("Alt+KeyH"); // stats bar was hidden by an earlier step
+    await page.waitForFunction(() => /👤 2 /.test(document.querySelector(".xh-hud")?.textContent), null, { timeout: 3000 });
   });
 } finally {
   await ctx.close();

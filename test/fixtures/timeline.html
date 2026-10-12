@@ -23,8 +23,8 @@
       article button { margin-right: 8px; }
       [role="dialog"] { width: 600px; margin: 12px auto; }
       [data-testid="tweetTextarea_0"] { min-height: 40px; border: 1px solid #cfd9de; border-radius: 8px; padding: 8px; }
-      [data-testid="HoverCard"] { position: absolute; width: 260px; padding: 14px; border-radius: 14px; background: inherit; box-shadow: 0 0 12px rgba(101,119,134,.3); background: #fff; color: #0f1419; }
-      body.dark [data-testid="HoverCard"] { background: #000; color: #e7e9ea; box-shadow: 0 0 12px rgba(255,255,255,.2); }
+      .hc { position: absolute; width: 260px; padding: 14px; border-radius: 14px; background: inherit; box-shadow: 0 0 12px rgba(101,119,134,.3); background: #fff; color: #0f1419; }
+      body.dark .hc { background: #000; color: #e7e9ea; box-shadow: 0 0 12px rgba(255,255,255,.2); }
       [data-testid$="-follow"], [data-testid$="-unfollow"] { padding: 6px 16px; border-radius: 999px; border: 0; font-weight: 700; background: #0f1419; color: #fff; }
     </style>
   </head>
@@ -32,7 +32,7 @@
     <!-- Minimal copy of the X DOM attributes x-helper relies on. Times are filled in by the script below. -->
     <main>
       <article data-testid="tweet" id="fresh" tabindex="0">
-        <div data-testid="Tweet-User-Avatar"><a href="/alice" class="av">A</a></div>
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-alice"><a href="/alice" class="av">A</a></div></div>
         <div data-testid="User-Name">
           <a href="/alice">Alice</a>
           <a href="/alice/status/111"><time id="t-fresh"></time></a>
@@ -42,7 +42,7 @@
         <button data-testid="like">like</button>
       </article>
       <article data-testid="tweet" id="old" tabindex="0">
-        <div data-testid="Tweet-User-Avatar"><a href="/bob" class="av">B</a></div>
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-bob"><a href="/bob" class="av">B</a></div></div>
         <div data-testid="User-Name">
           <a href="/bob">Bob</a>
           <a href="/bob/status/222"><time id="t-old"></time></a>
@@ -52,15 +52,23 @@
         <button data-testid="like">like</button>
       </article>
       <article data-testid="tweet" id="dan" tabindex="0">
-        <div data-testid="Tweet-User-Avatar"><a href="/dan" class="av">D</a></div>
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-dan"><a href="/dan" class="av">D</a></div></div>
         <div data-testid="User-Name">
           <a href="/dan">Dan</a>
           <a href="/dan/status/555"><time id="t-dan"></time></a>
         </div>
         <p>dan post</p>
       </article>
+      <article data-testid="tweet" id="eve" tabindex="0">
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-eve"><a href="/eve" class="av">E</a></div></div>
+        <div data-testid="User-Name">
+          <a href="/eve">Eve</a>
+          <a href="/eve/status/666"><time id="t-eve"></time></a>
+        </div>
+        <p>eve post (no hover card)</p>
+      </article>
       <article data-testid="tweet" id="carol">
-        <div data-testid="Tweet-User-Avatar"><a href="/carol" class="av">C</a></div>
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-carol"><a href="/carol" class="av">C</a></div></div>
         <div data-testid="User-Name">
           <a href="/carol">Carol</a>
           <a href="/carol/status/444"><time id="t-carol"></time></a>
@@ -79,25 +87,32 @@
       xhr.open("GET", "/i/api/graphql/def/UserTweets");
       xhr.send();
       document.getElementById("t-dan").setAttribute("datetime", new Date(Date.now() - 1800e3).toISOString());
-      // Like X: hovering an avatar opens a hover card with the author's Follow button.
+      document.getElementById("t-eve").setAttribute("datetime", new Date(Date.now() - 900e3).toISOString());
+      // Like X: hovering an avatar opens a hover card (no data-testid on the card itself) with the
+      // author's Follow button: data-testid "<id>-follow" and aria-label "Follow @handle".
+      // eve has no hover card, to exercise the profile fallback.
       const ids = { alice: "1", bob: "2", carol: "3", dan: "8" };
       document.addEventListener("mouseover", (e) => {
-        const a = e.target.closest('[data-testid="Tweet-User-Avatar"] a');
-        if (!a || document.querySelector('[data-testid="HoverCard"]')) return;
-        const h = a.getAttribute("href").slice(1);
+        const box = e.target.closest('[data-testid^="UserAvatar-Container-"]');
+        if (!box || document.querySelector(".hc")) return;
+        const h = box.dataset.testid.replace("UserAvatar-Container-", "");
+        if (!ids[h]) return;
         setTimeout(() => {
           const card = document.createElement("div");
-          card.dataset.testid = "HoverCard";
-          const r = a.getBoundingClientRect();
+          card.className = "hc";
+          const r = box.getBoundingClientRect();
           card.style.left = r.left + "px";
           card.style.top = r.bottom + window.scrollY + 6 + "px";
-          card.innerHTML = `<b>@${h}</b><p>bio of ${h}</p><button data-testid="${ids[h]}-follow">Follow</button>`;
-          card.querySelector("button").addEventListener("click", (ev) => (ev.target.dataset.testid = ids[h] + "-unfollow"));
+          card.innerHTML = `<a href="/${h}"><b>@${h}</b></a><p>bio of ${h}</p><button type="button" data-testid="${ids[h]}-follow" aria-label="Follow @${h}">Follow</button>`;
+          card.querySelector("button").addEventListener("click", (ev) => {
+            ev.target.dataset.testid = ids[h] + "-unfollow";
+            ev.target.setAttribute("aria-label", "Following @" + h);
+          });
           document.body.appendChild(card);
         }, 300);
       });
       document.addEventListener("mouseout", (e) => {
-        if (e.target.closest('[data-testid="Tweet-User-Avatar"]')) document.querySelector('[data-testid="HoverCard"]')?.remove();
+        if (e.target.closest('[data-testid^="UserAvatar-Container-"]')) document.querySelector(".hc")?.remove();
       });
       if (location.search.includes("theme=dark")) document.body.classList.add("dark");
       document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());

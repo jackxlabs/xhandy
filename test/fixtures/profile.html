@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><title>fake profile</title>
+    <style>body { margin: 0; font: 15px/1.4 system-ui, sans-serif; background: #fff; } header { width: 600px; margin: 0 auto; padding: 16px; }
+      [data-testid$="-follow"], [data-testid$="-unfollow"] { padding: 6px 16px; border-radius: 999px; border: 0; font-weight: 700; background: #0f1419; color: #fff; }</style>
+  </head>
+  <body>
+    <header><h2>@eve</h2><div id="actions"></div></header>
+    <script>
+      // Like X: the profile header renders a moment after navigation.
+      setTimeout(() => {
+        document.getElementById("actions").innerHTML =
+          '<button type="button" data-testid="9-follow" aria-label="Follow @eve">Follow</button>';
+        document.querySelector("button").addEventListener("click", (e) => {
+          e.target.dataset.testid = "9-unfollow";
+          e.target.setAttribute("aria-label", "Following @eve");
+        });
+      }, 500);
+    </script>
+  </body>
+</html>
