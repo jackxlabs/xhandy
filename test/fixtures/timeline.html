@@ -4,7 +4,7 @@
   <body>
     <!-- Minimal copy of the X DOM attributes x-helper relies on. Times are filled in by the script below. -->
     <main>
-      <article data-testid="tweet" id="fresh">
+      <article data-testid="tweet" id="fresh" tabindex="0">
         <div data-testid="User-Name">
           <a href="/alice">Alice</a>
           <a href="/alice/status/111"><time id="t-fresh"></time></a>
@@ -13,7 +13,7 @@
         <button data-testid="reply">reply</button>
         <button data-testid="like">like</button>
       </article>
-      <article data-testid="tweet" id="old">
+      <article data-testid="tweet" id="old" tabindex="0">
         <div data-testid="User-Name">
           <a href="/bob">Bob</a>
           <a href="/bob/status/222"><time id="t-old"></time></a>
@@ -43,6 +43,12 @@
       document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());
       document.getElementById("t-fresh").setAttribute("datetime", new Date(Date.now() - 2 * 3600e3).toISOString());
       document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
+      // Like X: "l" on a focused post toggles like <-> unlike.
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "l" || e.target.closest("[contenteditable]")) return;
+        const btn = document.activeElement.closest("article")?.querySelector('[data-testid="like"],[data-testid="unlike"]');
+        if (btn) btn.dataset.testid = btn.dataset.testid === "like" ? "unlike" : "like";
+      });
       // Like X: the composer is cleared after send. Done synchronously because headless
       // Chromium throttles timers, which made a delayed clear wipe the next test input.
       document.querySelector('[data-testid="tweetButton"]').addEventListener("click", () => {

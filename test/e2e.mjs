@@ -85,6 +85,31 @@ try {
     await page.waitForSelector(".xh-dup[hidden]", { state: "attached", timeout: 3000 });
   });
 
+  await step("X keyboard shortcuts: l on a focused post counts, l again un-counts", async () => {
+    await page.focus("#old");
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => /❤ 2 /.test(document.querySelector(".xh-hud").textContent));
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => /❤ 1 /.test(document.querySelector(".xh-hud").textContent));
+  });
+
+  await step("X keyboard shortcuts: r then send counts as a reply to the focused author", async () => {
+    await page.focus("#old");
+    await page.keyboard.press("r");
+    await page.fill(box, "Bob, the old post still holds up after three days");
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction(() => /💬 2 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => /you: 1×/.test(document.querySelector("#old .xh-badge").textContent));
+  });
+
+  await step("typing l inside the composer is not counted as a like", async () => {
+    await page.click(box);
+    await page.keyboard.type("l");
+    await page.waitForTimeout(500);
+    assert.match(await page.textContent(".xh-hud"), /❤ 1 /);
+    await page.fill(box, "");
+  });
+
   await step("Alt+H hides the HUD", async () => {
     await page.keyboard.press("Alt+KeyH");
     await page.waitForSelector(".xh-hud[hidden]", { state: "attached", timeout: 3000 });

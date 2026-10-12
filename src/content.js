@@ -146,6 +146,20 @@
     });
   }
 
+  function countLike(info, delta) {
+    store.update((s) => {
+      const d = store.today(s);
+      const p = store.person(s, info.handle);
+      d.likes = Math.max(0, d.likes + delta);
+      p.likes = Math.max(0, p.likes + delta);
+      if (delta > 0) p.last = Date.now();
+    });
+  }
+
+  function isTyping(el) {
+    return !!el.closest('input, textarea, [contenteditable="true"], [role="textbox"]');
+  }
+
   document.addEventListener(
     "click",
     (e) => {
@@ -157,19 +171,9 @@
       const info = article && tweetInfo(article);
 
       if (el.matches(SEL.like) && info) {
-        store.update((s) => {
-          store.today(s).likes++;
-          const p = store.person(s, info.handle);
-          p.likes++;
-          p.last = Date.now();
-        });
+        countLike(info, +1);
       } else if (el.matches(SEL.unlike) && info) {
-        store.update((s) => {
-          const d = store.today(s);
-          d.likes = Math.max(0, d.likes - 1);
-          const p = store.person(s, info.handle);
-          p.likes = Math.max(0, p.likes - 1);
-        });
+        countLike(info, -1);
       } else if (el.matches(SEL.reply) && info) {
         pendingReply = { handle: info.handle, t: Date.now() };
       } else if (el.matches(SEL.send)) {
@@ -185,6 +189,18 @@
       if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyH") {
         e.preventDefault();
         store.update((s) => (s.settings.hud = !s.settings.hud));
+        return;
+      }
+      // X's own shortcuts: j/k put focus on a post, l toggles like, r opens the reply box.
+      // Read which post is focused (capture phase, before X toggles the button) and count it.
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "l" || e.key === "r") && !isTyping(e.target)) {
+        const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+        const info = article && tweetInfo(article);
+        if (info) {
+          if (e.key === "r") pendingReply = { handle: info.handle, t: Date.now() };
+          else if (article.querySelector(SEL.like)) countLike(info, +1);
+          else if (article.querySelector(SEL.unlike)) countLike(info, -1);
+        }
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && e.target.closest(SEL.textarea)) {

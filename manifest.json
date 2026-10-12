@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "x-helper",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Automation-free helpers for engaging on X: post age, interaction memory, duplicate-reply warnings and daily stats. All data stays in your browser.",
   "permissions": [
     "storage"
