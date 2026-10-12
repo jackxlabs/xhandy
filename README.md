@@ -40,9 +40,9 @@ so x-helper does not replace them.
 
 ## Roadmap
 
-- v0.2: interaction queue (open the next post to reply to with a shortcut), save posts to a local idea list,
+- v0.3: interaction queue (open the next post to reply to with a shortcut), save posts to a local idea list,
   draft prefill for quote posts (you still press send), export and a generic webhook.
-- v0.3: optional Notion sync, Chinese/English UI polish, store listing.
+- v0.4: optional Notion sync, Chinese/English UI polish, store listing.
 
 ## Development
 
