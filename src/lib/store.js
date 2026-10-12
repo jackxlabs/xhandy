@@ -13,6 +13,7 @@
       hud: true,
       dailyReplyGoal: 0, // 0 = no goal
       showRel: true, // follow relationship in post badges
+      followLimit: 20, // soft daily follow limit: warn above this, never block
       relStaleDays: 30,
     },
     people: {}, // handle -> { likes, replies, last }
@@ -68,7 +69,7 @@
 
   function today(s) {
     const k = dayKey();
-    return (s.days[k] = s.days[k] || { likes: 0, replies: 0, posts: 0, seconds: 0 });
+    return (s.days[k] = s.days[k] || { likes: 0, replies: 0, posts: 0, follows: 0, seconds: 0 });
   }
 
   function person(s, handle) {

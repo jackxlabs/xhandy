@@ -19,6 +19,7 @@ const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "x
   executablePath: process.env.CHROMIUM || "/usr/bin/chromium",
   headless: true,
   locale: "en-US",
+  viewport: { width: 1280, height: 800 },
   args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, "--headless=new"],
 });
 
@@ -47,7 +48,7 @@ try {
     await page.waitForSelector("#fresh .xh-badge");
     assert.match(await page.textContent("#fresh .xh-badge"), /^2h/);
     assert.match(await page.textContent("#old .xh-badge"), /^3d · old post/);
-    assert.ok(await page.$("#old .xh-badge.xh-stale"));
+    assert.ok(await page.$("#old .xh-chip.xh-stale"));
   });
 
   await step("follow relationships from fetch and XHR responses show on badges", async () => {
@@ -108,6 +109,61 @@ try {
     await page.waitForTimeout(500);
     assert.match(await page.textContent(".xh-hud"), /❤ 1 /);
     await page.fill(box, "");
+  });
+
+  await step("Shift+F on someone you already follow just says so", async () => {
+    await page.focus("#fresh");
+    await page.keyboard.press("Shift+F");
+    await page.waitForFunction(() => /already follow @alice/.test(document.querySelector(".xh-toast")?.textContent));
+  });
+
+  await step("Shift+F opens the hover card and focuses Follow; Enter follows", async () => {
+    await page.focus("#old");
+    await page.keyboard.press("Shift+F");
+    await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
+    assert.strictEqual(await page.evaluate(() => document.activeElement.dataset.testid), "2-follow");
+    if (process.env.SHOTS) await page.screenshot({ path: join(process.env.SHOTS, "light-follow.png") });
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => /👤 1 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => /⇄ mutual/.test(document.querySelector("#old .xh-badge").textContent));
+  });
+
+  await step("Esc cancels the follow assistant without following", async () => {
+    await page.focus("#dan");
+    await page.keyboard.press("Shift+F");
+    await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".xh-follow-focus", { state: "detached", timeout: 2000 });
+    assert.match(await page.textContent(".xh-hud"), /👤 1 /);
+  });
+
+  await step("Shift+F while typing does nothing", async () => {
+    await page.click(box);
+    await page.keyboard.press("Shift+F");
+    await page.waitForTimeout(600);
+    assert.strictEqual(await page.$(".xh-follow-focus"), null);
+    await page.fill(box, "");
+  });
+
+  await step("theme follows X's background", async () => {
+    assert.strictEqual(await page.evaluate(() => document.documentElement.dataset.xhTheme), "light");
+    await page.evaluate(() => document.body.classList.add("dark"));
+    await page.waitForFunction(() => document.documentElement.dataset.xhTheme === "dark", null, { timeout: 7000 });
+    if (process.env.SHOTS) {
+      await page.focus("#dan");
+      await page.keyboard.press("Shift+F");
+      await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
+      await page.fill(box, "This is a great idea, I use n8n for the same sort of automation!");
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: join(process.env.SHOTS, "dark.png") });
+      await page.keyboard.press("Escape");
+      await page.fill(box, "");
+      await page.evaluate(() => document.body.classList.remove("dark"));
+      await page.fill(box, "This is a great idea, I use n8n for the same sort of automation!");
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: join(process.env.SHOTS, "light.png") });
+      await page.fill(box, "");
+    }
   });
 
   await step("Alt+H hides the HUD", async () => {

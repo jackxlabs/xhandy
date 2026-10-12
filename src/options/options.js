@@ -1,7 +1,7 @@
 (async function () {
   const { store } = globalThis.XH;
   const $ = (id) => document.getElementById(id);
-  const NUMS = ["staleHours", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays"];
+  const NUMS = ["staleHours", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit"];
 
   async function load() {
     const all = await store.get();

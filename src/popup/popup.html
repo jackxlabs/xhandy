@@ -3,20 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      body { margin: 0; padding: 12px 14px; width: 280px; font: 13px/1.5 system-ui, sans-serif; color: #0f1419; }
-      h1 { font-size: 14px; margin: 0 0 8px; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { text-align: right; padding: 2px 4px; }
+      :root { --fg: #0f1419; --muted: #536471; --bg: #fff; --line: rgba(15,20,25,.08); --accent: #1d9bf0; --today: rgba(29,155,240,.08); color-scheme: light dark; }
+      @media (prefers-color-scheme: dark) {
+        :root { --fg: #e7e9ea; --muted: #8b98a5; --bg: #16181c; --line: rgba(231,233,234,.1); --accent: #4cb3f5; --today: rgba(29,155,240,.16); }
+      }
+      body { margin: 0; padding: 14px 16px 10px; width: 300px; font: 13px/1.5 -apple-system, "Segoe UI", system-ui, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--bg); }
+      h1 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
+      table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+      th { font-weight: 500; color: var(--muted); font-size: 12px; }
+      th, td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); }
       th:first-child, td:first-child { text-align: left; }
-      tr.today td { font-weight: 600; }
-      .muted { color: #536471; font-size: 12px; }
-      a { color: #1d9bf0; }
+      tr.today td { font-weight: 700; background: var(--today); }
+      tr.today td:first-child { border-radius: 8px 0 0 8px; }
+      tr.today td:last-child { border-radius: 0 8px 8px 0; }
+      .muted { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
     </style>
   </head>
   <body>
     <h1>x-helper</h1>
     <table>
-      <thead><tr><th>Day</th><th>❤</th><th>💬</th><th>📝</th><th>⏱</th></tr></thead>
+      <thead><tr><th>Day</th><th>❤</th><th>💬</th><th>📝</th><th>👤</th><th>⏱</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
     <p class="muted">Data stays in this browser. <a href="#" id="opts">Settings</a></p>

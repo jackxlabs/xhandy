@@ -1,56 +1,241 @@
-.xh-badge {
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 9px;
-  font-size: 12px;
-  line-height: 18px;
-  white-space: nowrap;
-  color: rgb(83, 100, 113);
-  background: rgba(29, 155, 240, 0.1);
+/* x-helper styles. Everything is prefixed xh- and scoped so X's own layout is untouched.
+   Theme follows X's background (content.js sets html[data-xh-theme] to light / dim / dark).
+   Overlays use pointer-events: none so they never block a click on X. */
+
+:root {
+  --xh-fg: #0f1419;
+  --xh-muted: #536471;
+  --xh-chip: rgba(15, 20, 25, 0.06);
+  --xh-surface: rgba(255, 255, 255, 0.92);
+  --xh-border: rgba(15, 20, 25, 0.1);
+  --xh-shadow: 0 4px 18px rgba(15, 20, 25, 0.12), 0 1px 3px rgba(15, 20, 25, 0.08);
+  --xh-blue: #1d9bf0;
+  --xh-blue-bg: rgba(29, 155, 240, 0.1);
+  --xh-green: #00875a;
+  --xh-green-bg: rgba(0, 186, 124, 0.12);
+  --xh-amber: #9a6100;
+  --xh-amber-bg: rgba(255, 173, 31, 0.16);
+  --xh-purple: #6b3fd4;
+  --xh-purple-bg: rgba(120, 86, 255, 0.12);
+  --xh-red: #c7151f;
+  --xh-red-bg: rgba(244, 33, 46, 0.1);
 }
-.xh-badge.xh-stale {
-  color: rgb(140, 90, 0);
-  background: rgba(255, 173, 31, 0.18);
+:root[data-xh-theme="dim"],
+:root[data-xh-theme="dark"] {
+  --xh-fg: #e7e9ea;
+  --xh-muted: #8b98a5;
+  --xh-chip: rgba(231, 233, 234, 0.08);
+  --xh-border: rgba(231, 233, 234, 0.14);
+  --xh-shadow: 0 4px 22px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(231, 233, 234, 0.06);
+  --xh-blue: #4cb3f5;
+  --xh-blue-bg: rgba(29, 155, 240, 0.16);
+  --xh-green: #33d6a0;
+  --xh-green-bg: rgba(0, 186, 124, 0.16);
+  --xh-amber: #ffc25c;
+  --xh-amber-bg: rgba(255, 173, 31, 0.14);
+  --xh-purple: #a993ff;
+  --xh-purple-bg: rgba(120, 86, 255, 0.18);
+  --xh-red: #ff6b74;
+  --xh-red-bg: rgba(244, 33, 46, 0.16);
 }
-article.xh-target {
-  box-shadow: inset 3px 0 0 rgb(29, 155, 240);
+:root[data-xh-theme="dim"] {
+  --xh-surface: rgba(30, 39, 50, 0.94);
+}
+:root[data-xh-theme="dark"] {
+  --xh-surface: rgba(22, 24, 28, 0.94);
 }
 
+/* ---- post badges ---- */
+
+.xh-badge {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: 6px;
+  overflow: hidden;
+  vertical-align: middle;
+  pointer-events: none;
+  user-select: none;
+}
+.xh-chip {
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--xh-muted);
+  background: var(--xh-chip);
+}
+.xh-stale {
+  color: var(--xh-amber);
+  background: var(--xh-amber-bg);
+}
+.xh-rel-mutual {
+  color: var(--xh-green);
+  background: var(--xh-green-bg);
+}
+.xh-rel-follower {
+  color: var(--xh-blue);
+  background: var(--xh-blue-bg);
+}
+.xh-rel-following {
+  color: var(--xh-fg);
+  background: var(--xh-chip);
+}
+.xh-rel-none {
+  color: var(--xh-muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--xh-border);
+}
+.xh-seen {
+  color: var(--xh-purple);
+  background: var(--xh-purple-bg);
+}
+.xh-star {
+  color: var(--xh-amber);
+  background: var(--xh-amber-bg);
+}
+article.xh-target {
+  box-shadow: inset 3px 0 0 var(--xh-blue);
+}
+
+/* ---- floating panels ---- */
+
 .xh-hud,
-.xh-dup {
+.xh-dup,
+.xh-toast {
   position: fixed;
   z-index: 2147483000;
-  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
-  border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  font: 13px/1.45 -apple-system, "Segoe UI", system-ui, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  color: var(--xh-fg);
+  background: var(--xh-surface);
+  border: 1px solid var(--xh-border);
+  box-shadow: var(--xh-shadow);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  pointer-events: none;
+  animation: xh-in 0.18s ease-out;
+}
+@keyframes xh-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xh-hud,
+  .xh-dup,
+  .xh-toast {
+    animation: none;
+  }
+}
+
+/* Stats bar: bottom centre, clear of X's left nav, account switcher and the Messages drawer. */
+.xh-hud {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
 }
 .xh-hud {
-  left: 12px;
-  bottom: 12px;
-  padding: 6px 10px;
-  color: #fff;
-  background: rgba(15, 20, 25, 0.82);
-  pointer-events: auto;
+  transition: opacity 0.2s ease;
 }
-.xh-hud.xh-goal-met {
-  background: rgba(0, 120, 70, 0.9);
+.xh-hud.xh-scrolling {
+  opacity: 0.08;
+}
+.xh-hud-item {
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.xh-hud-label {
+  color: var(--xh-muted);
+  font-size: 12px;
+}
+.xh-hud.xh-goal-met .xh-hud-item:nth-child(2) {
+  color: var(--xh-green);
+  background: var(--xh-green-bg);
+}
+.xh-hud.xh-follow-high .xh-hud-item:nth-child(4) {
+  color: var(--xh-amber);
+  background: var(--xh-amber-bg);
+}
+@media (max-width: 700px) {
+  .xh-hud-label {
+    display: none;
+  }
+}
+
+/* Duplicate warning and toasts: bottom right, above X's collapsed Messages drawer. */
+.xh-dup,
+.xh-toast {
+  right: 20px;
+  max-width: 340px;
+  border-radius: 14px;
 }
 .xh-dup {
-  right: 16px;
-  bottom: 16px;
-  max-width: 340px;
-  padding: 10px 12px;
-  color: #3d2a00;
-  background: #fff4d6;
-  border: 1px solid #f0c040;
+  bottom: 128px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--xh-amber);
+}
+.xh-dup strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--xh-amber);
+  font-weight: 600;
 }
 .xh-dup blockquote {
   margin: 6px 0 0;
-  padding-left: 8px;
-  border-left: 3px solid #f0c040;
-  color: #5c4a1a;
+  padding: 4px 0 4px 8px;
+  border-left: 2px solid var(--xh-border);
+  color: var(--xh-muted);
 }
+.xh-toast {
+  bottom: 76px;
+  padding: 8px 14px;
+  font-weight: 500;
+}
+.xh-toast[data-kind="ok"] {
+  border-left: 3px solid var(--xh-green);
+}
+.xh-toast[data-kind="warn"] {
+  border-left: 3px solid var(--xh-amber);
+}
+.xh-toast[data-kind="focus"] {
+  border-left: 3px solid var(--xh-blue);
+}
+
+/* Follow assistant: ring around X's own Follow button while it waits for Enter. */
+.xh-follow-focus {
+  outline: 3px solid var(--xh-blue) !important;
+  outline-offset: 3px !important;
+  animation: xh-pulse 1.2s ease-in-out infinite;
+}
+@keyframes xh-pulse {
+  50% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xh-follow-focus {
+    animation: none;
+  }
+}
+
 .xh-hud[hidden],
-.xh-dup[hidden] {
+.xh-dup[hidden],
+.xh-toast[hidden] {
   display: none;
 }

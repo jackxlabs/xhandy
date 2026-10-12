@@ -1,6 +1,7 @@
 // x-helper content script.
 // Rule for this file: it only READS the page and the user's own clicks/typing, and shows hints.
-// It never clicks, types, sends, likes or follows on the user's behalf.
+// It never clicks, types, sends, likes or follows on the user's behalf. The follow assistant
+// only opens X's own hover card and focuses its Follow button; the user presses Enter.
 (function () {
   const XH = globalThis.XH;
   const { store, sim, t } = XH;
@@ -13,6 +14,10 @@
     reply: '[data-testid="reply"]',
     send: '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]',
     textarea: '[data-testid^="tweetTextarea_"]',
+    avatar: '[data-testid="Tweet-User-Avatar"]',
+    hoverCard: '[data-testid="HoverCard"]',
+    followBtn: '[data-testid$="-follow"]',
+    unfollowBtn: '[data-testid$="-unfollow"]',
   };
 
   let S = null; // cached state
@@ -66,35 +71,46 @@
     const isTarget = s.targets.some((h) => h.toLowerCase() === info.handle.toLowerCase());
     const stale = now - info.time > s.staleHours * 3600 * 1000;
 
-    let parts = [fmtAge(now - info.time)];
-    if (stale) parts.push(t("stale"));
+    // Each chip: [kind, text]. Kind picks the colour in content.css.
+    const chips = [[stale ? "stale" : "age", fmtAge(now - info.time) + (stale ? " · " + t("stale") : "")]];
     const rel = s.showRel && S.rel[info.handle.toLowerCase()];
     if (rel) {
-      const key = rel.f && rel.fb ? "rel_mutual" : rel.f ? "rel_following" : rel.fb ? "rel_follower" : "rel_none";
+      const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : rel.fb ? "follower" : "none";
       const old = now - rel.t > s.relStaleDays * 86400000;
-      parts.push(t(key) + (old ? t("rel_stale") : ""));
+      chips.push(["rel-" + key, t("rel_" + key) + (old ? t("rel_stale") : "")]);
     }
     if (p && p.likes + p.replies > 0) {
       const days = Math.floor((now - p.last) / 86400000);
-      parts.push(
+      chips.push([
+        "seen",
         t("interacted", {
           n: p.likes + p.replies,
           ago: days < 1 ? t("ago_today") : t("ago_days", { n: days }),
-        })
-      );
+        }),
+      ]);
     }
-    if (isTarget) parts.push("★ " + t("target"));
-    const text = parts.join(" · ");
+    if (isTarget) chips.push(["star", "★ " + t("target")]);
 
+    const key = JSON.stringify(chips);
     let badge = article.querySelector(":scope .xh-badge");
     if (!badge) {
       badge = document.createElement("span");
       badge.className = "xh-badge";
+      badge.setAttribute("aria-hidden", "true");
       const host = article.querySelector(SEL.userName) || info.anchor.parentElement;
       host.appendChild(badge);
     }
-    if (badge.textContent !== text) badge.textContent = text;
-    badge.classList.toggle("xh-stale", stale);
+    if (badge.dataset.key !== key) {
+      badge.dataset.key = key;
+      badge.replaceChildren(
+        ...chips.map(([kind, text]) => {
+          const c = document.createElement("span");
+          c.className = "xh-chip xh-" + kind;
+          c.textContent = text;
+          return c;
+        })
+      );
+    }
     article.classList.toggle("xh-target", isTarget);
   }
 
@@ -296,15 +312,51 @@
       hudEl.title = t("hud_hint");
       document.body.appendChild(hudEl);
     }
-    const d = S.days[store.dayKey()] || { likes: 0, replies: 0, posts: 0, seconds: 0 };
+    const d = S.days[store.dayKey()] || { likes: 0, replies: 0, posts: 0, follows: 0, seconds: 0 };
     const goal = S.settings.dailyReplyGoal;
     const replies = goal ? `${d.replies}/${goal}` : String(d.replies);
-    hudEl.textContent =
-      `❤ ${d.likes} ${t("hud_likes")} · 💬 ${replies} ${t("hud_replies")} · ` +
-      `📝 ${d.posts} ${t("hud_posts")} · ⏱ ${fmtDuration(d.seconds)} ${t("hud_time")}`;
+    const follows = d.follows || 0;
+    const items = [
+      ["❤", d.likes, t("hud_likes")],
+      ["💬", replies, t("hud_replies")],
+      ["📝", d.posts, t("hud_posts")],
+      ["👤", follows, t("hud_follows")],
+      ["⏱", fmtDuration(d.seconds), t("hud_time")],
+    ];
+    const key = JSON.stringify(items);
+    if (hudEl.dataset.key !== key) {
+      hudEl.dataset.key = key;
+      hudEl.replaceChildren(
+        ...items.map(([icon, value, label]) => {
+          const el = document.createElement("span");
+          el.className = "xh-hud-item";
+          el.title = label;
+          el.textContent = `${icon} ${value} `;
+          const l = document.createElement("span");
+          l.className = "xh-hud-label";
+          l.textContent = label;
+          el.append(l);
+          return el;
+        })
+      );
+    }
     hudEl.classList.toggle("xh-goal-met", !!goal && d.replies >= goal);
+    hudEl.classList.toggle("xh-follow-high", follows > S.settings.followLimit);
     hudEl.hidden = false;
   }
+
+  // Fade the stats bar while scrolling so it never sits on top of what you are reading.
+  let scrollTimer = null;
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!hudEl) return;
+      hudEl.classList.add("xh-scrolling");
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => hudEl.classList.remove("xh-scrolling"), 1000);
+    },
+    { passive: true }
+  );
 
   const TICK = 15;
   setInterval(() => {
@@ -312,6 +364,161 @@
       store.update((s) => (store.today(s).seconds += TICK));
     }
   }, TICK * 1000);
+
+  // ---------- small toast (shared by the follow assistant) ----------
+
+  let toastEl = null;
+  let toastTimer = null;
+
+  function toast(text, kind = "info", ms = 2500) {
+    if (!toastEl) {
+      toastEl = document.createElement("div");
+      toastEl.className = "xh-toast";
+      toastEl.setAttribute("role", "status");
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = text;
+    toastEl.dataset.kind = kind;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    if (ms) toastTimer = setTimeout(() => (toastEl.hidden = true), ms);
+  }
+
+  // ---------- follow assistant: Shift+F on a focused post ----------
+  // Opens X's own hover card for the author, focuses its Follow button and waits.
+  // The user presses Enter to follow (or Esc). Nothing is clicked by x-helper.
+
+  let followTarget = null; // { handle, button, hoverEl }
+
+  function hover(el, on) {
+    const types = on ? ["pointerover", "pointerenter", "mouseover", "mouseenter"] : ["pointerout", "pointerleave", "mouseout", "mouseleave"];
+    for (const type of types) {
+      const Ev = type.startsWith("pointer") ? PointerEvent : MouseEvent;
+      el.dispatchEvent(new Ev(type, { bubbles: !type.endsWith("enter") && !type.endsWith("leave"), view: window }));
+    }
+  }
+
+  function clearFollowTarget() {
+    if (!followTarget) return;
+    followTarget.button && followTarget.button.classList.remove("xh-follow-focus");
+    hover(followTarget.hoverEl, false);
+    followTarget = null;
+  }
+
+  function findFollowButton(handle) {
+    const rel = S.rel[handle.toLowerCase()];
+    if (rel && rel.id) {
+      const exact = document.querySelector(
+        `${SEL.hoverCard} [data-testid="${rel.id}-follow"], ${SEL.hoverCard} [data-testid="${rel.id}-unfollow"]`
+      );
+      if (exact) return exact;
+    }
+    // Without a known id, only trust a hover card that is clearly about this handle.
+    const lower = handle.toLowerCase();
+    const card = [...document.querySelectorAll(SEL.hoverCard)].find(
+      (c) =>
+        [...c.querySelectorAll("a[href]")].some((a) => a.getAttribute("href").toLowerCase() === "/" + lower) ||
+        c.textContent.toLowerCase().includes("@" + lower)
+    );
+    return card ? card.querySelector(SEL.followBtn + "," + SEL.unfollowBtn) : null;
+  }
+
+  async function startFollow() {
+    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const info = article && tweetInfo(article);
+    if (!info) return toast(t("follow_pick"), "warn");
+    const rel = S.rel[info.handle.toLowerCase()];
+    if (rel && rel.f) return toast(t("follow_already", { h: info.handle }));
+
+    clearFollowTarget();
+    const hoverEl =
+      (article.querySelector(SEL.avatar) && article.querySelector(SEL.avatar).querySelector("a, div")) ||
+      article.querySelector(`${SEL.userName} a[href="/${info.handle}"]`) ||
+      article.querySelector(SEL.userName);
+    if (!hoverEl) return toast(t("follow_missing"), "warn", 4000);
+    hover(hoverEl, true);
+    toast(t("follow_opening", { h: info.handle }), "info", 0);
+
+    let button = null;
+    for (let i = 0; i < 30 && !button; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      button = findFollowButton(info.handle);
+    }
+    if (!button) {
+      hover(hoverEl, false);
+      return toast(t("follow_missing"), "warn", 4000);
+    }
+    if (button.matches(SEL.unfollowBtn)) {
+      hover(hoverEl, false);
+      return toast(t("follow_already", { h: info.handle }));
+    }
+    followTarget = { handle: info.handle, button, hoverEl };
+    button.classList.add("xh-follow-focus");
+    button.focus({ preventScroll: true });
+    toast(t("follow_confirm", { h: info.handle }), "focus", 0);
+  }
+
+  // Count follows the user makes (Enter on the focused button, or any click on a Follow button).
+  document.addEventListener(
+    "click",
+    (e) => {
+      const btn = e.target.closest(SEL.followBtn);
+      if (!btn) return;
+      const handle =
+        (followTarget && followTarget.button === btn && followTarget.handle) ||
+        (location.pathname.split("/")[1] || null);
+      store.update((s) => {
+        const d = store.today(s);
+        d.follows = (d.follows || 0) + 1;
+        if (handle) {
+          const k = handle.toLowerCase();
+          s.rel[k] = { ...(s.rel[k] || { fb: false, id: null }), f: true, t: Date.now() };
+        }
+      });
+      const over = ((S.days[store.dayKey()] || {}).follows || 0) + 1 > S.settings.followLimit;
+      if (over) toast(t("follow_limit", { n: S.settings.followLimit }), "warn", 5000);
+      else toast(t("follow_done", { h: handle || "" }), "ok");
+      if (followTarget && followTarget.button === btn) {
+        btn.classList.remove("xh-follow-focus");
+        // Only close this card: the user may already have started on the next post.
+        const done = followTarget;
+        setTimeout(() => followTarget === done && clearFollowTarget(), 600);
+      }
+    },
+    true
+  );
+
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key === "F" && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !isTyping(e.target)) {
+        e.preventDefault();
+        startFollow();
+      } else if (e.key === "Escape" && followTarget) {
+        clearFollowTarget();
+        toastEl && (toastEl.hidden = true);
+      } else if (followTarget && (e.key === "j" || e.key === "k")) {
+        clearFollowTarget();
+        toastEl && (toastEl.hidden = true);
+      }
+    },
+    true
+  );
+
+  // ---------- theme: follow X's own background (Default / Dim / Lights out) ----------
+
+  function syncTheme() {
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const m = bg.match(/\d+(\.\d+)?/g);
+    if (!m) return;
+    const [r, g, b] = m.map(Number);
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const theme = lum > 128 ? "light" : r + g + b < 30 ? "dark" : "dim";
+    if (document.documentElement.dataset.xhTheme !== theme) document.documentElement.dataset.xhTheme = theme;
+  }
+  syncTheme();
+  new MutationObserver(syncTheme).observe(document.body, { attributes: true, attributeFilter: ["style", "class"] });
+  setInterval(syncTheme, 5000);
 
   // ---------- follow relationships (read from X's own responses by page-hook.js) ----------
 
