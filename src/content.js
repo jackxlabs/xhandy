@@ -17,9 +17,13 @@
     avatar: '[data-testid="Tweet-User-Avatar"]',
     followBtn: '[data-testid$="-follow"]',
     unfollowBtn: '[data-testid$="-unfollow"]',
+    confirm: '[data-testid="confirmationSheetConfirm"]',
+    profileLink: 'a[data-testid="AppTabBar_Profile_Link"]',
   };
 
   let S = null; // cached state
+  const views = new Map(); // post id -> { n: views, at: when X reported it }; memory only
+  const MAX_VIEWS = 5000;
   let pendingReply = null; // { handle, t } set when the user clicks a reply button
   let lastSendAt = 0;
 
@@ -53,13 +57,23 @@
     return t("age_day", { n: Math.floor(h / 24) });
   }
 
+  // h:mm, like a clock, so the stats bar keeps a steady width.
   function fmtDuration(sec) {
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
-    return h ? `${h}h${String(m).padStart(2, "0")}m` : `${m}m`;
+    return `${h}:${String(m).padStart(2, "0")}`;
   }
 
-  // ---------- 3. post badges: age, past interactions, target accounts ----------
+  // Views per hour since posting, from the count X sent with the post. Posts under 30 min old
+  // count as 30 min so a handful of early views doesn't look like a spike.
+  function viewsPerHour(info) {
+    const v = views.get(info.id);
+    if (!v || !info.time) return null;
+    const hours = Math.max(0.5, (v.at - info.time) / 3600000);
+    return v.n / hours;
+  }
+
+  // ---------- 3. post badges: age, heat, past interactions, target accounts ----------
 
   function annotate(article) {
     const info = tweetInfo(article);
@@ -71,7 +85,12 @@
     const stale = now - info.time > s.staleHours * 3600 * 1000;
 
     // Each chip: [kind, text]. Kind picks the colour in content.css.
-    const chips = [[stale ? "stale" : "age", fmtAge(now - info.time) + (stale ? " · " + t("stale") : "")]];
+    const rate = s.showHeat ? viewsPerHour(info) : null;
+    const heat = rate == null ? "age" : rate >= s.heatHot ? "hot" : rate >= s.heatWarm ? "warm" : "age";
+    let ageText = (heat === "hot" && !stale ? "🔥 " : "") + fmtAge(now - info.time);
+    if (rate != null) ageText += " · " + t("per_hour", { n: XH.compact(rate) });
+    if (stale) ageText += " · " + t("stale");
+    const chips = [[stale ? "stale" : heat, ageText]];
     const rel = s.showRel && S.rel[info.handle.toLowerCase()];
     if (rel) {
       const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : rel.fb ? "follower" : "none";
@@ -311,36 +330,43 @@
       hudEl.title = t("hud_hint");
       document.body.appendChild(hudEl);
     }
-    const d = S.days[store.dayKey()] || { likes: 0, replies: 0, posts: 0, follows: 0, seconds: 0 };
+    const d = { likes: 0, replies: 0, posts: 0, follows: 0, seconds: 0, ...(S.days[store.dayKey()] || {}) };
     const goal = S.settings.dailyReplyGoal;
     const replies = goal ? `${d.replies}/${goal}` : String(d.replies);
     const follows = d.follows || 0;
+    // [key, value, label, state]; state colours the number (ok / warn).
     const items = [
-      ["❤", d.likes, t("hud_likes")],
-      ["💬", replies, t("hud_replies")],
-      ["📝", d.posts, t("hud_posts")],
-      ["👤", follows, t("hud_follows")],
-      ["⏱", fmtDuration(d.seconds), t("hud_time")],
+      ["likes", d.likes, t("hud_likes")],
+      ["replies", replies, t("hud_replies"), goal && d.replies >= goal ? "ok" : ""],
+      ["posts", d.posts, t("hud_posts")],
+      ["follows", follows, t("hud_follows"), follows > S.settings.followLimit ? "warn" : ""],
+      ["time", fmtDuration(d.seconds), t("hud_time")],
     ];
-    const key = JSON.stringify(items);
+    const key = JSON.stringify([items, goal]);
     if (hudEl.dataset.key !== key) {
       hudEl.dataset.key = key;
       hudEl.replaceChildren(
-        ...items.map(([icon, value, label]) => {
+        ...items.map(([k, value, label, state]) => {
           const el = document.createElement("span");
           el.className = "xh-hud-item";
-          el.title = label;
-          el.textContent = `${icon} ${value} `;
+          el.dataset.k = k;
+          if (state) el.dataset.state = state;
+          const v = document.createElement("b");
+          v.textContent = value;
           const l = document.createElement("span");
           l.className = "xh-hud-label";
           l.textContent = label;
-          el.append(l);
+          el.append(v, l);
+          if (k === "replies" && goal) {
+            const bar = document.createElement("span");
+            bar.className = "xh-hud-bar";
+            bar.style.setProperty("--xh-p", Math.min(100, (d.replies / goal) * 100) + "%");
+            el.append(bar);
+          }
           return el;
         })
       );
     }
-    hudEl.classList.toggle("xh-goal-met", !!goal && d.replies >= goal);
-    hudEl.classList.toggle("xh-follow-high", follows > S.settings.followLimit);
     hudEl.hidden = false;
   }
 
@@ -532,6 +558,11 @@
       if (e.key === "F" && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !isTyping(e.target)) {
         e.preventDefault();
         startFollow();
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyU") {
+        e.preventDefault();
+        togglePanel();
+      } else if (e.key === "Escape" && panelEl && !panelEl.hidden && !followTarget) {
+        togglePanel(false);
       } else if (e.key === "Escape" && followTarget) {
         clearFollowTarget();
         toastEl && (toastEl.hidden = true);
@@ -564,16 +595,32 @@
   let relTimer = null;
 
   window.addEventListener("xh-relations", (e) => {
-    let users;
+    let users, payload;
     try {
-      users = JSON.parse(e.detail);
+      payload = JSON.parse(e.detail);
+      users = payload.u;
     } catch (_) {
       return;
     }
+    if (payload.v.length) {
+      for (const p of payload.v) {
+        views.delete(p.id); // keep the Map in arrival order so the oldest go first
+        views.set(p.id, { n: p.views, at: payload.at });
+      }
+      for (const id of views.keys()) {
+        if (views.size <= MAX_VIEWS) break;
+        views.delete(id);
+      }
+      clearTimeout(annotateTimer);
+      annotateTimer = setTimeout(annotateAll, 250);
+    }
+    if (!users.length) return;
     const now = Date.now();
     for (const u of users) {
-      relPending[u.handle.toLowerCase()] = { f: u.following, fb: u.followedBy, id: u.id, t: now };
+      relPending[u.handle.toLowerCase()] = { f: u.following, fb: u.followedBy, id: u.id, n: u.name, t: now };
     }
+    const me = myHandle();
+    const onFollowingPage = me && location.pathname.toLowerCase() === "/" + me.toLowerCase() + "/following";
     clearTimeout(relTimer);
     relTimer = setTimeout(() => {
       const batch = relPending;
@@ -581,8 +628,164 @@
       store.update((s) => {
         Object.assign(s.rel, batch);
         s.relMeta.last = Date.now();
+        if (onFollowingPage) s.relMeta.scan = Date.now();
       });
     }, 1000);
+  });
+
+  // ---------- unfollow counting (the user's own clicks on X's Following → Unfollow) ----------
+
+  let unfollowTarget = null; // { handle, t } after clicking a Following button, until X's confirm
+
+  function handleOfButton(btn) {
+    const h = buttonHandle(btn);
+    if (h) return h;
+    const id = (btn.dataset.testid || "").replace(/-(un)?follow$/, "");
+    return Object.keys(S.rel).find((k) => S.rel[k].id === id) || null;
+  }
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      const btn = e.target.closest(SEL.unfollowBtn);
+      if (btn) {
+        const handle = S && handleOfButton(btn);
+        unfollowTarget = handle ? { handle, t: Date.now() } : null;
+        return;
+      }
+      if (!e.target.closest(SEL.confirm) || !unfollowTarget || Date.now() - unfollowTarget.t > 30000) return;
+      const { handle } = unfollowTarget;
+      unfollowTarget = null;
+      store.update((s) => {
+        const d = store.today(s);
+        d.unfollows = (d.unfollows || 0) + 1;
+        const k = handle.toLowerCase();
+        if (s.rel[k]) s.rel[k] = { ...s.rel[k], f: false, t: Date.now() };
+      });
+      const over = ((S.days[store.dayKey()] || {}).unfollows || 0) + 1 > S.settings.unfollowLimit;
+      if (over) toast(t("unfollow_limit", { n: S.settings.unfollowLimit }), "warn", 5000);
+      else toast(t("unfollow_done", { h: handle }), "ok");
+    },
+    true
+  );
+
+  // ---------- "not following you back" panel (Alt+U or the toolbar popup) ----------
+  // Read-only list of accounts you follow that don't follow you, from data X already sent.
+  // Each row only links to the profile; there is no unfollow button and no bulk action.
+
+  const PANEL_MAX = 300;
+  let panelEl = null;
+  let panelQuery = "";
+
+  function myHandle() {
+    const a = document.querySelector(SEL.profileLink);
+    const m = a && (a.getAttribute("href") || "").match(/^\/([A-Za-z0-9_]{1,15})$/);
+    return m ? m[1] : null;
+  }
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function buildPanel() {
+    panelEl = el("aside", "xh-panel");
+    panelEl.hidden = true;
+    panelEl.setAttribute("aria-label", t("nfb_title"));
+    const head = el("header", "xh-panel-head");
+    const title = el("h2", "xh-panel-title");
+    const close = el("button", "xh-panel-close", "×");
+    close.type = "button";
+    close.title = close.ariaLabel = t("nfb_close");
+    close.addEventListener("click", () => togglePanel(false));
+    head.append(title, close);
+    const search = el("input", "xh-panel-search");
+    search.type = "search";
+    search.placeholder = t("nfb_search");
+    search.addEventListener("input", () => {
+      panelQuery = search.value.trim().replace(/^@/, "").toLowerCase();
+      renderPanel(true);
+    });
+    panelEl.append(head, el("div", "xh-panel-info"), search, el("ol", "xh-panel-list"), el("footer", "xh-panel-foot"));
+    // Keep X's single-key shortcuts (j, k, l, r…) from firing while typing in the search box.
+    panelEl.addEventListener("keydown", (e) => e.key !== "Escape" && e.stopPropagation());
+    document.body.appendChild(panelEl);
+  }
+
+  function togglePanel(open) {
+    if (!panelEl) buildPanel();
+    const show = open == null ? panelEl.hidden : open;
+    panelEl.hidden = !show;
+    if (show) {
+      renderPanel(true);
+      panelEl.querySelector(".xh-panel-search").focus({ preventScroll: true });
+    }
+  }
+
+  function renderPanel(force) {
+    if (!S || !panelEl || panelEl.hidden) return;
+    const now = Date.now();
+    const me = (myHandle() || "").toLowerCase();
+    const all = Object.entries(S.rel).filter(([h, r]) => r.f && h !== me);
+    const rows = all
+      .filter(([, r]) => !r.fb)
+      .sort(([a], [b]) => a.localeCompare(b));
+    const matching = rows.filter(
+      ([h, r]) => !panelQuery || h.includes(panelQuery) || (r.n || "").toLowerCase().includes(panelQuery)
+    );
+    const shown = matching.slice(0, PANEL_MAX);
+    const today = S.days[store.dayKey()] || {};
+    const key = JSON.stringify([shown.map(([h, r]) => [h, r.n, r.t]), rows.length, S.relMeta.scan, today.unfollows, me]);
+    if (!force && panelEl.dataset.key === key) return;
+    panelEl.dataset.key = key;
+
+    panelEl.querySelector(".xh-panel-title").replaceChildren(t("nfb_title"), el("span", "xh-panel-count", rows.length));
+
+    const info = panelEl.querySelector(".xh-panel-info");
+    const [before, after] = t("nfb_hint", { link: "\u0000" }).split("\u0000");
+    const link = el("a", null, t("nfb_link"));
+    link.href = me ? `/${me}/following` : "/";
+    const p1 = el("p");
+    p1.append(before, link, after);
+    const p2 = el("p", "xh-panel-muted", S.relMeta.scan ? t("nfb_scan", { ago: XH.ago(S.relMeta.scan, now) }) : t("nfb_noscan"));
+    info.replaceChildren(p1, p2);
+    // If X stops sending "followed_by", every account would look like it doesn't follow back.
+    const mutual = all.length - rows.length;
+    if (all.length >= 20 && mutual === 0) info.append(el("p", "xh-panel-warn", "⚠ " + t("nfb_suspect", { n: all.length })));
+
+    const list = panelEl.querySelector(".xh-panel-list");
+    list.replaceChildren(
+      ...shown.map(([h, r]) => {
+        const li = el("li");
+        const a = el("a", "xh-panel-row");
+        a.href = "/" + h;
+        const name = el("span", "xh-panel-name", r.n || h);
+        const handle = el("span", "xh-panel-handle", "@" + h);
+        const meta = [t("nfb_seen", { ago: XH.ago(r.t, now) })];
+        if (now - r.t > S.settings.relStaleDays * 86400000) meta[0] += t("rel_stale");
+        const p = S.people[h];
+        if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
+        a.append(name, handle, el("span", "xh-panel-meta", meta.join(" · ")));
+        li.append(a);
+        return li;
+      })
+    );
+    if (!shown.length) list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_empty")));
+    if (matching.length > PANEL_MAX) {
+      list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_more", { n: PANEL_MAX, total: matching.length })));
+    }
+
+    panelEl.querySelector(".xh-panel-foot").textContent = t("nfb_footer", {
+      n: today.unfollows || 0,
+      limit: S.settings.unfollowLimit,
+    });
+  }
+
+  // The toolbar popup's button opens the panel in this tab.
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg && msg.type === "xh-panel") togglePanel(true);
   });
 
   // ---------- wiring ----------
@@ -597,6 +800,7 @@
     S = s;
     annotateAll();
     renderHud();
+    renderPanel();
   });
 
   store.get().then((s) => {

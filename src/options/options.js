@@ -1,7 +1,7 @@
 (async function () {
   const { store } = globalThis.XH;
   const $ = (id) => document.getElementById(id);
-  const NUMS = ["staleHours", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit"];
+  const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit"];
 
   async function load() {
     const all = await store.get();
@@ -10,6 +10,7 @@
     for (const k of NUMS) $(k).value = s[k];
     $("hud").checked = s.hud;
     $("showRel").checked = s.showRel;
+    $("showHeat").checked = s.showHeat;
     const n = Object.keys(all.rel).length;
     const last = all.relMeta.last;
     const mins = last ? Math.round((Date.now() - last) / 60000) : null;
@@ -31,6 +32,7 @@
       }
       s.settings.hud = $("hud").checked;
       s.settings.showRel = $("showRel").checked;
+      s.settings.showHeat = $("showHeat").checked;
     });
     $("status").textContent = "Saved / 已保存";
     setTimeout(() => ($("status").textContent = ""), 1500);

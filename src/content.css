@@ -1,6 +1,7 @@
 /* x-helper styles. Everything is prefixed xh- and scoped so X's own layout is untouched.
    Theme follows X's background (content.js sets html[data-xh-theme] to light / dim / dark).
-   Overlays use pointer-events: none so they never block a click on X. */
+   Overlays use pointer-events: none so they never block a click on X. The one exception is the
+   "not following back" panel, which only appears when you open it (Alt+U) and needs clicks. */
 
 :root {
   --xh-fg: #0f1419;
@@ -19,6 +20,16 @@
   --xh-purple-bg: rgba(120, 86, 255, 0.12);
   --xh-red: #c7151f;
   --xh-red-bg: rgba(244, 33, 46, 0.1);
+  /* x-helper's own surfaces (stats bar, panel, toasts): X's shapes, plus a cyan → violet → pink
+     edge and violet monospace numbers. Post badges stay in X's colours. */
+  --xh-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+  --xh-edge: linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899);
+  --xh-num: #4c1d95;
+  --xh-frame: rgba(124, 58, 237, 0.22);
+  --xh-glow: 0 8px 28px rgba(124, 58, 237, 0.14), 0 1px 3px rgba(15, 20, 25, 0.08);
+  --xh-panel: rgba(255, 255, 255, 0.97);
+  --xh-ok: #059669;
+  --xh-warn: #d97706;
 }
 :root[data-xh-theme="dim"],
 :root[data-xh-theme="dark"] {
@@ -37,12 +48,19 @@
   --xh-purple-bg: rgba(120, 86, 255, 0.18);
   --xh-red: #ff6b74;
   --xh-red-bg: rgba(244, 33, 46, 0.16);
+  --xh-num: #e9d5ff;
+  --xh-frame: rgba(167, 139, 250, 0.3);
+  --xh-glow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 20px rgba(139, 92, 246, 0.18);
+  --xh-ok: #34d399;
+  --xh-warn: #fbbf24;
 }
 :root[data-xh-theme="dim"] {
   --xh-surface: rgba(30, 39, 50, 0.94);
+  --xh-panel: rgba(24, 28, 46, 0.97);
 }
 :root[data-xh-theme="dark"] {
   --xh-surface: rgba(22, 24, 28, 0.94);
+  --xh-panel: rgba(14, 12, 24, 0.97);
 }
 
 /* ---- post badges ---- */
@@ -72,9 +90,22 @@
   color: var(--xh-muted);
   background: var(--xh-chip);
 }
-.xh-stale {
+/* Heat: views per hour since posting (thresholds in Options). */
+.xh-hot {
+  color: var(--xh-red);
+  background: var(--xh-red-bg);
+  font-weight: 600;
+}
+.xh-warm {
   color: var(--xh-amber);
   background: var(--xh-amber-bg);
+}
+/* Old posts: greyed out with a dashed outline, since replying there rarely helps. */
+.xh-stale {
+  color: var(--xh-muted);
+  background: transparent;
+  outline: 1px dashed var(--xh-border);
+  outline-offset: -1px;
 }
 .xh-rel-mutual {
   color: var(--xh-green);
@@ -143,38 +174,85 @@ article.xh-target {
   bottom: 14px;
   transform: translateX(-50%);
   display: flex;
-  gap: 2px;
-  padding: 4px 6px;
-  border-radius: 999px;
+  align-items: stretch;
+  padding: 0;
+  border-radius: 12px;
+  border-color: var(--xh-frame);
+  background: var(--xh-panel);
+  box-shadow: var(--xh-glow);
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.92;
-}
-.xh-hud {
+  opacity: 0.95;
   transition: opacity 0.2s ease;
+}
+/* The gradient edge along the top. */
+.xh-hud::before,
+.xh-panel::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--xh-edge);
 }
 .xh-hud.xh-scrolling {
   opacity: 0.08;
 }
 .xh-hud-item {
-  padding: 2px 8px;
-  border-radius: 999px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+  padding: 6px 12px 8px;
+}
+.xh-hud-item + .xh-hud-item {
+  border-left: 1px solid var(--xh-border);
+}
+.xh-hud-item b {
+  font: 700 15px/1.2 var(--xh-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--xh-num);
+}
+.xh-hud-item[data-state="ok"] b {
+  color: var(--xh-ok);
+}
+.xh-hud-item[data-state="warn"] b {
+  color: var(--xh-warn);
 }
 .xh-hud-label {
   color: var(--xh-muted);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.3;
 }
-.xh-hud.xh-goal-met .xh-hud-item:nth-child(2) {
-  color: var(--xh-green);
-  background: var(--xh-green-bg);
+/* Reply goal progress. */
+.xh-hud-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--xh-border);
+  overflow: hidden;
 }
-.xh-hud.xh-follow-high .xh-hud-item:nth-child(4) {
-  color: var(--xh-amber);
-  background: var(--xh-amber-bg);
+.xh-hud-bar::after {
+  content: "";
+  display: block;
+  width: var(--xh-p);
+  height: 100%;
+  background: var(--xh-edge);
+}
+.xh-hud-item[data-state="ok"] .xh-hud-bar::after {
+  background: var(--xh-ok);
 }
 @media (max-width: 700px) {
   .xh-hud-label {
     display: none;
+  }
+  .xh-hud-item {
+    padding: 6px 9px;
   }
 }
 
@@ -183,17 +261,20 @@ article.xh-target {
 .xh-toast {
   right: 20px;
   max-width: 340px;
-  border-radius: 14px;
+  border-radius: 12px;
+  border-color: var(--xh-frame);
+  background: var(--xh-panel);
+  box-shadow: var(--xh-glow);
 }
 .xh-dup {
   bottom: 128px;
   padding: 10px 14px;
-  border-left: 3px solid var(--xh-amber);
+  border-left: 3px solid var(--xh-warn);
 }
 .xh-dup strong {
   display: block;
   margin-bottom: 2px;
-  color: var(--xh-amber);
+  color: var(--xh-warn);
   font-weight: 600;
 }
 .xh-dup blockquote {
@@ -214,12 +295,12 @@ article.xh-target {
   border-left: 3px solid var(--xh-amber);
 }
 .xh-toast[data-kind="focus"] {
-  border-left: 3px solid var(--xh-blue);
+  border-left: 3px solid #8b5cf6;
 }
 
 /* Follow assistant: ring around X's own Follow button while it waits for Enter. */
 .xh-follow-focus {
-  outline: 3px solid var(--xh-blue) !important;
+  outline: 3px solid #8b5cf6 !important;
   outline-offset: 3px !important;
   animation: xh-pulse 1.2s ease-in-out infinite;
 }
@@ -230,6 +311,152 @@ article.xh-target {
 }
 @media (prefers-reduced-motion: reduce) {
   .xh-follow-focus {
+    animation: none;
+  }
+}
+
+/* ---- "not following you back" panel: right edge, over X's sidebar, only while open ---- */
+
+.xh-panel {
+  position: fixed;
+  z-index: 2147483000;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  font: 13px/1.45 -apple-system, "Segoe UI", system-ui, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  color: var(--xh-fg);
+  background: var(--xh-panel);
+  border: 1px solid var(--xh-frame);
+  border-radius: 14px;
+  box-shadow: var(--xh-glow);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  animation: xh-in 0.18s ease-out;
+}
+.xh-panel[hidden] {
+  display: none;
+}
+.xh-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 10px 4px 16px;
+}
+.xh-panel-title {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.xh-panel-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--xh-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.xh-panel-close:hover {
+  background: var(--xh-chip);
+  color: var(--xh-fg);
+}
+.xh-panel-info {
+  padding: 0 16px;
+  font-size: 12px;
+}
+.xh-panel-info p {
+  margin: 4px 0;
+}
+.xh-panel a {
+  color: var(--xh-blue);
+  text-decoration: none;
+}
+.xh-panel-muted {
+  color: var(--xh-muted);
+}
+.xh-panel-warn {
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--xh-amber);
+  background: var(--xh-amber-bg);
+}
+.xh-panel-search {
+  margin: 8px 12px 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--xh-border);
+  border-radius: 999px;
+  background: var(--xh-chip);
+  color: var(--xh-fg);
+  font: inherit;
+  outline: none;
+}
+.xh-panel-search:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+}
+.xh-panel-count {
+  margin-left: 6px;
+  font: 700 14px var(--xh-mono);
+  color: var(--xh-num);
+}
+.xh-panel-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 6px;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+.xh-panel a.xh-panel-row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  column-gap: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  color: var(--xh-fg);
+}
+.xh-panel a.xh-panel-row:hover,
+.xh-panel a.xh-panel-row:focus-visible {
+  background: var(--xh-chip);
+  outline: none;
+}
+.xh-panel-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xh-panel-handle {
+  overflow: hidden;
+  color: var(--xh-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xh-panel-meta {
+  grid-column: 1 / -1;
+  color: var(--xh-muted);
+  font-size: 12px;
+}
+.xh-panel-empty {
+  padding: 10px;
+}
+.xh-panel-foot {
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--xh-border);
+  color: var(--xh-muted);
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .xh-panel {
     animation: none;
   }
 }

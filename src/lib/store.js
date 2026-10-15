@@ -7,6 +7,9 @@
     settings: {
       targets: [], // handles to highlight, without "@"
       staleHours: 48,
+      showHeat: true, // colour the age chip by views per hour
+      heatWarm: 1000, // views/hour from which a post counts as warm
+      heatHot: 10000, // ... and hot
       dupThreshold: 0.6,
       dupWindow: 50, // compare against the last N sent texts
       repeatShort: 3, // warn when the same short text was sent this many times
@@ -14,13 +17,14 @@
       dailyReplyGoal: 0, // 0 = no goal
       showRel: true, // follow relationship in post badges
       followLimit: 20, // soft daily follow limit: warn above this, never block
+      unfollowLimit: 20, // same for unfollows made by hand on X
       relStaleDays: 30,
     },
     people: {}, // handle -> { likes, replies, last }
     sent: [], // { t, text, kind: "reply" | "post", to }
     days: {}, // "YYYY-MM-DD" -> { likes, replies, posts, seconds }
-    rel: {}, // handle (lowercase) -> { f: I follow them, fb: they follow me, id, t: seen at }
-    relMeta: { last: 0 }, // when relationships were last read from X's responses
+    rel: {}, // handle (lowercase) -> { f: I follow them, fb: they follow me, id, n: display name, t: seen at }
+    relMeta: { last: 0, scan: 0 }, // last: relationships last read; scan: last read on your own Following page
   };
   const MAX_REL = 30000;
   const MAX_SENT = 300;
@@ -69,7 +73,7 @@
 
   function today(s) {
     const k = dayKey();
-    return (s.days[k] = s.days[k] || { likes: 0, replies: 0, posts: 0, follows: 0, seconds: 0 });
+    return (s.days[k] = s.days[k] || { likes: 0, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 0 });
   }
 
   function person(s, handle) {

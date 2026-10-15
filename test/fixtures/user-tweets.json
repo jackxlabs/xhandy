@@ -34,6 +34,10 @@
              },
              "legacy": {
               "full_text": "post 444"
+             },
+             "views": {
+              "count": "600",
+              "state": "EnabledWithCount"
              }
             }
            }
@@ -46,5 +50,19 @@
     }
    }
   }
- }
+ },
+ "extra": [
+  {
+   "__typename": "Tweet",
+   "rest_id": "666",
+   "core": {},
+   "legacy": {
+    "full_text": "post 444"
+   },
+   "views": {
+    "count": "100",
+    "state": "EnabledWithCount"
+   }
+  }
+ ]
 }

@@ -3,30 +3,45 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      :root { --fg: #0f1419; --muted: #536471; --bg: #fff; --line: rgba(15,20,25,.08); --accent: #1d9bf0; --today: rgba(29,155,240,.08); color-scheme: light dark; }
-      @media (prefers-color-scheme: dark) {
-        :root { --fg: #e7e9ea; --muted: #8b98a5; --bg: #16181c; --line: rgba(231,233,234,.1); --accent: #4cb3f5; --today: rgba(29,155,240,.16); }
+      :root {
+        --fg: #0f1419; --muted: #536471; --bg: #fff; --line: rgba(15,20,25,.08); --num: #4c1d95;
+        --today: rgba(139,92,246,.08); --accent: #7c3aed;
+        --edge: linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899);
+        --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+        color-scheme: light dark;
       }
-      body { margin: 0; padding: 14px 16px 10px; width: 300px; font: 13px/1.5 -apple-system, "Segoe UI", system-ui, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--bg); }
+      @media (prefers-color-scheme: dark) {
+        :root { --fg: #e7e9ea; --muted: #8b98a5; --bg: #0e0c18; --line: rgba(231,233,234,.1); --num: #e9d5ff; --today: rgba(139,92,246,.18); --accent: #a78bfa; }
+      }
+      body { margin: 0; padding: 0 14px 12px; width: 340px; box-sizing: border-box; font: 13px/1.5 -apple-system, "Segoe UI", system-ui, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--bg); }
+      body::before { content: ""; display: block; height: 3px; margin: 0 -14px 12px; background: var(--edge); }
       h1 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
-      table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-      th { font-weight: 500; color: var(--muted); font-size: 12px; }
-      th, td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+      table { width: 100%; border-collapse: collapse; }
+      th { font-weight: 500; color: var(--muted); font-size: 11px; }
+      th, td { text-align: right; padding: 5px 3px; white-space: nowrap; border-bottom: 1px solid var(--line); }
+      td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--num); }
       th:first-child, td:first-child { text-align: left; }
+      td:first-child, td.zero { color: var(--muted); opacity: .7; }
+      td:first-child { opacity: 1; }
       tr.today td { font-weight: 700; background: var(--today); }
-      tr.today td:first-child { border-radius: 8px 0 0 8px; }
+      tr.today td:first-child { color: var(--fg); border-radius: 8px 0 0 8px; }
       tr.today td:last-child { border-radius: 0 8px 8px 0; }
       .muted { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
+      button { width: 100%; margin: 12px 0 0; padding: 7px 12px; border: 1px solid var(--accent); border-radius: 999px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+      button:hover { background: var(--today); }
+      button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </style>
   </head>
   <body>
     <h1>x-helper</h1>
     <table>
-      <thead><tr><th>Day</th><th>❤</th><th>💬</th><th>📝</th><th>👤</th><th>⏱</th></tr></thead>
+      <thead><tr id="head"></tr></thead>
       <tbody id="rows"></tbody>
     </table>
+    <button id="nfb" type="button"></button>
+    <p class="muted" id="nfb-msg" hidden></p>
     <p class="muted">Data stays in this browser. <a href="#" id="opts">Settings</a></p>
     <script src="../lib/i18n.js"></script>
     <script src="../lib/store.js"></script>

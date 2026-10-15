@@ -1,6 +1,7 @@
 // Runs in the page's own JS world (MAIN) so it can see the responses X's web app already
 // receives. It never sends requests of its own and never modifies responses: it clones a
-// response, reads follow relationships out of it, and hands them to the content script.
+// response, reads follow relationships and post view counts out of it, and hands them to the
+// content script.
 (function () {
   // Walk any JSON value and collect User objects that carry relationship info.
   function collectRelations(root) {
@@ -17,6 +18,7 @@
         const r = v.relationship_perspectives;
         out.set(v.core.screen_name.toLowerCase(), {
           handle: v.core.screen_name,
+          name: v.core.name || null,
           id: v.rest_id || null,
           following: !!r.following,
           followedBy: !!r.followed_by,
@@ -27,8 +29,28 @@
     return [...out.values()];
   }
 
+  // Walk any JSON value and collect view counts of posts: [{ id, views }].
+  function collectViews(root) {
+    const out = new Map();
+    const stack = [root];
+    while (stack.length) {
+      const v = stack.pop();
+      if (!v || typeof v !== "object") continue;
+      if (Array.isArray(v)) {
+        for (const x of v) stack.push(x);
+        continue;
+      }
+      if (v.__typename === "Tweet" && v.rest_id && v.views && v.views.count != null) {
+        const n = Number(v.views.count);
+        if (Number.isFinite(n)) out.set(v.rest_id, { id: v.rest_id, views: n });
+      }
+      for (const k in v) stack.push(v[k]);
+    }
+    return [...out.values()];
+  }
+
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { collectRelations };
+    module.exports = { collectRelations, collectViews };
     return;
   }
 
@@ -51,10 +73,11 @@
 
   function emit(json) {
     try {
-      const users = collectRelations(json);
-      if (!users.length) return;
+      const u = collectRelations(json);
+      const v = collectViews(json);
+      if (!u.length && !v.length) return;
       // Strings cross the MAIN/isolated world boundary reliably; objects may not.
-      const detail = JSON.stringify(users);
+      const detail = JSON.stringify({ u, v, at: Date.now() });
       if (ready) send(detail);
       else if (buffer.length < 50) buffer.push(detail);
     } catch (_) {

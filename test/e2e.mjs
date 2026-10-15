@@ -11,9 +11,11 @@ import assert from "node:assert";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixture = readFileSync(join(root, "test/fixtures/timeline.html"), "utf8");
 const profile = readFileSync(join(root, "test/fixtures/profile.html"), "utf8");
+const following = readFileSync(join(root, "test/fixtures/following.html"), "utf8");
 const api = {
   HomeTimeline: readFileSync(join(root, "test/fixtures/home-timeline.json"), "utf8"),
   UserTweets: readFileSync(join(root, "test/fixtures/user-tweets.json"), "utf8"),
+  Following: readFileSync(join(root, "test/fixtures/following.json"), "utf8"),
 };
 
 const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "xh-")), {
@@ -39,6 +41,7 @@ try {
   await ctx.route("https://x.com/**", (r) => {
     const name = Object.keys(api).find((k) => r.request().url().endsWith("/" + k));
     if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
+    if (new URL(r.request().url()).pathname === "/me_test/following") return r.fulfill({ status: 200, contentType: "text/html", body: following });
     if (new URL(r.request().url()).pathname === "/eve") return r.fulfill({ status: 200, contentType: "text/html", body: profile });
     return r.fulfill({ status: 200, contentType: "text/html", body: fixture });
   });
@@ -48,10 +51,23 @@ try {
 
   await step("badges show post age, old post is marked stale", async () => {
     await page.waitForSelector("#fresh .xh-badge");
-    assert.match(await page.textContent("#fresh .xh-badge"), /^2h/);
-    assert.match(await page.textContent("#old .xh-badge"), /^3d · old post/);
+    assert.match(await page.textContent("#fresh .xh-badge"), /2h/);
+    await page.waitForFunction(() => /^3d · 694\/h · old post/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#old .xh-chip.xh-stale"));
   });
+
+  await step("views per hour colour the age chip: hot, warm, normal, none without data", async () => {
+    // alice: 30000 views in 2 h. carol: 600 views in 10 min (counted as 30 min).
+    // eve: 100 views in 15 min. dan: no view data.
+    await page.waitForFunction(() => /^🔥 2h · 15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#fresh .xh-chip.xh-hot"));
+    await page.waitForFunction(() => /^10m · 1.2K\/h/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#carol .xh-chip.xh-warm"));
+    await page.waitForFunction(() => /^15m · 200\/h/.test(document.querySelector("#eve .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#eve .xh-chip.xh-age"));
+    assert.match(await page.textContent("#dan .xh-badge"), /^30m(?! ·)/);
+  });
+
 
   await step("follow relationships from fetch and XHR responses show on badges", async () => {
     await page.waitForFunction(() => /⇄ mutual/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
@@ -61,7 +77,7 @@ try {
 
   await step("liking counts in the HUD and the author's badge", async () => {
     await page.click("#fresh [data-testid=like]");
-    await page.waitForFunction(() => /❤ 1 /.test(document.querySelector(".xh-hud")?.textContent));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "1");
     await page.waitForFunction(() => /you: 1×/.test(document.querySelector("#fresh .xh-badge").textContent));
   });
 
@@ -72,7 +88,7 @@ try {
     await page.click("#fresh [data-testid=reply]");
     await page.fill(box, text);
     await page.click('[data-testid="tweetButton"]');
-    await page.waitForFunction(() => /💬 1 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "1");
     await page.waitForFunction(() => /you: 2×/.test(document.querySelector("#fresh .xh-badge").textContent));
   });
 
@@ -91,9 +107,9 @@ try {
   await step("X keyboard shortcuts: l on a focused post counts, l again un-counts", async () => {
     await page.focus("#old");
     await page.keyboard.press("l");
-    await page.waitForFunction(() => /❤ 2 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "2");
     await page.keyboard.press("l");
-    await page.waitForFunction(() => /❤ 1 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "1");
   });
 
   await step("X keyboard shortcuts: r then send counts as a reply to the focused author", async () => {
@@ -101,7 +117,7 @@ try {
     await page.keyboard.press("r");
     await page.fill(box, "Bob, the old post still holds up after three days");
     await page.click('[data-testid="tweetButton"]');
-    await page.waitForFunction(() => /💬 2 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "2");
     await page.waitForFunction(() => /you: 1×/.test(document.querySelector("#old .xh-badge").textContent));
   });
 
@@ -109,7 +125,7 @@ try {
     await page.click(box);
     await page.keyboard.type("l");
     await page.waitForTimeout(500);
-    assert.match(await page.textContent(".xh-hud"), /❤ 1 /);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=likes] b"), "1");
     await page.fill(box, "");
   });
 
@@ -126,7 +142,7 @@ try {
     assert.strictEqual(await page.evaluate(() => document.activeElement.dataset.testid), "2-follow");
     if (process.env.SHOTS) await page.screenshot({ path: join(process.env.SHOTS, "light-follow.png") });
     await page.keyboard.press("Enter");
-    await page.waitForFunction(() => /👤 1 /.test(document.querySelector(".xh-hud").textContent));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "1");
     await page.waitForFunction(() => /⇄ mutual/.test(document.querySelector("#old .xh-badge").textContent));
   });
 
@@ -136,7 +152,7 @@ try {
     await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
     await page.keyboard.press("Escape");
     await page.waitForSelector(".xh-follow-focus", { state: "detached", timeout: 2000 });
-    assert.match(await page.textContent(".xh-hud"), /👤 1 /);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=follows] b"), "1");
   });
 
   await step("Shift+F while typing does nothing", async () => {
@@ -191,7 +207,49 @@ try {
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => /Alt\+← back/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
     await page.keyboard.press("Alt+KeyH"); // stats bar was hidden by an earlier step
-    await page.waitForFunction(() => /👤 2 /.test(document.querySelector(".xh-hud")?.textContent), null, { timeout: 3000 });
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "2", null, { timeout: 3000 });
+  });
+
+  const panelText = () => page.evaluate(() => document.querySelector(".xh-panel")?.textContent || "");
+
+  await step("Alt+U on your Following page lists only who doesn't follow you back", async () => {
+    await page.goto("https://x.com/me_test/following");
+    await page.waitForSelector("#zed");
+    await page.waitForTimeout(1500); // relationships are written in a 1 s batch
+    await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+    await page.waitForFunction(() => /Following page last read/.test(document.querySelector(".xh-panel").textContent), null, { timeout: 3000 });
+    const text = await panelText();
+    assert.match(text, /@zed/);
+    assert.match(text, /Ann Lee@ann/);
+    assert.match(text, /@quoted_dave/); // seen earlier on the home timeline
+    assert.doesNotMatch(text, /@mia/); // mutual
+    assert.doesNotMatch(text, /@alice/); // mutual
+    assert.doesNotMatch(text, /@me_test/); // yourself
+    assert.strictEqual(await page.getAttribute('.xh-panel a[href="/ann"]', "href"), "/ann");
+    assert.strictEqual(await page.$(".xh-panel [data-testid$='-unfollow'], .xh-panel button:not(.xh-panel-close)"), null);
+    if (process.env.SHOTS) await page.screenshot({ path: join(process.env.SHOTS, "panel.png") });
+  });
+
+  await step("panel search narrows by name or handle", async () => {
+    await page.fill(".xh-panel-search", "lee");
+    await page.waitForFunction(() => !/@zed/.test(document.querySelector(".xh-panel-list").textContent));
+    assert.match(await panelText(), /@ann/);
+    await page.fill(".xh-panel-search", "");
+  });
+
+  await step("Esc closes the panel", async () => {
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 2000 });
+  });
+
+  await step("unfollowing by hand on X is counted and drops off the list", async () => {
+    await page.click("#zed [data-testid='20-unfollow']");
+    await page.click("[data-testid=confirmationSheetConfirm]");
+    await page.waitForFunction(() => /Unfollowed @zed/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
+    await page.keyboard.press("Alt+KeyU");
+    await page.waitForFunction(() => /Unfollows today: 1\/20/.test(document.querySelector(".xh-panel").textContent), null, { timeout: 3000 });
+    assert.doesNotMatch(await page.textContent(".xh-panel-list"), /@zed/);
   });
 } finally {
   await ctx.close();

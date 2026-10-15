@@ -85,6 +85,10 @@
                "full_text": "post 900"
               }
              }
+            },
+            "views": {
+             "count": "30000",
+             "state": "EnabledWithCount"
             }
            }
           }
@@ -143,6 +147,10 @@
                }
               ]
              }
+            },
+            "views": {
+             "count": "50000",
+             "state": "EnabledWithCount"
             }
            }
           }
@@ -199,6 +207,10 @@
              },
              "legacy": {
               "full_text": "post 333"
+             },
+             "views": {
+              "count": "800",
+              "state": "EnabledWithCount"
              }
             }
            }

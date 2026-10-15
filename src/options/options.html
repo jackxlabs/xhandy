@@ -41,6 +41,15 @@
     <h2>Post badges / 帖子标记</h2>
     <label for="staleHours">Mark posts older than (hours) / 超过多少小时算旧帖</label>
     <input id="staleHours" type="number" min="1" />
+    <label><input id="showHeat" type="checkbox" /> Colour posts by views per hour / 按每小时浏览量给帖子标颜色</label>
+    <label for="heatWarm">Warm from (views/hour) / 每小时多少浏览算「有热度」（橙）</label>
+    <input id="heatWarm" type="number" min="1" />
+    <label for="heatHot">Hot from (views/hour) / 每小时多少浏览算「火」（红 🔥）</label>
+    <input id="heatHot" type="number" min="1" />
+    <p class="hint">
+      Views ÷ hours since posting, from the count X already sent with the post. Old posts keep the "old post" colour.
+      / 浏览数 ÷ 发布至今的小时数，浏览数取自 X 本来就发给浏览器的数据。旧帖仍显示旧帖颜色。
+    </p>
 
     </section>
     <section>
@@ -50,6 +59,8 @@
     <input id="relStaleDays" type="number" min="1" />
     <label for="followLimit">Daily follow reminder above / 每天关注超过多少个时提醒</label>
     <input id="followLimit" type="number" min="1" />
+    <label for="unfollowLimit">Daily unfollow reminder above / 每天取关超过多少个时提醒</label>
+    <input id="unfollowLimit" type="number" min="1" />
     <p class="hint" id="relStatus"></p>
     <p class="hint">
       Read from data X already sends to your browser while you browse. No extra requests. It is display only:

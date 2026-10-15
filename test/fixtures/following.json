@@ -1,0 +1,115 @@
+{
+ "data": {
+  "user": {
+   "result": {
+    "timeline": {
+     "timeline": {
+      "instructions": [
+       {
+        "type": "TimelineAddEntries",
+        "entries": [
+         {
+          "entryId": "user-20",
+          "content": {
+           "itemContent": {
+            "user_results": {
+             "result": {
+              "__typename": "User",
+              "rest_id": "20",
+              "core": {
+               "name": "Zed",
+               "screen_name": "zed"
+              },
+              "relationship_perspectives": {
+               "blocked_by": false,
+               "blocking": false,
+               "followed_by": false,
+               "following": true,
+               "muting": false
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "entryId": "user-21",
+          "content": {
+           "itemContent": {
+            "user_results": {
+             "result": {
+              "__typename": "User",
+              "rest_id": "21",
+              "core": {
+               "name": "Mia",
+               "screen_name": "mia"
+              },
+              "relationship_perspectives": {
+               "blocked_by": false,
+               "blocking": false,
+               "followed_by": true,
+               "following": true,
+               "muting": false
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "entryId": "user-22",
+          "content": {
+           "itemContent": {
+            "user_results": {
+             "result": {
+              "__typename": "User",
+              "rest_id": "22",
+              "core": {
+               "name": "Ann Lee",
+               "screen_name": "ann"
+              },
+              "relationship_perspectives": {
+               "blocked_by": false,
+               "blocking": false,
+               "followed_by": false,
+               "following": true,
+               "muting": false
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "entryId": "user-23",
+          "content": {
+           "itemContent": {
+            "user_results": {
+             "result": {
+              "__typename": "User",
+              "rest_id": "23",
+              "core": {
+               "name": "Me",
+               "screen_name": "me_test"
+              },
+              "relationship_perspectives": {
+               "blocked_by": false,
+               "blocking": false,
+               "followed_by": false,
+               "following": true,
+               "muting": false
+              }
+             }
+            }
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+}
