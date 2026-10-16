@@ -22,6 +22,9 @@
           sheet.setAttribute("role", "dialog");
           sheet.innerHTML = '<button type="button" data-testid="confirmationSheetConfirm">Unfollow</button>';
           sheet.firstChild.addEventListener("click", () => {
+            // Like X: the unfollow is POST .../friendships/destroy.json, answered with the account.
+            const handle = btn.getAttribute("aria-label").split("@")[1];
+            fetch("/i/api/1.1/friendships/destroy.json", { method: "POST", body: new URLSearchParams({ screen_name: handle, user_id: btn.dataset.testid.split("-")[0] }) });
             btn.dataset.testid = btn.dataset.testid.replace("-unfollow", "-follow");
             btn.textContent = "Follow";
             sheet.remove();

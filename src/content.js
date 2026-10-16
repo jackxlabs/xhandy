@@ -14,10 +14,8 @@
     reply: '[data-testid="reply"]',
     send: '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]',
     textarea: '[data-testid^="tweetTextarea_"]',
-    avatar: '[data-testid="Tweet-User-Avatar"]',
     followBtn: '[data-testid$="-follow"]',
     unfollowBtn: '[data-testid$="-unfollow"]',
-    confirm: '[data-testid="confirmationSheetConfirm"]',
     profileLink: 'a[data-testid="AppTabBar_Profile_Link"]',
   };
 
@@ -410,26 +408,17 @@
   }
 
   // ---------- follow assistant: Shift+F on a focused post ----------
-  // Finds the author's own Follow button (already on the page, in X's hover card, or on the
-  // author's profile as a fallback), focuses it and waits. The user presses Enter to follow
-  // (or Esc). Nothing is clicked by x-helper.
+  // Finds the author's own Follow button (already on the page, e.g. in the hover card the user
+  // opened by pointing at the author, or else on the author's profile), focuses it and waits.
+  // The user presses Enter to follow (or Esc). Nothing is clicked by x-helper, and no mouse or
+  // pointer events are faked: synthetic input is exactly what X's bot detection looks for.
 
   const PENDING_KEY = "xh-follow-pending";
-  let followTarget = null; // { handle, button, hoverEl }
-
-  function hover(el, on) {
-    if (!el) return;
-    const types = on ? ["pointerover", "pointerenter", "mouseover", "mouseenter"] : ["pointerout", "pointerleave", "mouseout", "mouseleave"];
-    for (const type of types) {
-      const Ev = type.startsWith("pointer") ? PointerEvent : MouseEvent;
-      el.dispatchEvent(new Ev(type, { bubbles: !type.endsWith("enter") && !type.endsWith("leave"), view: window }));
-    }
-  }
+  let followTarget = null; // { handle, button }
 
   function clearFollowTarget() {
     if (!followTarget) return;
     followTarget.button && followTarget.button.classList.remove("xh-follow-focus");
-    hover(followTarget.hoverEl, false);
     followTarget = null;
   }
 
@@ -443,7 +432,7 @@
   // profile header. Matched by user id when known, else by the @handle in its aria-label.
   function findFollowButton(handle) {
     const rel = S.rel[handle.toLowerCase()];
-    if (rel && rel.id) {
+    if (rel && store.isId(rel.id)) {
       const exact = document.querySelector(`[data-testid="${rel.id}-follow"], [data-testid="${rel.id}-unfollow"]`);
       if (exact) return exact;
     }
@@ -462,12 +451,9 @@
     return null;
   }
 
-  function armButton(handle, button, hoverEl, onProfile) {
-    if (button.matches(SEL.unfollowBtn)) {
-      hover(hoverEl, false);
-      return toast(t("follow_already", { h: handle }));
-    }
-    followTarget = { handle, button, hoverEl };
+  function armButton(handle, button, onProfile) {
+    if (button.matches(SEL.unfollowBtn)) return toast(t("follow_already", { h: handle }));
+    followTarget = { handle, button };
     button.classList.add("xh-follow-focus");
     const r = button.getBoundingClientRect();
     const visible = r.top >= 0 && r.bottom <= innerHeight;
@@ -476,7 +462,7 @@
     toast(t(onProfile ? "follow_confirm_profile" : "follow_confirm", { h: handle }), "focus", 0);
   }
 
-  async function startFollow() {
+  function startFollow() {
     const article = document.activeElement && document.activeElement.closest(SEL.tweet);
     const info = article && tweetInfo(article);
     if (!info) return toast(t("follow_pick"), "warn");
@@ -486,22 +472,11 @@
 
     clearFollowTarget();
 
-    // 1. Already on the page (e.g. "Who to follow")?
-    let button = findFollowButton(handle);
-    if (button) return armButton(handle, button, null);
+    // 1. Already on the page (a hover card the user opened, "Who to follow", ...)?
+    const button = findFollowButton(handle);
+    if (button) return armButton(handle, button);
 
-    // 2. Ask X to show its hover card for the author.
-    const hoverEl =
-      article.querySelector(`[data-testid="UserAvatar-Container-${handle}"]`) ||
-      article.querySelector(SEL.avatar) ||
-      article.querySelector(`${SEL.userName} a[href="/${handle}"]`);
-    hover(hoverEl, true);
-    toast(t("follow_opening", { h: handle }), "info", 0);
-    button = await waitForButton(handle, 1500);
-    if (button) return armButton(handle, button, hoverEl);
-    hover(hoverEl, false);
-
-    // 3. Fall back to the author's profile; the button is armed there after the page loads.
+    // 2. Go to the author's profile; the button is armed there after the page loads.
     try {
       sessionStorage.setItem(PENDING_KEY, JSON.stringify({ handle, t: Date.now() }));
     } catch (_) {}
@@ -518,36 +493,21 @@
     if (!pending || Date.now() - pending.t > 30000) return;
     if (location.pathname.split("/")[1].toLowerCase() !== pending.handle.toLowerCase()) return;
     const button = await waitForButton(pending.handle, 8000);
-    if (button) armButton(pending.handle, button, null, true);
+    if (button) armButton(pending.handle, button, true);
     else toast(t("follow_missing"), "warn", 4000);
   }
 
-  // Count follows the user makes: Enter on the focused button, or any click on a Follow button.
+  // Clicking the armed button ends the follow assistant. Counting happens when X confirms the
+  // follow (see "follows and unfollows" below), whichever button or menu the user used.
   document.addEventListener(
     "click",
     (e) => {
       const btn = e.target.closest(SEL.followBtn);
-      if (!btn) return;
-      const handle =
-        (followTarget && followTarget.button === btn && followTarget.handle) || buttonHandle(btn);
-      const onProfile = handle && location.pathname.split("/")[1].toLowerCase() === handle.toLowerCase();
-      store.update(["days", "rel"], (s) => {
-        const d = store.today(s);
-        d.follows = (d.follows || 0) + 1;
-        if (handle) {
-          const k = handle.toLowerCase();
-          s.rel[k] = { ...(s.rel[k] || { fb: false, id: null }), f: true, t: Date.now() };
-        }
-      });
-      const over = ((S.days[store.dayKey()] || {}).follows || 0) + 1 > S.settings.followLimit;
-      if (over) toast(t("follow_limit", { n: S.settings.followLimit }), "warn", 5000);
-      else toast(t(onProfile ? "follow_done_profile" : "follow_done", { h: handle || "" }), "ok", onProfile ? 5000 : 2500);
-      if (followTarget && followTarget.button === btn) {
-        btn.classList.remove("xh-follow-focus");
-        // Only close this card: the user may already have started on the next post.
-        const done = followTarget;
-        setTimeout(() => followTarget === done && clearFollowTarget(), 600);
-      }
+      if (!btn || !followTarget || followTarget.button !== btn) return;
+      btn.classList.remove("xh-follow-focus");
+      // Only close this card: the user may already have started on the next post.
+      const done = followTarget;
+      setTimeout(() => followTarget === done && clearFollowTarget(), 600);
     },
     true
   );
@@ -595,13 +555,11 @@
   let relTimer = null;
 
   window.addEventListener("xh-relations", (e) => {
-    let users, payload;
-    try {
-      payload = JSON.parse(e.detail);
-      users = payload.u;
-    } catch (_) {
-      return;
-    }
+    // Any script on x.com can send this event, so only well-formed entries get through.
+    const payload = store.cleanRelations(e.detail);
+    if (!payload) return;
+    const users = payload.u;
+    payload.f.forEach(onFriendship);
     if (payload.v.length) {
       for (const p of payload.v) {
         views.delete(p.id); // keep the Map in arrival order so the oldest go first
@@ -633,41 +591,26 @@
     }, 1000);
   });
 
-  // ---------- unfollow counting (the user's own clicks on X's Following → Unfollow) ----------
+  // ---------- follows and unfollows (X's own answers to the user's requests, via page-hook.js) ----------
 
-  let unfollowTarget = null; // { handle, t } after clicking a Following button, until X's confirm
-
-  function handleOfButton(btn) {
-    const h = buttonHandle(btn);
-    if (h) return h;
-    const id = (btn.dataset.testid || "").replace(/-(un)?follow$/, "");
-    return Object.keys(S.rel).find((k) => S.rel[k].id === id) || null;
+  function onFriendship({ handle, id, name, on }) {
+    const k = handle.toLowerCase();
+    store.update(["days", "rel"], (s) => {
+      const d = store.today(s);
+      if (on) d.follows = (d.follows || 0) + 1;
+      else d.unfollows = (d.unfollows || 0) + 1;
+      const old = s.rel[k] || { fb: false, id: null, n: null };
+      s.rel[k] = { ...old, id: id || old.id, n: name || old.n, f: on, t: Date.now() };
+    });
+    if (!S) return;
+    const field = on ? "follows" : "unfollows";
+    const limit = on ? S.settings.followLimit : S.settings.unfollowLimit;
+    const over = ((S.days[store.dayKey()] || {})[field] || 0) + 1 > limit;
+    if (over) return toast(t(on ? "follow_limit" : "unfollow_limit", { n: limit }), "warn", 5000);
+    if (!on) return toast(t("unfollow_done", { h: handle }), "ok");
+    const onProfile = location.pathname.split("/")[1].toLowerCase() === k;
+    toast(t(onProfile ? "follow_done_profile" : "follow_done", { h: handle }), "ok", onProfile ? 5000 : 2500);
   }
-
-  document.addEventListener(
-    "click",
-    (e) => {
-      const btn = e.target.closest(SEL.unfollowBtn);
-      if (btn) {
-        const handle = S && handleOfButton(btn);
-        unfollowTarget = handle ? { handle, t: Date.now() } : null;
-        return;
-      }
-      if (!e.target.closest(SEL.confirm) || !unfollowTarget || Date.now() - unfollowTarget.t > 30000) return;
-      const { handle } = unfollowTarget;
-      unfollowTarget = null;
-      store.update(["days", "rel"], (s) => {
-        const d = store.today(s);
-        d.unfollows = (d.unfollows || 0) + 1;
-        const k = handle.toLowerCase();
-        if (s.rel[k]) s.rel[k] = { ...s.rel[k], f: false, t: Date.now() };
-      });
-      const over = ((S.days[store.dayKey()] || {}).unfollows || 0) + 1 > S.settings.unfollowLimit;
-      if (over) toast(t("unfollow_limit", { n: S.settings.unfollowLimit }), "warn", 5000);
-      else toast(t("unfollow_done", { h: handle }), "ok");
-    },
-    true
-  );
 
   // ---------- "not following you back" panel (Alt+U or the toolbar popup) ----------
   // Read-only list of accounts you follow that don't follow you, from data X already sent.
@@ -728,7 +671,8 @@
     if (!S || !panelEl || panelEl.hidden) return;
     const now = Date.now();
     const me = (myHandle() || "").toLowerCase();
-    const all = Object.entries(S.rel).filter(([h, r]) => r.f && h !== me);
+    // isHandle: each row links to "/" + handle, so a stored "/evil.com" must never become "//evil.com".
+    const all = Object.entries(S.rel).filter(([h, r]) => r && r.f && h !== me && store.isHandle(h));
     const rows = all
       .filter(([, r]) => !r.fb)
       .sort(([a], [b]) => a.localeCompare(b));

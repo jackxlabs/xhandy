@@ -12,6 +12,8 @@
         document.getElementById("actions").innerHTML =
           '<button type="button" data-testid="9-follow" aria-label="Follow @eve">Follow</button>';
         document.querySelector("button").addEventListener("click", (e) => {
+          // Like X: following sends POST .../friendships/create.json, answered with the account.
+          fetch("/i/api/1.1/friendships/create.json", { method: "POST", body: new URLSearchParams({ screen_name: "eve", user_id: "9" }) });
           e.target.dataset.testid = "9-unfollow";
           e.target.setAttribute("aria-label", "Following @eve");
         });

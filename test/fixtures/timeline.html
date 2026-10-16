@@ -74,6 +74,7 @@
           <a href="/carol">Carol</a>
           <a href="/carol/status/444"><time id="t-carol"></time></a>
         </div>
+        <button type="button" data-testid="caret" aria-label="More">⋯</button>
         <p>carol post</p>
       </article>
     </main>
@@ -82,6 +83,25 @@
       <button data-testid="tweetButton">Reply</button>
     </div>
     <script>
+      // For the e2e: count mouse/pointer events not made by a real input device. Kept in
+      // sessionStorage so the count survives Shift+F's navigation to a profile.
+      for (const type of ["pointerover", "pointerenter", "mouseover", "mouseenter", "pointerout", "pointerleave", "mouseout", "mouseleave"]) {
+        document.addEventListener(type, (e) => e.isTrusted || (sessionStorage.syntheticPointer = (+sessionStorage.syntheticPointer || 0) + 1), true);
+      }
+      // Like X: following sends POST .../friendships/create.json, answered with the account.
+      const xhFriendship = (kind, handle, id) =>
+        fetch("/i/api/1.1/friendships/" + kind + ".json", { method: "POST", body: new URLSearchParams({ screen_name: handle, user_id: id }) });
+      // Like X: a post's ⋯ menu has "Follow @handle" as a plain menu item, not a Follow button.
+      document.addEventListener("click", (e) => {
+        if (e.target.closest('[data-testid="caret"]')) {
+          const menu = document.createElement("div");
+          menu.setAttribute("role", "menu");
+          menu.innerHTML = '<div role="menuitem" id="mi-follow"><span>Follow @carol</span></div><div role="menuitem" id="mi-mute"><span>Mute @carol</span></div>';
+          menu.querySelector("#mi-follow").addEventListener("click", () => (xhFriendship("create", "carol", "3"), menu.remove()));
+          menu.querySelector("#mi-mute").addEventListener("click", () => menu.remove());
+          document.body.appendChild(menu);
+        }
+      });
       // Like X: timeline data arrives via fetch and XHR, before the content script has loaded.
       fetch("/i/api/graphql/abc/HomeTimeline").then((r) => r.json());
       const xhr = new XMLHttpRequest();
@@ -106,6 +126,7 @@
           card.style.top = r.bottom + window.scrollY + 6 + "px";
           card.innerHTML = `<a href="/${h}"><b>@${h}</b></a><p>bio of ${h}</p><button type="button" data-testid="${ids[h]}-follow" aria-label="Follow @${h}">Follow</button>`;
           card.querySelector("button").addEventListener("click", (ev) => {
+            xhFriendship("create", h, ids[h]);
             ev.target.dataset.testid = ids[h] + "-unfollow";
             ev.target.setAttribute("aria-label", "Following @" + h);
           });

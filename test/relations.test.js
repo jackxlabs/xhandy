@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { collectRelations, collectViews } = require("../src/page-hook.js");
+const { collectRelations, collectViews, collectFriendship } = require("../src/page-hook.js");
 const home = require("./fixtures/home-timeline.json");
 
 test("collects every user with relationship info, however deeply nested", () => {
@@ -28,4 +28,14 @@ test("collects view counts of every post, including quoted ones", () => {
 test("ignores posts without a numeric view count", () => {
   assert.deepStrictEqual(collectViews({ __typename: "Tweet", rest_id: "1", views: { state: "Enabled" } }), []);
   assert.deepStrictEqual(collectViews({ __typename: "Tweet", rest_id: "1", views: { count: "n/a" } }), []);
+});
+
+test("reads the user's own follow and unfollow from X's answer", () => {
+  const user = { id_str: "3", screen_name: "carol", name: "Carol", following: true };
+  assert.deepStrictEqual(collectFriendship("https://x.com/i/api/1.1/friendships/create.json", user), [
+    { handle: "carol", name: "Carol", id: "3", on: true },
+  ]);
+  assert.strictEqual(collectFriendship("/i/api/1.1/friendships/destroy.json", user)[0].on, false);
+  assert.deepStrictEqual(collectFriendship("/i/api/1.1/friendships/show.json", user), []);
+  assert.deepStrictEqual(collectFriendship("/i/api/1.1/friendships/create.json", { errors: [{ code: 161 }] }), []);
 });

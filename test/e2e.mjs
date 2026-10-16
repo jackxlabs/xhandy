@@ -39,6 +39,14 @@ const step = async (name, fn) => {
 
 try {
   await ctx.route("https://x.com/**", (r) => {
+    const friendship = r.request().url().match(/\/friendships\/(create|destroy)\.json$/);
+    if (friendship) {
+      // X answers a follow/unfollow with the account (REST v1.1 user object).
+      const body = new URLSearchParams(r.request().postData() || "");
+      const h = body.get("screen_name");
+      const user = { id_str: body.get("user_id"), screen_name: h, name: h[0].toUpperCase() + h.slice(1), following: friendship[1] === "create" };
+      return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(user) });
+    }
     const name = Object.keys(api).find((k) => r.request().url().endsWith("/" + k));
     if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
     if (new URL(r.request().url()).pathname === "/me_test/following") return r.fulfill({ status: 200, contentType: "text/html", body: following });
@@ -135,7 +143,9 @@ try {
     await page.waitForFunction(() => /already follow @alice/.test(document.querySelector(".xh-toast")?.textContent));
   });
 
-  await step("Shift+F opens the hover card and focuses Follow; Enter follows", async () => {
+  await step("Shift+F focuses Follow in the hover card the user opened; Enter follows", async () => {
+    await page.hover("#old [data-testid=UserAvatar-Container-bob]"); // a real pointer, like the user's
+    await page.waitForSelector(".hc");
     await page.focus("#old");
     await page.keyboard.press("Shift+F");
     await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
@@ -147,12 +157,25 @@ try {
   });
 
   await step("Esc cancels the follow assistant without following", async () => {
+    await page.hover("#dan [data-testid=UserAvatar-Container-dan]");
+    await page.waitForSelector(".hc button[aria-label='Follow @dan']");
     await page.focus("#dan");
     await page.keyboard.press("Shift+F");
     await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
     await page.keyboard.press("Escape");
     await page.waitForSelector(".xh-follow-focus", { state: "detached", timeout: 2000 });
     assert.strictEqual(await page.textContent(".xh-hud [data-k=follows] b"), "1");
+  });
+
+  await step("following from a post's ⋯ menu counts too; other menu items don't", async () => {
+    await page.click("#carol [data-testid=caret]");
+    await page.click("#mi-mute");
+    await page.waitForTimeout(500);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=follows] b"), "1");
+    await page.click("#carol [data-testid=caret]");
+    await page.click("#mi-follow");
+    await page.waitForFunction(() => /Followed @carol/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "2", null, { timeout: 3000 });
   });
 
   await step("Shift+F while typing does nothing", async () => {
@@ -168,6 +191,7 @@ try {
     await page.evaluate(() => document.body.classList.add("dark"));
     await page.waitForFunction(() => document.documentElement.dataset.xhTheme === "dark", null, { timeout: 7000 });
     if (process.env.SHOTS) {
+      await page.hover("#dan [data-testid=UserAvatar-Container-dan]");
       await page.focus("#dan");
       await page.keyboard.press("Shift+F");
       await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
@@ -207,7 +231,12 @@ try {
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => /Alt\+← back/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
     await page.keyboard.press("Alt+KeyH"); // stats bar was hidden by an earlier step
-    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "2", null, { timeout: 3000 });
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "3", null, { timeout: 3000 });
+  });
+
+  await step("extension never fakes mouse or pointer events", async () => {
+    // Counted by the fixture since the first page load, so this covers every Shift+F above.
+    assert.strictEqual(await page.evaluate(() => +(sessionStorage.syntheticPointer || 0)), 0);
   });
 
   const panelText = () => page.evaluate(() => document.querySelector(".xh-panel")?.textContent || "");
@@ -215,6 +244,11 @@ try {
   await step("Alt+U on your Following page lists only who doesn't follow you back", async () => {
     await page.goto("https://x.com/me_test/following");
     await page.waitForSelector("#zed");
+    // Any script on x.com can send this event; a forged handle must not become a "//evil.com" link.
+    await page.evaluate(() => {
+      const u = [{ handle: "/evil.com", following: true, followedBy: false }, { handle: "fake", id: '1"]', following: true }];
+      window.dispatchEvent(new CustomEvent("xh-relations", { detail: JSON.stringify({ u, v: [], at: Date.now() }) }));
+    });
     await page.waitForTimeout(1500); // relationships are written in a 1 s batch
     await page.keyboard.press("Alt+KeyU");
     await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
@@ -226,6 +260,9 @@ try {
     assert.doesNotMatch(text, /@mia/); // mutual
     assert.doesNotMatch(text, /@alice/); // mutual
     assert.doesNotMatch(text, /@me_test/); // yourself
+    assert.doesNotMatch(text, /evil/);
+    assert.strictEqual(await page.$('.xh-panel a[href^="//"]'), null);
+    assert.match(text, /@fake/); // well-formed handle kept, its broken id dropped
     assert.strictEqual(await page.getAttribute('.xh-panel a[href="/ann"]', "href"), "/ann");
     assert.strictEqual(await page.$(".xh-panel [data-testid$='-unfollow'], .xh-panel button:not(.xh-panel-close)"), null);
     if (process.env.SHOTS) await page.screenshot({ path: join(process.env.SHOTS, "panel.png") });

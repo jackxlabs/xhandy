@@ -119,3 +119,74 @@ test("export format round-trips through replaceAll, and reset clears everything"
   await store.reset();
   assert.deepStrictEqual(Object.keys(chrome.data), []);
 });
+
+test("settings of the wrong type fall back to defaults", async () => {
+  const chrome = fakeChrome({ "xh:v": 2, "xh:settings": { targets: "alice", staleHours: "12", hud: 0, heatHot: 5 } });
+  const s = await loadStore(chrome).get();
+  assert.deepStrictEqual(s.settings.targets, []);
+  assert.strictEqual(s.settings.staleHours, 48);
+  assert.strictEqual(s.settings.hud, true);
+  assert.strictEqual(s.settings.heatHot, 5, "valid values kept");
+});
+
+test("replaceAll drops what can't be right in an import file", async () => {
+  const chrome = fakeChrome({ "xh:v": 2 });
+  const store = loadStore(chrome);
+  await store.replaceAll({
+    settings: { targets: ["alice", "/evil.com", 3], followLimit: null },
+    rel: {
+      "/evil.com": { f: true, fb: false, t: 1 },
+      Bob: { f: true, fb: "yes", id: '1"]', n: 7, t: 2 },
+      carol: "x",
+    },
+    people: { "a b": { likes: 1 }, dan: { likes: "2", replies: 1, last: 3 } },
+    sent: [{ t: 1, text: "hi", kind: "reply", to: "//x" }, { t: 2 }, "junk"],
+    days: { "2026-10-16": { likes: 2, seconds: "9" }, nope: { likes: 1 } },
+    relMeta: { last: 5, scan: "x" },
+  });
+  const s = await store.get();
+  assert.deepStrictEqual(s.settings.targets, ["alice"]);
+  assert.strictEqual(s.settings.followLimit, 20);
+  assert.deepStrictEqual(s.rel, { bob: { f: true, fb: false, id: null, n: null, t: 2 } });
+  assert.deepStrictEqual(s.people, { dan: { likes: 0, replies: 1, last: 3 } });
+  assert.deepStrictEqual(s.sent, [{ t: 1, text: "hi", kind: "reply", to: null }]);
+  assert.deepStrictEqual(s.days, { "2026-10-16": { likes: 2, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 0 } });
+  assert.deepStrictEqual(s.relMeta, { last: 5, scan: 0 });
+});
+
+test("cleanRelations keeps only well-formed users and view counts", () => {
+  const store = loadStore(fakeChrome());
+  const r = store.cleanRelations(JSON.stringify({
+    u: [
+      { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true },
+      { handle: "/evil.com", following: true },
+      { handle: "bob", id: '2"], a', following: "true" },
+      { handle: { toLowerCase: 1 } },
+    ],
+    v: [{ id: "10", views: 5 }, { id: "x", views: 1 }, { id: "11", views: "9" }, { id: "12", views: -1 }],
+    at: 7,
+  }));
+  assert.deepStrictEqual(r, {
+    u: [
+      { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true },
+      { handle: "bob", name: null, id: null, following: false, followedBy: false },
+    ],
+    v: [{ id: "10", views: 5 }],
+    f: [],
+    at: 7,
+  });
+  const empty = store.cleanRelations('{"x":1}');
+  assert.deepStrictEqual(empty, { u: [], v: [], f: [], at: empty.at });
+  const f = store.cleanRelations(JSON.stringify({ f: [
+    { handle: "carol", name: "Carol", id: "3", on: true },
+    { handle: "zed", on: false },
+    { handle: "/evil.com", on: true },
+    { handle: "dan", on: "true" },
+  ] })).f;
+  assert.deepStrictEqual(f, [
+    { handle: "carol", name: "Carol", id: "3", on: true },
+    { handle: "zed", name: null, id: null, on: false },
+  ]);
+  assert.strictEqual(store.cleanRelations("not json"), null);
+  assert.strictEqual(store.cleanRelations("[1]"), null);
+});

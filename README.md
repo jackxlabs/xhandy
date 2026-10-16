@@ -25,10 +25,12 @@ That is the point: you get faster without anything that looks like a bot to X.
   above a soft daily limit (default 20). If none of the accounts you follow shows as following you back,
   the panel warns that X may have changed its data instead of showing a misleading list.
 - **Follow assistant** (`Shift+F` on a post selected with `j`/`k`): finds the author's own Follow button
-  (already on the page, in X's hover card, or else on the author's profile) and focuses it. You press `Enter`
-  to follow or `Esc` to cancel (`Alt+←` returns from the profile); x-helper never clicks it.
+  (already on the page, e.g. in a hover card you opened by pointing at the author, or else on the author's
+  profile) and focuses it. You press `Enter` to follow or `Esc` to cancel (`Alt+←` returns from the profile);
+  x-helper never clicks it and never fakes mouse events.
   Counts follows per day and reminds you above a soft daily limit (default 20), because following fast is
-  what gets accounts limited.
+  what gets accounts limited. Follows and unfollows are counted when X confirms them, so every way of
+  following counts (Follow buttons, a post's ⋯ menu, ...) and failed ones don't.
 - **Duplicate-reply warning**: while you type, warns if the reply is very similar to one you sent recently,
   or if you are about to send the same short reply ("great!", "加油") for the third time.
   Repetitive replies are what spam filters look for.
@@ -55,8 +57,9 @@ so x-helper does not replace them.
   Scripts run on `x.com` and `twitter.com` only.
 - Stored in this browser only: your settings, daily counts, per-author like/reply counts, follow relationships,
   and the text of your last 300 replies and posts (used for the duplicate-reply warning).
-- `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships).
-  It clones responses and never changes or sends anything.
+- `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
+  view counts, and X's answers to your own follows and unfollows). It clones responses and never changes or
+  sends anything.
 - No network requests, no analytics, no remote code.
 - Export, import or delete everything from the Options page.
 
@@ -78,7 +81,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-x-helper 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 弹出作者资料卡并选中「关注」（你按 Enter 才会关注），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限会提醒），打字时提醒“这条回复和你刚发过的很像”，统计今天的点赞、回复、发帖数和在线时长。
+x-helper 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限会提醒），打字时提醒“这条回复和你刚发过的很像”，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 

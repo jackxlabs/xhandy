@@ -11,7 +11,7 @@
 
 ## 代码结构
 
-- `src/page-hook.js`：跑在页面环境（`world: MAIN`），从 X 的 API 响应里读互关关系和浏览量，通过事件交给内容脚本。纯函数 `collectRelations` / `collectViews` 有单元测试。
+- `src/page-hook.js`：跑在页面环境（`world: MAIN`），从 X 的 API 响应里读互关关系、浏览量，以及用户自己关注、取关的结果（`friendships/create|destroy.json`，每日关注、取关数就按它统计，不看点的是哪个按钮），通过事件交给内容脚本。事件谁都能发，内容脚本收到后先过 `store.cleanRelations` 校验。纯函数 `collectRelations` / `collectViews` / `collectFriendship` 有单元测试。
 - `src/content.js`：内容脚本主体。X 页面的选择器全部放在文件开头的 `SEL` 里，用 `data-testid`。X 经常改页面结构，坏了先查这里。
 - `src/lib/store.js`：存储层，见下一节。
 - `src/lib/similarity.js`：重复回复的相似度计算。`src/lib/i18n.js`：中英文文案。

@@ -43,10 +43,100 @@
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
+  // ---------- validation ----------
+  // Data reaches storage from three places the extension doesn't control: window events from the
+  // page (any script on x.com can send them), import files, and older versions' data. Anything that
+  // ends up in a link, a selector or a comparison is checked here first.
+
+  const HANDLE = /^[A-Za-z0-9_]{1,15}$/;
+  const ID = /^\d{1,20}$/;
+  const DAY = /^\d{4}-\d{2}-\d{2}$/;
+  const isHandle = (h) => typeof h === "string" && HANDLE.test(h);
+  const isId = (id) => typeof id === "string" && ID.test(id);
+  const isObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  const num = (n, def = 0) => (typeof n === "number" && Number.isFinite(n) ? n : def);
+  const str = (s, max) => (typeof s === "string" ? s.slice(0, max) : null);
+
+  // Each setting keeps the type of its default; a wrong type falls back to the default.
+  function cleanSettings(v) {
+    const def = DEFAULTS.settings;
+    const out = { ...def };
+    if (!isObj(v)) return out;
+    for (const k of Object.keys(def)) {
+      if (k === "targets") {
+        if (Array.isArray(v.targets)) out.targets = v.targets.filter(isHandle);
+      } else if (typeof def[k] === "number") {
+        out[k] = num(v[k], def[k]);
+      } else if (typeof v[k] === typeof def[k]) {
+        out[k] = v[k];
+      }
+    }
+    return out;
+  }
+
+  function cleanRelEntry(r) {
+    if (!isObj(r)) return null;
+    return { f: r.f === true, fb: r.fb === true, id: isId(r.id) ? r.id : null, n: str(r.n, 100), t: num(r.t) };
+  }
+
+  // A whole state object from an import file: drop what can't be right, keep the rest.
+  function cleanState(data) {
+    const s = isObj(data) ? data : {};
+    const out = { settings: cleanSettings(s.settings), people: {}, sent: [], days: {}, rel: {}, relMeta: { ...DEFAULTS.relMeta } };
+    for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
+      if (isHandle(h) && isObj(p)) out.people[h.toLowerCase()] = { likes: num(p.likes), replies: num(p.replies), last: num(p.last) };
+    }
+    for (const x of Array.isArray(s.sent) ? s.sent : []) {
+      if (!isObj(x) || typeof x.text !== "string") continue;
+      out.sent.push({ t: num(x.t), text: x.text, kind: x.kind === "reply" ? "reply" : "post", to: isHandle(x.to) ? x.to : null });
+    }
+    for (const [k, d] of Object.entries(isObj(s.days) ? s.days : {})) {
+      if (!DAY.test(k) || !isObj(d)) continue;
+      const day = {};
+      for (const f of ["likes", "replies", "posts", "follows", "unfollows", "seconds"]) day[f] = num(d[f]);
+      out.days[k] = day;
+    }
+    for (const [h, r] of Object.entries(isObj(s.rel) ? s.rel : {})) {
+      const e = isHandle(h) && cleanRelEntry(r);
+      if (e) out.rel[h.toLowerCase()] = e;
+    }
+    if (isObj(s.relMeta)) out.relMeta = { last: num(s.relMeta.last), scan: num(s.relMeta.scan) };
+    return out;
+  }
+
+  // The "xh-relations" event from page-hook.js. Returns { u, v, f, at } with only well-formed entries,
+  // or null. A script on x.com can still send believable data; it just can't send links or selectors.
+  function cleanRelations(detail) {
+    let p;
+    try {
+      p = JSON.parse(detail);
+    } catch (_) {
+      return null;
+    }
+    if (!isObj(p)) return null;
+    const u = (Array.isArray(p.u) ? p.u : [])
+      .filter((x) => isObj(x) && isHandle(x.handle))
+      .map((x) => ({
+        handle: x.handle,
+        name: str(x.name, 100),
+        id: isId(x.id) ? x.id : null,
+        following: x.following === true,
+        followedBy: x.followedBy === true,
+      }));
+    const v = (Array.isArray(p.v) ? p.v : [])
+      .filter((x) => isObj(x) && isId(x.id) && num(x.views, -1) >= 0)
+      .map((x) => ({ id: x.id, views: x.views }));
+    const f = (Array.isArray(p.f) ? p.f : [])
+      .filter((x) => isObj(x) && isHandle(x.handle) && typeof x.on === "boolean")
+      .map((x) => ({ handle: x.handle, name: str(x.name, 100), id: isId(x.id) ? x.id : null, on: x.on }));
+    return { u, v, f, at: num(p.at, Date.now()) };
+  }
+
   function partWithDefaults(part, v) {
     const def = DEFAULTS[part];
     if (Array.isArray(def)) return Array.isArray(v) ? v : [];
-    if (part === "settings" || part === "relMeta") return { ...def, ...(v || {}) };
+    if (part === "settings") return cleanSettings(v);
+    if (part === "relMeta") return { ...def, ...(v || {}) };
     return v || {};
   }
 
@@ -149,7 +239,7 @@
 
   async function replaceAll(data) {
     await migrate();
-    const s = withDefaults(data);
+    const s = cleanState(data);
     const out = { [VERSION_KEY]: VERSION };
     for (const part of PARTS) out[keyOf(part)] = s[part];
     await chrome.storage.local.set(out);
@@ -159,5 +249,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset };
+  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, cleanRelations };
 })();
