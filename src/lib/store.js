@@ -1,7 +1,12 @@
-// All state lives in chrome.storage.local under one key. Nothing leaves the browser.
+// All state lives in chrome.storage.local. Nothing leaves the browser.
+// Each top-level part (settings, rel, ...) is its own key ("xh:rel"), so a write touches only the parts
+// it changes: the 15-second time tick rewrites a few bytes of "xh:days", not 30,000 relationships.
 (function () {
   const XH = (globalThis.XH = globalThis.XH || {});
-  const KEY = "xh";
+  const PREFIX = "xh:";
+  const VERSION_KEY = "xh:v";
+  const VERSION = 2;
+  const LEGACY_KEY = "xh"; // v1 kept everything under this one key
 
   const DEFAULTS = {
     settings: {
@@ -26,49 +31,97 @@
     rel: {}, // handle (lowercase) -> { f: I follow them, fb: they follow me, id, n: display name, t: seen at }
     relMeta: { last: 0, scan: 0 }, // last: relationships last read; scan: last read on your own Following page
   };
+  const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
   const MAX_SENT = 300;
+
+  const keyOf = (part) => PREFIX + part;
+  const partOf = (key) => (key.startsWith(PREFIX) && PARTS.includes(key.slice(PREFIX.length)) ? key.slice(PREFIX.length) : null);
 
   function dayKey(d = new Date()) {
     const p = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
+  function partWithDefaults(part, v) {
+    const def = DEFAULTS[part];
+    if (Array.isArray(def)) return Array.isArray(v) ? v : [];
+    if (part === "settings" || part === "relMeta") return { ...def, ...(v || {}) };
+    return v || {};
+  }
+
   function withDefaults(s) {
     s = s || {};
-    return {
-      settings: { ...DEFAULTS.settings, ...(s.settings || {}) },
-      people: s.people || {},
-      sent: s.sent || [],
-      days: s.days || {},
-      rel: s.rel || {},
-      relMeta: { ...DEFAULTS.relMeta, ...(s.relMeta || {}) },
-    };
+    const out = {};
+    for (const part of PARTS) out[part] = partWithDefaults(part, s[part]);
+    return out;
+  }
+
+  // v1 -> v2: split the single "xh" object into one key per part. Runs once per page, before any read or write.
+  let migrated = null;
+  function migrate() {
+    return (migrated =
+      migrated ||
+      (async () => {
+        const r = await chrome.storage.local.get([VERSION_KEY, LEGACY_KEY]);
+        if (r[VERSION_KEY] >= VERSION) return;
+        const out = { [VERSION_KEY]: VERSION };
+        if (r[LEGACY_KEY]) {
+          const old = withDefaults(r[LEGACY_KEY]);
+          for (const part of PARTS) out[keyOf(part)] = old[part];
+        }
+        await chrome.storage.local.set(out);
+        if (r[LEGACY_KEY]) await chrome.storage.local.remove(LEGACY_KEY);
+      })());
+  }
+
+  async function read(parts) {
+    await migrate();
+    const r = await chrome.storage.local.get(parts.map(keyOf));
+    const s = {};
+    for (const part of parts) s[part] = partWithDefaults(part, r[keyOf(part)]);
+    return s;
   }
 
   async function get() {
-    const r = await chrome.storage.local.get(KEY);
-    return withDefaults(r[KEY]);
+    return withDefaults(await read(PARTS));
   }
 
-  // Serialize read-modify-write within this page so quick clicks don't overwrite each other.
+  // update(parts, fn): reads only `parts`, lets fn change them, writes only them back.
+  // Touching a part that was not listed throws, so a missing name shows up in tests instead of losing data.
+  // update(fn) without parts still works and rewrites everything; use it only where every part may change.
+  // Writes are serialized within this page so quick clicks don't overwrite each other.
   let chain = Promise.resolve();
-  function update(fn) {
-    chain = chain.then(async () => {
-      const s = await get();
-      fn(s);
-      if (s.sent.length > MAX_SENT) s.sent = s.sent.slice(-MAX_SENT);
-      const handles = Object.keys(s.rel);
-      if (handles.length > MAX_REL) {
-        handles
-          .sort((a, b) => s.rel[a].t - s.rel[b].t)
-          .slice(0, handles.length - MAX_REL)
-          .forEach((h) => delete s.rel[h]);
+  function update(parts, fn) {
+    if (typeof parts === "function") [parts, fn] = [PARTS, parts];
+    const unknown = parts.filter((p) => !PARTS.includes(p));
+    if (unknown.length) throw new Error(`store.update: unknown part ${unknown.join(", ")}`);
+    const next = chain.then(async () => {
+      const s = await read(parts);
+      const guarded = new Proxy(s, {
+        get(target, k) {
+          if (PARTS.includes(k) && !parts.includes(k)) throw new Error(`store.update: "${k}" not in [${parts}]`);
+          return target[k];
+        },
+      });
+      fn(guarded);
+      if (s.sent && s.sent.length > MAX_SENT) s.sent = s.sent.slice(-MAX_SENT);
+      if (s.rel) {
+        const handles = Object.keys(s.rel);
+        if (handles.length > MAX_REL) {
+          handles
+            .sort((a, b) => s.rel[a].t - s.rel[b].t)
+            .slice(0, handles.length - MAX_REL)
+            .forEach((h) => delete s.rel[h]);
+        }
       }
-      await chrome.storage.local.set({ [KEY]: s });
+      const out = {};
+      for (const part of parts) out[keyOf(part)] = s[part];
+      await chrome.storage.local.set(out);
       return s;
     });
-    return chain;
+    chain = next.catch(() => {}); // one failed update must not block the ones after it
+    return next;
   }
 
   function today(s) {
@@ -81,19 +134,30 @@
     return (s.people[h] = s.people[h] || { likes: 0, replies: 0, last: 0 });
   }
 
+  // cb gets the full state after any part changes, in this page or another one.
   function onChange(cb) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "local" && changes[KEY]) cb(withDefaults(changes[KEY].newValue));
+    let state = null;
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+      if (area !== "local") return;
+      const changed = Object.keys(changes).map(partOf).filter(Boolean);
+      if (!changed.length) return;
+      if (!state) state = await get();
+      else for (const part of changed) state[part] = partWithDefaults(part, changes[keyOf(part)].newValue);
+      cb(withDefaults(state));
     });
   }
 
   async function replaceAll(data) {
-    await chrome.storage.local.set({ [KEY]: withDefaults(data) });
+    await migrate();
+    const s = withDefaults(data);
+    const out = { [VERSION_KEY]: VERSION };
+    for (const part of PARTS) out[keyOf(part)] = s[part];
+    await chrome.storage.local.set(out);
   }
 
   async function reset() {
-    await chrome.storage.local.remove(KEY);
+    await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { KEY, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset };
+  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset };
 })();

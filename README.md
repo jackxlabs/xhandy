@@ -51,7 +51,10 @@ so x-helper does not replace them.
 
 ## Privacy
 
-- Only permission: `storage`. Scripts run on `x.com` and `twitter.com` only.
+- Permissions: `storage` and `unlimitedStorage` (so a long follow list never hits Chrome's 10 MB cap).
+  Scripts run on `x.com` and `twitter.com` only.
+- Stored in this browser only: your settings, daily counts, per-author like/reply counts, follow relationships,
+  and the text of your last 300 replies and posts (used for the duplicate-reply warning).
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships).
   It clones responses and never changes or sends anything.
 - No network requests, no analytics, no remote code.

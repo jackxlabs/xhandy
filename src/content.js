@@ -166,7 +166,7 @@
     pendingReply = null;
     hideDup();
 
-    store.update((s) => {
+    store.update(["days", "people", "sent"], (s) => {
       const d = store.today(s);
       if (kind === "reply") {
         d.replies++;
@@ -181,7 +181,7 @@
   }
 
   function countLike(info, delta) {
-    store.update((s) => {
+    store.update(["days", "people"], (s) => {
       const d = store.today(s);
       const p = store.person(s, info.handle);
       d.likes = Math.max(0, d.likes + delta);
@@ -222,7 +222,7 @@
     (e) => {
       if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyH") {
         e.preventDefault();
-        store.update((s) => (s.settings.hud = !s.settings.hud));
+        store.update(["settings"], (s) => (s.settings.hud = !s.settings.hud));
         return;
       }
       // X's own shortcuts: j/k put focus on a post, l toggles like, r opens the reply box.
@@ -386,7 +386,7 @@
   const TICK = 15;
   setInterval(() => {
     if (document.visibilityState === "visible" && document.hasFocus()) {
-      store.update((s) => (store.today(s).seconds += TICK));
+      store.update(["days"], (s) => (store.today(s).seconds += TICK));
     }
   }, TICK * 1000);
 
@@ -531,7 +531,7 @@
       const handle =
         (followTarget && followTarget.button === btn && followTarget.handle) || buttonHandle(btn);
       const onProfile = handle && location.pathname.split("/")[1].toLowerCase() === handle.toLowerCase();
-      store.update((s) => {
+      store.update(["days", "rel"], (s) => {
         const d = store.today(s);
         d.follows = (d.follows || 0) + 1;
         if (handle) {
@@ -625,7 +625,7 @@
     relTimer = setTimeout(() => {
       const batch = relPending;
       relPending = {};
-      store.update((s) => {
+      store.update(["rel", "relMeta"], (s) => {
         Object.assign(s.rel, batch);
         s.relMeta.last = Date.now();
         if (onFollowingPage) s.relMeta.scan = Date.now();
@@ -656,7 +656,7 @@
       if (!e.target.closest(SEL.confirm) || !unfollowTarget || Date.now() - unfollowTarget.t > 30000) return;
       const { handle } = unfollowTarget;
       unfollowTarget = null;
-      store.update((s) => {
+      store.update(["days", "rel"], (s) => {
         const d = store.today(s);
         d.unfollows = (d.unfollows || 0) + 1;
         const k = handle.toLowerCase();

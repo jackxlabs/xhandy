@@ -21,7 +21,7 @@
   }
 
   $("save").addEventListener("click", async () => {
-    await store.update((s) => {
+    await store.update(["settings"], (s) => {
       s.settings.targets = $("targets")
         .value.split("\n")
         .map((h) => h.trim().replace(/^@/, ""))
