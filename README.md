@@ -71,6 +71,12 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
 
 The full privacy policy is in [PRIVACY.md](PRIVACY.md).
 
+## Feedback
+
+Ideas, bugs, things that feel off: message me on X at [@JackHuang47](https://x.com/JackHuang47), no GitHub account needed.
+A screenshot and the page you were on help most, since X changes its pages often.
+If you use GitHub, [issues](https://github.com/jackxlabs/xhandy/issues) work too.
+
 ## Roadmap
 
 - v0.5: interaction queue (open the next post to reply to with a shortcut), save posts to a local idea list,
@@ -142,6 +148,11 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 - 防重复回复的灵敏度
 - 每日回复目标（统计栏会显示进度条）
 - 导出、导入、清空全部数据
+
+### 反馈
+
+有想法、遇到问题、觉得哪里别扭，直接在 X 上私信我 [@JackHuang47](https://x.com/JackHuang47)，不需要 GitHub 账号。
+最好附一张截图，说明当时在哪个页面：X 经常改版，截图能最快找到问题。用 GitHub 的话也可以提 [issue](https://github.com/jackxlabs/xhandy/issues)。
 
 ## License
 
