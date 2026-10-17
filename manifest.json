@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "x-helper",
-  "version": "0.4.2",
+  "name": "Xhandy",
+  "version": "0.4.3",
   "description": "Automation-free helpers for engaging on X: post age, interaction memory, duplicate-reply warnings and daily stats. All data stays in your browser.",
   "permissions": [
     "storage",
@@ -37,7 +37,7 @@
     }
   ],
   "action": {
-    "default_title": "x-helper",
+    "default_title": "Xhandy",
     "default_popup": "src/popup/popup.html"
   },
   "options_page": "src/options/options.html"

@@ -14,7 +14,7 @@
     const n = Object.keys(all.rel).length;
     const last = all.relMeta.last;
     const mins = last ? Math.round((Date.now() - last) / 60000) : null;
-    // If X renames its fields, this stops updating: that is the signal to update x-helper.
+    // If X renames its fields, this stops updating: that is the signal to update Xhandy.
     $("relStatus").textContent = last
       ? `${n} accounts known · last update ${mins} min ago / 已记录 ${n} 个账号 · 最近更新 ${mins} 分钟前`
       : "No relationship data yet. Open x.com and scroll a bit. / 还没有数据，打开 x.com 刷一会儿。";
@@ -43,7 +43,7 @@
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `x-helper-${store.dayKey()}.json`;
+    a.download = `xhandy-${store.dayKey()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -61,7 +61,7 @@
   });
 
   $("reset").addEventListener("click", async () => {
-    if (!confirm("Delete all x-helper data in this browser? / 确定清空本浏览器里的全部数据？")) return;
+    if (!confirm("Delete all Xhandy data in this browser? / 确定清空本浏览器里的全部数据？")) return;
     await store.reset();
     await load();
   });

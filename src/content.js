@@ -1,4 +1,4 @@
-// x-helper content script.
+// Xhandy content script.
 // Rule for this file: it only READS the page and the user's own clicks/typing, and shows hints.
 // It never clicks, types, sends, likes or follows on the user's behalf. The follow assistant
 // only finds and focuses X's own Follow button; the user presses Enter.
@@ -410,7 +410,7 @@
   // ---------- follow assistant: Shift+F on a focused post ----------
   // Finds the author's own Follow button (already on the page, e.g. in the hover card the user
   // opened by pointing at the author, or else on the author's profile), focuses it and waits.
-  // The user presses Enter to follow (or Esc). Nothing is clicked by x-helper, and no mouse or
+  // The user presses Enter to follow (or Esc). Nothing is clicked by Xhandy, and no mouse or
   // pointer events are faked: synthetic input is exactly what X's bot detection looks for.
 
   const PENDING_KEY = "xh-follow-pending";

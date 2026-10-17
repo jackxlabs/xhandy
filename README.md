@@ -1,8 +1,8 @@
-# x-helper
+# Xhandy
 
 Browser helpers for people who engage on X by hand. Working name.
 
-**x-helper never acts for you.** It does not click, type, send, like, follow or schedule anything.
+**Xhandy never acts for you.** It does not click, type, send, like, follow or schedule anything.
 It reads the page and your own actions, shows hints, and keeps all data in your browser.
 That is the point: you get faster without anything that looks like a bot to X.
 
@@ -16,7 +16,7 @@ That is the point: you get faster without anything that looks like a bot to X.
   so a few early views don't look like a spike. Thresholds are in Options.
 - **Follow relationship**: each post shows whether you and the author follow each other
   (⇄ mutual, → you follow, ← follows you, not following). It is read from the data X already sends
-  to your browser while you scroll; x-helper makes no extra requests. Display only: it never follows or
+  to your browser while you scroll; Xhandy makes no extra requests. Display only: it never follows or
   unfollows anyone.
 - **Not following you back** (`Alt+U`, or the button in the toolbar popup): a panel on the right listing
   accounts you follow that don't follow you, with search. Built from the same data; for the full list, open your
@@ -27,7 +27,7 @@ That is the point: you get faster without anything that looks like a bot to X.
 - **Follow assistant** (`Shift+F` on a post selected with `j`/`k`): finds the author's own Follow button
   (already on the page, e.g. in a hover card you opened by pointing at the author, or else on the author's
   profile) and focuses it. You press `Enter` to follow or `Esc` to cancel (`Alt+←` returns from the profile);
-  x-helper never clicks it and never fakes mouse events.
+  Xhandy never clicks it and never fakes mouse events.
   Counts follows per day and reminds you above a soft daily limit (default 20), because following fast is
   what gets accounts limited. Follows and unfollows are counted when X confirms them, so every way of
   following counts (Follow buttons, a post's ⋯ menu, ...) and failed ones don't.
@@ -37,12 +37,12 @@ That is the point: you get faster without anything that looks like a bot to X.
 - **Daily stats**: a small bar with today's likes, replies, posts and time on X, plus an optional daily reply goal.
   `Alt+H` hides it, and it fades while you scroll. The toolbar popup shows the last 7 days.
 - **Looks at home on X**: post badges use X's own colours and follow its Default, Dim and Lights out themes.
-  x-helper's own surfaces (stats bar, panel, toasts, popup) share one look: X's shapes with a cyan-violet-pink
+  Xhandy's own surfaces (stats bar, panel, toasts, popup) share one look: X's shapes with a cyan-violet-pink
   top edge and monospace numbers, and a progress bar for the daily reply goal. Overlays ignore the mouse
   (`pointer-events: none`), so they never block a click on X.
 
 X's own shortcuts already cover navigation and actions (`j`/`k`, `l` like, `r` reply, `t` repost, `?` for the list),
-so x-helper does not replace them.
+so Xhandy does not replace them.
 
 ## Install (unpacked)
 
@@ -81,7 +81,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-x-helper 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限会提醒），打字时提醒“这条回复和你刚发过的很像”，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限会提醒），打字时提醒“这条回复和你刚发过的很像”，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 

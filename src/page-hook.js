@@ -92,7 +92,7 @@
       if (ready) send(detail);
       else if (buffer.length < 50) buffer.push(detail);
     } catch (_) {
-      // Never let x-helper break X.
+      // Never let Xhandy break X.
     }
   }
 
