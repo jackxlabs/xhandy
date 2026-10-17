@@ -48,10 +48,14 @@ so Xhandy does not replace them.
 
 ## Install (unpacked)
 
-1. Download or clone this repository.
+1. Download `xhandy-<version>.zip` from the [latest release](https://github.com/jackxlabs/xhandy/releases/latest) and unzip it.
+   Put the `xhandy` folder somewhere it can stay: Chrome loads it from there every time.
 2. Open `chrome://extensions` (Chrome, Chromium, Edge, Brave), turn on **Developer mode**.
-3. Click **Load unpacked** and choose this folder.
+3. Click **Load unpacked** and choose the `xhandy` folder (the one with `manifest.json` in it).
 4. Open x.com. Settings are under the extension's **Options**.
+
+To update, unzip the new release over the same folder and click reload on Xhandy in `chrome://extensions`.
+Keep the folder where it is: the extension ID, and with it your data, is tied to the folder's path.
 
 ## Privacy
 
@@ -93,12 +97,12 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 
 ### 安装
 
-1. 下载本仓库：点页面上的绿色 **Code** 按钮 → **Download ZIP** 并解压，或者 `git clone`。
+1. 到 [Releases 页面](https://github.com/jackxlabs/xhandy/releases/latest)下载最新的 `xhandy-版本号.zip` 并解压，得到一个 `xhandy` 文件夹。把它放在一个以后不会动的位置，浏览器每次都从这里加载。
 2. 在 Chrome、Edge 或 Brave 的地址栏打开 `chrome://extensions`，打开右上角的**开发者模式**。
-3. 点**加载已解压的扩展程序**，选择解压后的文件夹（里面有 `manifest.json` 的那一层）。
+3. 点**加载已解压的扩展程序**，选择 `xhandy` 文件夹（里面有 `manifest.json` 的那一层）。
 4. 打开 x.com 刷新一下，底部出现一条统计栏就说明装好了。建议把 Xhandy 固定到工具栏，方便打开弹窗。
 
-更新：用新文件覆盖原文件夹，再到 `chrome://extensions` 点 Xhandy 的「重新加载」。**不要换文件夹位置**：扩展 ID 跟着文件夹路径走，换了位置，原来的数据就读不到了。要换的话先在设置页导出数据，换完再导入。
+更新：下载新版本的 zip，解压覆盖原来的文件夹，再到 `chrome://extensions` 点 Xhandy 的「重新加载」。**不要换文件夹位置**：扩展 ID 跟着文件夹路径走，换了位置，原来的数据就读不到了。要换的话先在设置页导出数据，换完再导入。
 
 ### 怎么用
 

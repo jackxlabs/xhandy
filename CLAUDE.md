@@ -39,4 +39,6 @@ CHROMIUM=/usr/bin/chromium npm run e2e     # 在真实 Chromium 里加载扩展�
 
 - 版本号在 `manifest.json`。提交信息用 `vX.Y.Z: 改了什么` 的格式。
 - 用户界面上的功能有变化时，同步更新 README 的功能列表（英文）和「中文说明」一节。
+- 公开仓库是 `jackxlabs/xhandy`（remote `public`），日常开发推 `origin`（私有）。Jack 说可以发布时才推 `public`。
+- 发布给用户：`npm run pack` 从 HEAD 打出 `dist/xhandy-<版本>.zip`（只含扩展需要的文件），然后在公开仓库建 Release 并附上这个 zip：`gh release create v<版本> dist/xhandy-<版本>.zip -R jackxlabs/xhandy`。README 的安装说明指向 Releases，下载次数从 Release 附件统计。
 - 本地以「加载已解压的扩展程序」安装。扩展 ID 由文件夹路径决定，搬目录会换 ID，原来的数据就读不到了。要搬的话先在设置页导出，搬完再导入。

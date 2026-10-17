@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "e2e": "node test/e2e.mjs"
+    "e2e": "node test/e2e.mjs",
+    "pack": "scripts/pack.sh"
   },
   "devDependencies": {
     "playwright-core": "^1.61.1"
