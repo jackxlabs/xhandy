@@ -1,6 +1,8 @@
 # Xhandy
 
-Browser helpers for people who engage on X by hand. Working name.
+Browser helpers for people who engage on X by hand.
+
+> Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.
 
 **Xhandy never acts for you.** It does not click, type, send, like, follow or schedule anything.
 It reads the page and your own actions, shows hints, and keeps all data in your browser.
@@ -63,6 +65,8 @@ so Xhandy does not replace them.
 - No network requests, no analytics, no remote code.
 - Export, import or delete everything from the Options page.
 
+The full privacy policy is in [PRIVACY.md](PRIVACY.md).
+
 ## Roadmap
 
 - v0.5: interaction queue (open the next post to reply to with a shortcut), save posts to a local idea list,
@@ -84,6 +88,8 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限会提醒），打字时提醒“这条回复和你刚发过的很像”，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
+
+Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。
 
 ## License
 

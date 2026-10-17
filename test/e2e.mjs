@@ -192,6 +192,7 @@ try {
     await page.waitForFunction(() => document.documentElement.dataset.xhTheme === "dark", null, { timeout: 7000 });
     if (process.env.SHOTS) {
       await page.hover("#dan [data-testid=UserAvatar-Container-dan]");
+      await page.waitForSelector(".hc button");
       await page.focus("#dan");
       await page.keyboard.press("Shift+F");
       await page.waitForSelector(".xh-follow-focus", { timeout: 4000 });
