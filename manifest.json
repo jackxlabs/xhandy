@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Xhandy",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Automation-free helpers for engaging on X: post age, interaction memory, duplicate-reply warnings and daily stats. All data stays in your browser.",
   "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "permissions": [
