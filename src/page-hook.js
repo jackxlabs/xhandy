@@ -102,10 +102,11 @@
     try {
       const url = typeof input === "string" ? input : input && input.url;
       if (url && API.test(url)) {
+        // Every step is caught: a failure here must never surface as an error, on X or in chrome://extensions.
         p.then((res) => {
           const ct = res.headers.get("content-type") || "";
-          if (res.ok && ct.includes("json")) res.clone().json().then((json) => emit(json, url), () => {});
-        }, () => {});
+          if (res.ok && ct.includes("json")) return res.clone().json().then((json) => emit(json, url));
+        }).catch(() => {});
       }
     } catch (_) {}
     return p;
