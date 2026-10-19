@@ -1,0 +1,231 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xhandy Backgrounds</title><style>
+html,body{margin:0;height:100%;background:#0b0a12;font:14px/1.5 -apple-system,system-ui,sans-serif;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.logo{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;color:#fff;transition:color .3s}
+.logo svg{width:min(42vw,520px);height:auto;max-height:30vh}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+.bar button{font:inherit;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;backdrop-filter:blur(8px)}
+.bar button[aria-pressed=true]{background:#fff;color:#111}
+.light .bar button{border-color:rgba(0,0,0,.2);background:rgba(255,255,255,.6);color:#111}
+.light .bar button[aria-pressed=true]{background:#111;color:#fff}
+.light .logo{color:#111}
+pre{position:fixed;top:16px;left:16px;right:16px;margin:0;max-width:640px;padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.45);color:#e7e9ea;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;backdrop-filter:blur(8px)}
+.light pre{background:rgba(255,255,255,.7);color:#111}
+.noui .bar,.noui pre{display:none}
+</style></head><body>
+<canvas></canvas><div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-7.28 -80.03 381.55 107.71"><path fill="currentColor" d="M268.90 1.08Q259.98 1.08 254.93 -4.69Q249.87 -10.47 249.87 -20.13Q249.87 -26.18 251.66 -31.97Q253.46 -37.76 256.87 -42.43Q260.28 -47.10 265.15 -49.88Q270.01 -52.65 276.13 -52.65Q279.68 -52.65 282.51 -51.64Q285.34 -50.64 287.41 -48.67Q289.48 -46.69 290.68 -43.81L290.73 -43.81L295.49 -72.75L309.85 -72.75L297.84 0L283.67 0L284.89 -7.59L284.84 -7.59Q282.90 -4.48 280.41 -2.58Q277.93 -0.68 275.01 0.20Q272.10 1.08 268.90 1.08ZM150.01 1.08Q143.29 1.08 138.81 -2.28Q134.33 -5.65 132.58 -11.71Q130.82 -17.77 132.14 -25.83Q133.46 -33.77 137.27 -39.81Q141.08 -45.85 146.66 -49.25Q152.23 -52.65 158.79 -52.65Q162.16 -52.65 164.89 -51.74Q167.62 -50.85 169.62 -49.06Q171.62 -47.27 172.74 -44.58L172.91 -44.58L174.08 -51.56L188.09 -51.56L179.54 0L165.53 0L166.80 -7.71L166.65 -7.71Q164.70 -4.81 162.11 -2.85Q159.51 -0.90 156.46 0.09Q153.40 1.08 150.01 1.08ZM86.03 0L71.67 0L83.73 -72.75L98.09 -72.75L93.30 -43.87Q94.13 -44.97 95.01 -45.94Q97.94 -49.18 101.64 -50.91Q105.34 -52.65 110.02 -52.65Q115.54 -52.65 119.36 -50.27Q123.17 -47.89 124.81 -43.35Q126.45 -38.81 125.36 -32.29L120.01 0L105.64 0L110.55 -29.65Q111.41 -34.84 109.38 -37.53Q107.35 -40.23 102.81 -40.23Q99.84 -40.23 97.35 -39.01Q94.86 -37.78 93.15 -35.22Q91.44 -32.66 90.78 -28.65L86.03 0ZM1.69 -67.22L1.70 -67.23C0.72 -67.69 0.05 -68.68 0.05 -69.83C0.05 -71.42 1.34 -72.70 2.93 -72.70C3.37 -72.70 3.78 -72.60 4.16 -72.43L4.16 -72.43C13.54 -68.06 25.49 -62.34 32.19 -54.25C38.90 -62.34 50.85 -68.06 60.23 -72.43L60.23 -72.43C60.61 -72.60 61.02 -72.70 61.46 -72.70C63.05 -72.70 64.34 -71.42 64.34 -69.83C64.34 -68.68 63.67 -67.69 62.69 -67.23L62.70 -67.22C56.51 -64.26 50.95 -60.20 47.26 -54.31C45.89 -52.13 44.81 -49.74 44.11 -47.26C42.42 -41.22 42.42 -31.53 44.11 -25.50C44.81 -23.01 45.89 -20.62 47.26 -18.44C50.95 -12.56 56.51 -8.50 62.70 -5.53L62.69 -5.53C63.67 -5.07 64.34 -4.08 64.34 -2.93C64.34 -1.34 63.05 -0.05 61.46 -0.05C61.02 -0.05 60.61 -0.15 60.23 -0.33L60.23 -0.33C50.85 -4.70 38.90 -10.42 32.19 -18.51C25.49 -10.42 13.54 -4.70 4.16 -0.33L4.16 -0.33C3.78 -0.15 3.37 -0.05 2.93 -0.05C1.34 -0.05 0.05 -1.34 0.05 -2.93C0.05 -4.08 0.72 -5.07 1.70 -5.53L1.69 -5.53C7.88 -8.50 13.44 -12.56 17.13 -18.44C18.50 -20.62 19.58 -23.01 20.28 -25.50C21.97 -31.53 21.97 -41.22 20.28 -47.26C19.58 -49.74 18.50 -52.13 17.13 -54.31C13.44 -60.20 7.88 -64.26 1.69 -67.22ZM306.62 20.41L308.50 9.03L315.05 9.03Q316.77 9.03 317.94 8.47Q319.11 7.92 320.06 6.72Q321.02 5.53 322.03 3.59L324.09 -0.20L312.74 -51.56L327.24 -51.56L331.65 -26.09Q332.38 -21.57 332.98 -17Q333.12 -15.98 333.25 -14.95Q333.72 -15.98 334.21 -17.01Q336.36 -21.59 338.58 -26.09L351.47 -51.56L367 -51.56L334.45 7.94Q332.15 12.18 329.40 14.95Q326.65 17.72 323.36 19.07Q320.07 20.41 316.13 20.41L306.62 20.41ZM204.15 0L189.78 0L198.28 -51.56L212.42 -51.56L211.20 -44.07Q213.51 -47.04 216.24 -49.03Q221.19 -52.65 227.94 -52.65Q233.63 -52.65 237.46 -50.14Q241.29 -47.64 242.88 -42.99Q244.47 -38.33 243.37 -31.82L238.12 0L223.76 0L228.72 -30.13Q229.58 -35.32 227.54 -37.77Q225.50 -40.23 221.25 -40.23Q218.11 -40.23 215.52 -38.88Q212.94 -37.53 211.20 -34.85Q209.46 -32.18 208.79 -28.17L204.15 0ZM155.66 -10.63Q159.31 -10.63 162.35 -12.51Q165.38 -14.39 167.47 -17.81Q169.55 -21.24 170.29 -25.83Q171.06 -30.45 170.10 -33.85Q169.14 -37.25 166.74 -39.13Q164.34 -41 160.69 -41Q157.22 -41 154.33 -39.22Q151.45 -37.43 149.46 -34.05Q147.47 -30.68 146.66 -25.83Q145.87 -21.01 146.73 -17.61Q147.60 -14.21 149.89 -12.42Q152.19 -10.63 155.66 -10.63ZM273 -10.63Q276.69 -10.63 279.61 -12.36Q282.54 -14.10 284.63 -16.98Q286.71 -19.86 287.82 -23.37Q288.92 -26.88 288.92 -30.44Q288.92 -35.38 286.45 -38.19Q283.98 -41 279.58 -41Q275.87 -41 273.02 -39.21Q270.17 -37.42 268.22 -34.46Q266.27 -31.51 265.27 -27.92Q264.26 -24.34 264.26 -20.70Q264.26 -15.81 266.56 -13.22Q268.86 -10.63 273 -10.63Z"/></svg>
+</div>
+<div class="bar"></div><pre></pre>
+<script type="module">
+// brand-bg.mjs: palette-driven animated WebGL backgrounds for websites. No dependencies, WebGL 1.
+//
+//   import { mountBrandBackground } from './brand-bg.mjs'
+//   const bg = mountBrandBackground(document.querySelector('canvas'), {
+//     style: 'fluid', colors: ['#06b6d4', '#8b5cf6', '#ec4899'], background: '#0b0a12',
+//   })
+//   bg.setStyle('ripple'); bg.destroy()
+//
+// Styles: fluid, aurora, led, silk, ripple (dark backgrounds) and mesh (light background).
+// Built in: prefers-reduced-motion renders one still frame, rendering pauses off-screen and in hidden tabs,
+// device pixel ratio is capped (maxDpr), pointer movement eases in, and no WebGL falls back to a CSS gradient.
+
+const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}'
+
+const COMMON = `
+precision highp float;
+uniform vec2 u_res; uniform float u_time; uniform vec2 u_mouse;
+uniform vec3 u_bg; uniform vec3 u_c0; uniform vec3 u_c1; uniform vec3 u_c2; uniform float u_intensity;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.02;a*=.5;}return v;}
+vec3 pal(float t){t=clamp(t,0.,1.);return t<.5?mix(u_c0,u_c1,t*2.):mix(u_c1,u_c2,t*2.-1.);}
+float grain(vec2 fc){return (hash(fc+fract(u_time*.37))-.5)*.035;}
+`
+
+const FRAG = {
+  // domain-warped noise: soft currents of the palette over a dark base
+  fluid: `void main(){vec2 uv=gl_FragCoord.xy/u_res;vec2 p=uv*vec2(u_res.x/u_res.y,1.)*1.6;float t=u_time*.05;
+    vec2 q=vec2(fbm(p+t),fbm(p+vec2(5.2,1.3)-t));
+    vec2 r=vec2(fbm(p+3.*q+vec2(1.7,9.2)+t*1.5+u_mouse*.6),fbm(p+3.*q+vec2(8.3,2.8)-t));
+    float f=fbm(p+3.*r);
+    vec3 col=mix(u_bg,pal(clamp(uv.x*.9+.05+(r.x-.5)*.7,0.,1.))*1.15,clamp(smoothstep(.3,.85,f)*u_intensity,0.,1.));
+    gl_FragColor=vec4(col+grain(gl_FragCoord.xy),1.);}`,
+  // a slow light edge entering from the top-right corner, palette along the arc
+  aurora: `void main(){vec2 uv=gl_FragCoord.xy/u_res;float a=u_res.x/u_res.y;vec2 p=vec2(uv.x*a,uv.y);
+    vec2 c=vec2(a+.15,1.2)-u_mouse*.06;vec2 d=p-c;float r=length(d);float ang=atan(d.y,d.x);
+    float t=clamp((ang+3.1416)/1.5708,0.,1.);
+    float n=fbm(vec2(ang*2.5,u_time*.07));
+    float band=exp(-pow((r-.85-n*.3)*3.,2.))+.35*exp(-pow((r-.6-n*.2)*6.,2.));
+    vec3 col=u_bg+pal(t)*band*u_intensity;
+    gl_FragColor=vec4(col+grain(gl_FragCoord.xy),1.);}`,
+  // glowing dot matrix with a wave rolling out from the pointer
+  led: `void main(){vec2 fc=gl_FragCoord.xy;float cell=max(10.,u_res.y/56.);vec2 g=floor(fc/cell);vec2 f=fract(fc/cell)-.5;
+    vec2 uv=(g*cell)/u_res;float a=u_res.x/u_res.y;
+    float w=sin(length((uv-u_mouse)*vec2(a,1.))*11.-u_time*1.4)*.5+.5;
+    float n=noise(g*.13+u_time*.15);
+    float b=pow(clamp(w*.65+n*.55,0.,1.),2.2)*u_intensity;
+    float dotm=smoothstep(.36,.24,length(f));
+    gl_FragColor=vec4(u_bg+pal(uv.x*.8+n*.2)*dotm*b,1.);}`,
+  // silk ribbons: thin glowing sine lines, one per palette step
+  silk: `void main(){vec2 uv=gl_FragCoord.xy/u_res;float a=u_res.x/u_res.y;float x=uv.x*a;vec3 col=u_bg;float t=u_time*.22;
+    for(int i=0;i<5;i++){float fi=float(i);
+      float y=.5+.16*sin(x*(1.1+fi*.28)+t*(1.+fi*.15)+fi*1.3+u_mouse.x*1.5)+.05*sin(x*3.1-t*1.7+fi)+(fi-2.)*.045;
+      float d=abs(uv.y-y);
+      col+=pal(fi/4.)*(exp(-d*d*2600.)*.9+.0018/(d+.006))*u_intensity*.55;}
+    gl_FragColor=vec4(col+grain(gl_FragCoord.xy),1.);}`,
+  // two sources rippling toward each other; the pointer moves the second one
+  ripple: `void main(){vec2 uv=gl_FragCoord.xy/u_res;float a=u_res.x/u_res.y;vec2 p=vec2(uv.x*a,uv.y);
+    vec2 s1=vec2(.22*a,.32);vec2 s2=vec2(u_mouse.x*a,u_mouse.y);
+    float d1=length(p-s1),d2=length(p-s2);
+    float w=sin(d1*38.-u_time*1.8)*exp(-d1*2.)+sin(d2*38.-u_time*1.8)*exp(-d2*2.);
+    float l=smoothstep(.05,1.1,w+.15);
+    vec3 col=u_bg+pal(d1/(d1+d2))*l*.6*u_intensity+pal(.5)*.08*exp(-min(d1,d2)*3.);
+    gl_FragColor=vec4(col+grain(gl_FragCoord.xy),1.);}`,
+  // light mode: three soft palette blobs drifting over a pale base
+  mesh: `void main(){vec2 uv=gl_FragCoord.xy/u_res;float a=u_res.x/u_res.y;vec2 p=uv*vec2(a,1.);float t=u_time*.06;
+    vec2 b0=vec2(.18+.08*sin(t*1.3),.28+.1*cos(t))*vec2(a,1.);
+    vec2 b1=vec2(.78+.08*cos(t*.9),.3+.12*sin(t*1.1))*vec2(a,1.);
+    vec2 b2=vec2(.55+.1*sin(t*.7)+(u_mouse.x-.5)*.08,.82+.06*cos(t*1.4))*vec2(a,1.);
+    vec3 col=u_bg;
+    col=mix(col,u_c0,exp(-pow(length(p-b0),2.)*4.5)*.5*u_intensity);
+    col=mix(col,u_c1,exp(-pow(length(p-b1),2.)*4.5)*.45*u_intensity);
+    col=mix(col,u_c2,exp(-pow(length(p-b2),2.)*4.5)*.45*u_intensity);
+    gl_FragColor=vec4(col+grain(gl_FragCoord.xy)*.5,1.);}`,
+}
+
+export const STYLES = Object.keys(FRAG)
+const DEFAULT_MOUSE = { ripple: [0.78, 0.68] }
+const LIGHT = new Set(['mesh'])
+
+function rgb(hex) {
+  const h = hex.replace('#', '')
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16)
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
+}
+
+export function mountBrandBackground(canvas, options = {}) {
+  const o = {
+    style: 'fluid', colors: ['#06b6d4', '#8b5cf6', '#ec4899'], background: null,
+    intensity: 1, speed: 1, interactive: true, maxDpr: 1.5, ...options,
+  }
+  const bgFor = (style) => o.background || (LIGHT.has(style) ? '#f6f5fa' : '#0b0a12')
+  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, powerPreference: 'low-power' })
+  if (!gl) {
+    canvas.style.background = `linear-gradient(135deg, ${o.colors.join(', ')})`
+    return { setStyle() {}, destroy() {} }
+  }
+
+  const buf = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
+
+  const programs = {}
+  function program(style) {
+    if (programs[style]) return programs[style]
+    const sh = (type, src) => {
+      const s = gl.createShader(type)
+      gl.shaderSource(s, src)
+      gl.compileShader(s)
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(`brand-bg ${style}: ${gl.getShaderInfoLog(s)}`)
+      return s
+    }
+    const p = gl.createProgram()
+    gl.attachShader(p, sh(gl.VERTEX_SHADER, VERT))
+    gl.attachShader(p, sh(gl.FRAGMENT_SHADER, COMMON + FRAG[style]))
+    gl.linkProgram(p)
+    const u = (n) => gl.getUniformLocation(p, n)
+    programs[style] = { p, loc: gl.getAttribLocation(p, 'p'),
+      res: u('u_res'), time: u('u_time'), mouse: u('u_mouse'), bg: u('u_bg'),
+      c0: u('u_c0'), c1: u('u_c1'), c2: u('u_c2'), intensity: u('u_intensity') }
+    return programs[style]
+  }
+
+  let style = STYLES.includes(o.style) ? o.style : 'fluid'
+  let mouse = (DEFAULT_MOUSE[style] || [0.5, 0.5]).slice()
+  let target = mouse.slice()
+  const [c0, c1, c2] = [o.colors[0], o.colors[1] || o.colors[0], o.colors[2] || o.colors[1] || o.colors[0]].map(rgb)
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, o.maxDpr)
+    const w = Math.max(1, Math.round(canvas.clientWidth * dpr))
+    const h = Math.max(1, Math.round(canvas.clientHeight * dpr))
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h }
+    gl.viewport(0, 0, w, h)
+  }
+
+  const t0 = performance.now()
+  function draw(now) {
+    resize()
+    mouse[0] += (target[0] - mouse[0]) * 0.04
+    mouse[1] += (target[1] - mouse[1]) * 0.04
+    const P = program(style)
+    gl.useProgram(P.p)
+    gl.enableVertexAttribArray(P.loc)
+    gl.vertexAttribPointer(P.loc, 2, gl.FLOAT, false, 0, 0)
+    gl.uniform2f(P.res, canvas.width, canvas.height)
+    gl.uniform1f(P.time, ((now - t0) / 1000) * o.speed + 20)
+    gl.uniform2f(P.mouse, mouse[0], mouse[1])
+    gl.uniform3fv(P.bg, rgb(bgFor(style)))
+    gl.uniform3fv(P.c0, c0); gl.uniform3fv(P.c1, c1); gl.uniform3fv(P.c2, c2)
+    gl.uniform1f(P.intensity, o.intensity)
+    gl.drawArrays(gl.TRIANGLES, 0, 3)
+  }
+
+  const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  let raf = 0, onScreen = true
+  const loop = (now) => { draw(now); raf = requestAnimationFrame(loop) }
+  const start = () => { if (!raf && !still && onScreen && !document.hidden) raf = requestAnimationFrame(loop) }
+  const stop = () => { cancelAnimationFrame(raf); raf = 0 }
+
+  const io = 'IntersectionObserver' in window
+    ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; onScreen ? start() : stop() }) : null
+  io && io.observe(canvas)
+  const onVis = () => (document.hidden ? stop() : start())
+  document.addEventListener('visibilitychange', onVis)
+  const onMove = (e) => {
+    const r = canvas.getBoundingClientRect()
+    target = [(e.clientX - r.left) / r.width, 1 - (e.clientY - r.top) / r.height]
+  }
+  o.interactive && window.addEventListener('pointermove', onMove, { passive: true })
+  const ro = 'ResizeObserver' in window ? new ResizeObserver(() => still && draw(performance.now())) : null
+  ro && ro.observe(canvas)
+
+  draw(performance.now())
+  start()
+
+  return {
+    setStyle(next) {
+      if (!FRAG[next]) return
+      style = next
+      mouse = (DEFAULT_MOUSE[style] || [0.5, 0.5]).slice()
+      target = mouse.slice()
+      draw(performance.now())
+    },
+    destroy() {
+      stop()
+      io && io.disconnect()
+      ro && ro.disconnect()
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('pointermove', onMove)
+    },
+  }
+}
+
+const q = new URLSearchParams(location.search)
+const cfg = {"colors": ["#06b6d4", "#8b5cf6", "#ec4899"]}
+if (q.get('ui') === '0') document.body.classList.add('noui')
+const bar = document.querySelector('.bar'), pre = document.querySelector('pre')
+let style = STYLES.includes(q.get('style')) ? q.get('style') : STYLES[0]
+const bg = mountBrandBackground(document.querySelector('canvas'), { ...cfg, style })
+function show(s) {
+  style = s; bg.setStyle(s)
+  document.body.classList.toggle('light', s === 'mesh')
+  bar.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.textContent === s))
+  pre.textContent = `import { mountBrandBackground } from './brand-bg.mjs'\n` +
+    `mountBrandBackground(canvas, ${JSON.stringify({ ...cfg, style: s })})`
+}
+STYLES.forEach((s) => { const b = document.createElement('button'); b.textContent = s; b.onclick = () => show(s); bar.append(b) })
+show(style)
+</script></body></html>

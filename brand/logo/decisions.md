@@ -10,3 +10,4 @@
 - 2026-10-19 Stage 3 final: Jack chose B. final/icon.svg = r2 v0-original (>=48px), final/icon-small.svg = r2 small (16/32px).
 - 2026-10-19 Stage 4 final: Jack chose L2b (bold icon standing in for X + 'handy', Inter Bold Italic outlined). final/lockup.svg.
 - 2026-10-19 Stage 5-6: showcases reuse the brand-palette backgrounds Jack approved (fluid, void, iridescent, ui_container), corners = XHANDY | v0.4.6 | README tagline. Exported package to export/ with fluid as banner background.
+- 2026-10-19 final/*.svg cleaned with vectorize.py (icon 222 -> 16 segments, icon-small 214 -> 34, lockup 333 -> 153; <0.14% pixels differ); originals in final/source/. export/ and webgl/ regenerated.
