@@ -5,7 +5,7 @@
   const XH = (globalThis.XH = globalThis.XH || {});
   const PREFIX = "xh:";
   const VERSION_KEY = "xh:v";
-  const VERSION = 2;
+  const VERSION = 3;
   const LEGACY_KEY = "xh"; // v1 kept everything under this one key
 
   const DEFAULTS = {
@@ -57,6 +57,16 @@
   const num = (n, def = 0) => (typeof n === "number" && Number.isFinite(n) ? n : def);
   const str = (s, max) => (typeof s === "string" ? s.slice(0, max) : null);
 
+  // Collapses "a\na\na" (from the nested composer bug) to "a". a must be non-empty.
+  function untriple(text) {
+    if (typeof text !== "string") return text;
+    const rem = text.length - 2;
+    if (rem < 3 || rem % 3 !== 0) return text;
+    const len = rem / 3;
+    const a = text.slice(0, len);
+    return text === a + "\n" + a + "\n" + a ? a : text;
+  }
+
   // Each setting keeps the type of its default; a wrong type falls back to the default.
   function cleanSettings(v) {
     const def = DEFAULTS.settings;
@@ -88,7 +98,7 @@
     }
     for (const x of Array.isArray(s.sent) ? s.sent : []) {
       if (!isObj(x) || typeof x.text !== "string") continue;
-      out.sent.push({ t: num(x.t), text: x.text, kind: x.kind === "reply" ? "reply" : "post", to: isHandle(x.to) ? x.to : null });
+      out.sent.push({ t: num(x.t), text: untriple(x.text), kind: x.kind === "reply" ? "reply" : "post", to: isHandle(x.to) ? x.to : null });
     }
     for (const [k, d] of Object.entries(isObj(s.days) ? s.days : {})) {
       if (!DAY.test(k) || !isObj(d)) continue;
@@ -147,21 +157,35 @@
     return out;
   }
 
-  // v1 -> v2: split the single "xh" object into one key per part. Runs once per page, before any read or write.
+  // Runs once per page, before any read or write.
+  // v1 -> v2: split the single "xh" object into one key per part.
+  // v2 -> v3: collapse tripled sent history entries.
   let migrated = null;
   function migrate() {
     return (migrated =
       migrated ||
       (async () => {
         const r = await chrome.storage.local.get([VERSION_KEY, LEGACY_KEY]);
-        if (r[VERSION_KEY] >= VERSION) return;
-        const out = { [VERSION_KEY]: VERSION };
+        let v = r[VERSION_KEY] || 0;
+        if (v >= VERSION) return;
         if (r[LEGACY_KEY]) {
           const old = withDefaults(r[LEGACY_KEY]);
+          const out = { [VERSION_KEY]: 2 };
           for (const part of PARTS) out[keyOf(part)] = old[part];
+          await chrome.storage.local.set(out);
+          await chrome.storage.local.remove(LEGACY_KEY);
+          v = 2;
         }
-        await chrome.storage.local.set(out);
-        if (r[LEGACY_KEY]) await chrome.storage.local.remove(LEGACY_KEY);
+        if (v < 3) {
+          const sr = await chrome.storage.local.get(keyOf("sent"));
+          const out = { [VERSION_KEY]: 3 };
+          if (Array.isArray(sr[keyOf("sent")])) {
+            out[keyOf("sent")] = sr[keyOf("sent")].map((x) =>
+              isObj(x) && typeof x.text === "string" ? { ...x, text: untriple(x.text) } : x
+            );
+          }
+          await chrome.storage.local.set(out);
+        }
       })());
   }
 
@@ -249,5 +273,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, cleanRelations };
+  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, cleanRelations, untriple };
 })();

@@ -19,9 +19,9 @@
 
 ## 2. Storage version 3 and history cleanup
 
-- [ ] 2.1 Add `untriple` to `src/lib/store.js`, apply it in `cleanState`, and verify with unit tests in
+- [x] 2.1 Add `untriple` to `src/lib/store.js`, apply it in `cleanState`, and verify with unit tests in
   `test/store.test.js`: a triple collapses, two copies and differing copies stay, empty text stays.
-- [ ] 2.2 Bump `VERSION` to 3 and add the v2 → v3 step to `migrate()` (after v1 → v2). Verify with
+- [x] 2.2 Bump `VERSION` to 3 and add the v2 → v3 step to `migrate()` (after v1 → v2). Verify with
   migration tests: a v2 store with tripled entries ends with one copy each, same entry count, `xh:v` = 3;
   a v1 store migrates through both steps; `replaceAll` of an old export file is cleaned.
 
