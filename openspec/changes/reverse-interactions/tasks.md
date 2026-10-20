@@ -27,9 +27,9 @@
 
 ## 4. Docs
 
-- [ ] 4.1 Update README features (en, zh), README Privacy and PRIVACY.md (received interaction counts and
+- [x] 4.1 Update README features (en, zh), README Privacy and PRIVACY.md (received interaction counts and
   counted ids). Verify: both languages describe the new data and its source.
-- [ ] 4.2 Run `npm test` and the e2e suite; report counts. Verify: all pass and the two "never" e2e steps
+- [x] 4.2 Run `npm test` and the e2e suite; report counts. Verify: all pass and the two "never" e2e steps
   are unchanged.
 
 ## Workflow follow-up

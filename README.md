@@ -12,6 +12,9 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 - **Post badges**: how old each post is (posts older than 48 h are greyed out, since replying there rarely helps),
   how many times you have interacted with the author and when, and a highlight for accounts you choose.
+  Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
+  replies, quotes and mentions they gave you, from your notifications and the posts X shows you; each counted
+  once). Turn the second half off in Options.
 - **Post heat**: the age badge also shows views per hour since posting (`2h · 15K/h`) and turns orange
   from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
   The view count is the one X already sent with the post; posts under 30 minutes old count as 30 minutes
@@ -68,7 +71,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
   Scripts run on `x.com` and `twitter.com` only.
 - Stored in this browser only: your settings, daily counts, per-author like/reply counts, follow relationships,
   the text of your last 300 replies and posts (used for the duplicate-reply warning), the ids of up to 5,000
-  posts you replied to (for the `✓ replied` mark), and your own handle and follower count.
+  posts you replied to (for the `✓ replied` mark), your own handle and follower count, how often each account
+  liked, replied to, quoted or mentioned you, and up to 20,000 ids of those interactions so each is counted once.
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
   view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
   changes or sends anything. A reply or post is recorded only after X confirms it was created.
@@ -125,7 +129,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 - **帖子标记**：每条帖子作者名旁边会多几个小标签：
   - 发了多久和每小时浏览量，例如 `2小时 · 1.5万/时`。每小时 1000 以上变橙，1 万以上变红并带 🔥，说明这条正在火，值得去回复；超过 48 小时的帖子会变灰，回复了也很少有人看到。
   - 你和作者的关注关系：`⇄ 互关`、`→ 我关注他`、`← 他关注我` 或 `未关注`。
-  - 你和这个作者互动过几次、最近一次是什么时候，例如 `互动3次 · 今天`。
+  - 你和这个作者互动过几次、最近一次是什么时候，例如 `互动3次 · 今天`。对方也和你互动过的话，会显示双方的次数，例如 `我3 · 他5 · 今天`：对方给你的点赞、回复、引用和提及，来自你的通知页和 X 显示过的帖子，每条只算一次。设置里可以关掉对方那一半。
   - 帖子已有多少回复、作者有多少粉丝、作者是你的几倍，例如 `💬 23 · 46K · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
 
@@ -161,7 +165,7 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 - 多少小时算旧帖、多少浏览量算「热」和「火」
 - 每天关注、取关的提醒上限（默认各 20 个，只提醒，不拦截）
 - 防重复回复的灵敏度
-- 是否显示回复数和作者体量、是否标记已回复的帖子
+- 是否显示回复数和作者体量、是否标记已回复的帖子、是否显示对方和你的互动
 - 每日回复目标（统计栏会显示进度条）
 - 导出、导入、清空全部数据
 
