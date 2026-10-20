@@ -43,6 +43,27 @@ operations:
   apply:
     guidance:
       - Run npm test and the e2e suite before reporting a task done, and include the pass/fail counts.
+        If you were told not to run shell commands, say so in the report; the reviewer runs them.
+      - Re-read every file you are about to change, even if you saw it earlier, because the reviewer often
+        edits code between task groups.
+      # Lessons from review (2026-10-20). Each of these cost a review round at least once.
+      - Do not add hooks, wrappers or expando properties on X's objects (fetch, XMLHttpRequest, DOM
+        nodes) beyond the ones page-hook.js already has. Extend the existing open()/fetch wrappers.
+      - The content script runs in an isolated world, so page code and page.evaluate() in e2e cannot see
+        XH or the extension's storage. In e2e, read and change storage through the helpers in
+        test/e2e.mjs (storedSent, storedPart, updateSettings), which use the extension's options page.
+      - In e2e, two sends with the same text within 1.5 s count as one (click + Ctrl+Enter guard).
+        Pause at least 1.6 s between identical sends, as a person would.
+      - page-hook.js emits outcomes after X's own promise settles. In unit tests, await a flush
+        (setTimeout 0) before asserting on emitted events, and install fakes (fetch, XHR) before the
+        hook code runs, not after.
+      - Do not assume the order of collected results (Maps walked from JSON); assert by content.
+      - Node has a read-only global navigator, so set it with Object.defineProperty, not assignment.
+      - When adding a field to the event payload or to cleanRelations' result, update the existing
+        tests that compare whole objects (deepStrictEqual) in test/store.test.js.
+      - Test fixtures use invented accounts, ids and text only, shaped like the real structure
+        described in the change's design.md. Never copy real X responses.
+      - Keep badge chips short, since X's name row truncates long badges. Follower counts use XH.kNum.
       - Never edit or weaken the e2e steps "extension never clicks anything by itself" and
         "extension never fakes mouse or pointer events".
       - Do not commit or push; leave changes in the working tree for review.
