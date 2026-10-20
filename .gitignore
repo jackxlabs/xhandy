@@ -17,3 +17,7 @@ brand/build/patterns/*.png
 
 # macOS Finder metadata
 .DS_Store
+
+# local agent state (memory for this repo stays local, see hq MEMORY_LOCAL_ONLY)
+.claude/settings.local.json
+.agents/memory/

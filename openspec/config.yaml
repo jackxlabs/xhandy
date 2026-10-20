@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Language: English
+  All artifacts must be written in English.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Project: Xhandy (repository x-helper), a Chromium Manifest V3 extension for people who use X by hand.
+  No build step: the repository root is the extension directory. Read CLAUDE.md (Chinese) for the full rules.
+
+  Rules that no change may break:
+  - Xhandy never acts for the user: it never clicks, types, sends, likes, follows or unfollows, and does
+    nothing in bulk. It only reads the page and the user's own actions, then shows hints. The follow
+    assistant only moves focus to X's own Follow button; the user presses Enter.
+  - No fake input events, no masking of the fetch hook (src/page-hook.js only clones X's own responses).
+  - Offline by default: no network requests, analytics or remote code. Any network feature is off until
+    the user turns it on in settings, asks for access through optional_host_permissions at that moment,
+    and sends requests from the background service worker, never from content scripts.
+  - User data lives only in chrome.storage.local (IndexedDB later, opened in the service worker only).
+    A change to what is stored updates README "Privacy" and PRIVACY.md.
+  - Storage: one key per part (xh:settings, xh:people, xh:sent, xh:days, xh:rel, xh:relMeta), writes via
+    store.update([parts], fn). Schema changes add DEFAULTS, bump VERSION with a migrate() step and a
+    migration test; old exports must still import.
+  - Soft limits only remind, never block.
+  - The UI ships in Chinese and English (src/lib/i18n.js, _locales/). Chinese and English users are equal.
+  - X selectors live in SEL at the top of src/content.js; changing one updates test/fixtures/.
+
+  This repository is public. Never write private business plans (pricing, payments, subscriptions,
+  revenue) into openspec/; those stay outside the repository.
+
+  Tests: `npm test` (node --test) and `CHROMIUM=/usr/bin/chromium npm run e2e` (real Chromium, fake
+  timeline, never touches real X). Both must pass.
+
+rules:
+  proposal:
+    - State what is out of scope.
+    - Say how the change keeps the rules above (acting for the user, network, storage).
+  tasks:
+    - Each task ends with something verifiable (a unit test, an e2e step or a named manual check).
+    - Keep tasks small enough to review as one diff.
+
+operations:
+  apply:
+    guidance:
+      - Run npm test and the e2e suite before reporting a task done, and include the pass/fail counts.
+      - Never edit or weaken the e2e steps "extension never clicks anything by itself" and
+        "extension never fakes mouse or pointer events".
+      - Do not commit or push; leave changes in the working tree for review.
+      - When finished, write a short report of what changed, which files, and test results.
