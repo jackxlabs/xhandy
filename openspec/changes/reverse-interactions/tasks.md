@@ -2,14 +2,14 @@
 
 ## 1. Parse what X sends
 
-- [ ] 1.1 Write `test/fixtures/notifications.json` with made-up accounts and text, shaped like the real
+- [x] 1.1 Write `test/fixtures/notifications.json` with made-up accounts and text, shaped like the real
   notifications response described in design.md (a like, a multi-post like, a follow, a "new post" alert,
   two replies). Verify: the file contains no real handles or ids from Jack's account.
-- [ ] 1.2 Add the pure `collectInbound(json, me)` to `src/page-hook.js` and export it. Verify with unit
+- [x] 1.2 Add the pure `collectInbound(json, me)` to `src/page-hook.js` and export it. Verify with unit
   tests: like pairs and keys, multi-post like lower bound, follows and "new post" alerts ignored, replies /
   quotes / mentions classified once with priority, the user's own posts ignored, auto mentions of a reply
   not counted as mentions, unknown `me` returns nothing.
-- [ ] 1.3 Emit candidates in the event and validate them in `store.cleanRelations`. Verify with unit tests
+- [x] 1.3 Emit candidates in the event and validate them in `store.cleanRelations`. Verify with unit tests
   for valid and malformed candidates.
 
 ## 2. Storage

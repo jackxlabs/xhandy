@@ -229,7 +229,25 @@
         });
       }
     }
-    return { u, v, f, c, at: num(p.at, Date.now()) };
+    const n = [];
+    const INBOUND_KEY = /^[LP]:\d{1,20}(:\d{1,20})?$/;
+    const INBOUND_KINDS = ["like", "reply", "quote", "mention"];
+    for (const x of Array.isArray(p.n) ? p.n : []) {
+      if (!isObj(x) || !INBOUND_KINDS.includes(x.kind)) continue;
+      if (!isObj(x.from) || !isHandle(x.from.handle)) continue;
+      if (typeof x.key !== "string" || !INBOUND_KEY.test(x.key)) continue;
+      n.push({
+        kind: x.kind,
+        from: {
+          handle: x.from.handle,
+          id: isId(x.from.id) ? x.from.id : null,
+          name: str(x.from.name, 100),
+        },
+        key: x.key,
+        at: num(x.at, Date.now()),
+      });
+    }
+    return { u, v, f, c, n, at: num(p.at, Date.now()) };
   }
 
   function partWithDefaults(part, v) {

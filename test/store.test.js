@@ -175,10 +175,11 @@ test("cleanRelations keeps only well-formed users and view counts", () => {
     v: [{ id: "10", views: 5 }],
     f: [],
     c: [],
+    n: [],
     at: 7,
   });
   const empty = store.cleanRelations('{"x":1}');
-  assert.deepStrictEqual(empty, { u: [], v: [], f: [], c: [], at: empty.at });
+  assert.deepStrictEqual(empty, { u: [], v: [], f: [], c: [], n: [], at: empty.at });
   const f = store.cleanRelations(JSON.stringify({ f: [
     { handle: "carol", name: "Carol", id: "3", on: true },
     { handle: "zed", on: false },
@@ -294,6 +295,109 @@ test("cleanRelations validates new post fields and user followers", () => {
   assert.deepStrictEqual(malformed.v, [
     { id: "212", views: 100 },
   ]);
+});
+
+test("cleanRelations validates inbound candidates n", () => {
+  const store = loadStore(fakeChrome());
+
+  // 1. Valid candidates
+  const valid = store.cleanRelations(
+    JSON.stringify({
+      n: [
+        {
+          kind: "like",
+          from: { handle: "liker_bob", id: "102", name: "Bob Liker" },
+          key: "L:102:501",
+          at: 1760000001000,
+        },
+        {
+          kind: "reply",
+          from: { handle: "replier_frank", id: "106", name: "Frank Replier" },
+          key: "P:601",
+          at: 1760000002000,
+        },
+        {
+          kind: "quote",
+          from: { handle: "quoter_carol", id: null, name: null },
+          key: "P:602",
+          at: 1760000003000,
+        },
+        {
+          kind: "mention",
+          from: { handle: "mentioner_dan", id: "108" },
+          key: "P:603",
+          at: 1760000004000,
+        },
+      ],
+      at: 100,
+    })
+  );
+
+  assert.deepStrictEqual(valid.n, [
+    {
+      kind: "like",
+      from: { handle: "liker_bob", id: "102", name: "Bob Liker" },
+      key: "L:102:501",
+      at: 1760000001000,
+    },
+    {
+      kind: "reply",
+      from: { handle: "replier_frank", id: "106", name: "Frank Replier" },
+      key: "P:601",
+      at: 1760000002000,
+    },
+    {
+      kind: "quote",
+      from: { handle: "quoter_carol", id: null, name: null },
+      key: "P:602",
+      at: 1760000003000,
+    },
+    {
+      kind: "mention",
+      from: { handle: "mentioner_dan", id: "108", name: null },
+      key: "P:603",
+      at: 1760000004000,
+    },
+  ]);
+
+  // 2. Malformed candidates are dropped or sanitized
+  const malformed = store.cleanRelations(
+    JSON.stringify({
+      n: [
+        null, // non-object dropped
+        "string entry", // non-object dropped
+        { kind: "unknown_kind", from: { handle: "alice" }, key: "P:100" }, // invalid kind dropped
+        { kind: "like" }, // missing from dropped
+        { kind: "like", from: "not an object", key: "L:1:2" }, // from not object dropped
+        { kind: "like", from: { handle: "invalid/handle" }, key: "L:1:2" }, // invalid handle dropped
+        { kind: "like", from: { handle: "handle_is_too_long_for_x" }, key: "L:1:2" }, // handle too long dropped
+        { kind: "like", from: { handle: "bob" }, key: "bad_key" }, // key without L:/P: prefix dropped
+        { kind: "like", from: { handle: "bob" }, key: "X:100" }, // wrong prefix dropped
+        { kind: "like", from: { handle: "bob" }, key: "P:" }, // empty id dropped
+        { kind: "like", from: { handle: "bob" }, key: "P:abc" }, // non-numeric id dropped
+        { kind: "like", from: { handle: "bob" }, key: "P:123456789012345678901" }, // >20 digits dropped
+        {
+          kind: "reply",
+          from: {
+            handle: "good_user",
+            id: "not_a_valid_id", // invalid id sanitized to null
+            name: "A".repeat(150), // long name truncated to 100
+          },
+          key: "P:999",
+          at: "not a number", // fallback to Date.now
+        },
+      ],
+      at: 200,
+    })
+  );
+
+  assert.strictEqual(malformed.n.length, 1);
+  assert.strictEqual(malformed.n[0].kind, "reply");
+  assert.strictEqual(malformed.n[0].from.handle, "good_user");
+  assert.strictEqual(malformed.n[0].from.id, null);
+  assert.strictEqual(malformed.n[0].from.name, "A".repeat(100));
+  assert.strictEqual(malformed.n[0].key, "P:999");
+  assert.ok(typeof malformed.n[0].at === "number");
 });
 
 test("untriple collapses three identical copies and keeps non-triples", () => {

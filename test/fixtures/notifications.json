@@ -1,0 +1,298 @@
+{
+  "data": {
+    "viewer_v2": {
+      "user_results": {
+        "result": {
+          "__typename": "User",
+          "rest_id": "9999",
+          "core": {
+            "screen_name": "viewer_jack",
+            "name": "Viewer Jack"
+          }
+        }
+      }
+    },
+    "notification_timeline": {
+      "timeline": {
+        "instructions": [
+          {
+            "type": "TimelineAddEntries",
+            "entries": [
+              {
+                "entryId": "notification-like-1",
+                "content": {
+                  "itemContent": {
+                    "__typename": "TimelineNotification",
+                    "id": "notif-1",
+                    "timestamp_ms": "1760000001000",
+                    "notification_icon": "heart_icon",
+                    "clientEventInfo": {
+                      "element": "users_liked_your_tweet"
+                    },
+                    "template": {
+                      "__typename": "TimelineNotificationAggregateUserActions",
+                      "from_users": [
+                        {
+                          "user_results": {
+                            "result": {
+                              "__typename": "User",
+                              "rest_id": "102",
+                              "core": {
+                                "screen_name": "liker_bob",
+                                "name": "Bob Liker"
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "target_objects": [
+                        {
+                          "tweet_results": {
+                            "result": {
+                              "__typename": "Tweet",
+                              "rest_id": "501",
+                              "core": {
+                                "user_results": {
+                                  "result": {
+                                    "__typename": "User",
+                                    "rest_id": "9999",
+                                    "core": {
+                                      "screen_name": "viewer_jack",
+                                      "name": "Viewer Jack"
+                                    }
+                                  }
+                                }
+                              },
+                              "legacy": {
+                                "full_text": "First post by jack"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "notification-like-multi",
+                "content": {
+                  "itemContent": {
+                    "__typename": "TimelineNotification",
+                    "id": "notif-2",
+                    "timestamp_ms": "1760000002000",
+                    "notification_icon": "heart_icon",
+                    "clientEventInfo": {
+                      "element": "user_liked_multiple_tweets"
+                    },
+                    "template": {
+                      "__typename": "TimelineNotificationAggregateUserActions",
+                      "from_users": [
+                        {
+                          "user_results": {
+                            "result": {
+                              "__typename": "User",
+                              "rest_id": "103",
+                              "core": {
+                                "screen_name": "liker_carol",
+                                "name": "Carol Multi"
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "target_objects": [
+                        {
+                          "tweet_results": {
+                            "result": {
+                              "__typename": "Tweet",
+                              "rest_id": "502",
+                              "core": {
+                                "user_results": {
+                                  "result": {
+                                    "__typename": "User",
+                                    "rest_id": "9999",
+                                    "core": {
+                                      "screen_name": "viewer_jack",
+                                      "name": "Viewer Jack"
+                                    }
+                                  }
+                                }
+                              },
+                              "legacy": {
+                                "full_text": "Second post by jack"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "tweet_results": {
+                            "result": {
+                              "__typename": "Tweet",
+                              "rest_id": "503",
+                              "core": {
+                                "user_results": {
+                                  "result": {
+                                    "__typename": "User",
+                                    "rest_id": "9999",
+                                    "core": {
+                                      "screen_name": "viewer_jack",
+                                      "name": "Viewer Jack"
+                                    }
+                                  }
+                                }
+                              },
+                              "legacy": {
+                                "full_text": "Third post by jack"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "notification-follow",
+                "content": {
+                  "itemContent": {
+                    "__typename": "TimelineNotification",
+                    "id": "notif-3",
+                    "timestamp_ms": "1760000003000",
+                    "notification_icon": "person_icon",
+                    "clientEventInfo": {
+                      "element": "users_followed_you"
+                    },
+                    "template": {
+                      "__typename": "TimelineNotificationAggregateUserActions",
+                      "from_users": [
+                        {
+                          "user_results": {
+                            "result": {
+                              "__typename": "User",
+                              "rest_id": "104",
+                              "core": {
+                                "screen_name": "follower_dan",
+                                "name": "Dan Follower"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "notification-alert",
+                "content": {
+                  "itemContent": {
+                    "__typename": "TimelineNotification",
+                    "id": "notif-4",
+                    "timestamp_ms": "1760000004000",
+                    "notification_icon": "bell_icon",
+                    "clientEventInfo": {
+                      "element": "device_follow_tweet_notification_entry"
+                    },
+                    "template": {
+                      "__typename": "TimelineNotificationAggregateUserActions",
+                      "from_users": [
+                        {
+                          "user_results": {
+                            "result": {
+                              "__typename": "User",
+                              "rest_id": "105",
+                              "core": {
+                                "screen_name": "poster_eve",
+                                "name": "Eve Alert"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "tweet-reply-1",
+                "content": {
+                  "itemContent": {
+                    "__typename": "TimelineTweet",
+                    "clientEventInfo": {
+                      "element": "user_replied_to_your_tweet"
+                    },
+                    "tweet_results": {
+                      "result": {
+                        "__typename": "Tweet",
+                        "rest_id": "601",
+                        "core": {
+                          "user_results": {
+                            "result": {
+                              "__typename": "User",
+                              "rest_id": "106",
+                              "core": {
+                                "screen_name": "replier_frank",
+                                "name": "Frank Replier"
+                              }
+                            }
+                          }
+                        },
+                        "legacy": {
+                          "created_at": "Tue Oct 20 12:00:05 +0000 2026",
+                          "full_text": "@viewer_jack Great post!",
+                          "display_text_range": [13, 24],
+                          "in_reply_to_status_id_str": "501",
+                          "in_reply_to_user_id_str": "9999",
+                          "in_reply_to_screen_name": "viewer_jack"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "tweet-reply-2",
+                "content": {
+                  "itemContent": {
+                    "__typename": "TimelineTweet",
+                    "clientEventInfo": {
+                      "element": "user_replied_to_your_tweet"
+                    },
+                    "tweet_results": {
+                      "result": {
+                        "__typename": "Tweet",
+                        "rest_id": "602",
+                        "core": {
+                          "user_results": {
+                            "result": {
+                              "__typename": "User",
+                              "rest_id": "107",
+                              "core": {
+                                "screen_name": "replier_grace",
+                                "name": "Grace Replier"
+                              }
+                            }
+                          }
+                        },
+                        "legacy": {
+                          "created_at": "Tue Oct 20 12:00:06 +0000 2026",
+                          "full_text": "@viewer_jack Agreed on this point!",
+                          "display_text_range": [13, 35],
+                          "in_reply_to_status_id_str": "502",
+                          "in_reply_to_user_id_str": "9999",
+                          "in_reply_to_screen_name": "viewer_jack"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
