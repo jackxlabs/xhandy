@@ -451,7 +451,7 @@ components:
 
 ## Do's and Don'ts
 Imagery: Real screenshots of the extension with the relevant part highlighted; promo images use the brand gradient background with the logo
-- Do: Screenshots from real X pages, with other people's avatars and names blurred
+- Do: Screenshots from real X pages, with other people's avatars and names blurred; public posts by public figures may stay unblurred (Jack 2026-10-20)
 - Do: Keep the numbers in screenshots real; never inflate them
 - Do: One set of screenshots per interface language
 - Don't: Fake UI mock-ups or inflated view counts

@@ -1,6 +1,6 @@
 # Xhandy 品牌语气与规则
 
-> 由 brand.yaml v9（2026-10-20）生成。改 brand.yaml 后运行 compile.py。
+> 由 brand.yaml v10（2026-10-20）生成。改 brand.yaml 后运行 compile.py。
 
 ## 品牌定位
 - **一句话**：刷 X 时的顺手提示

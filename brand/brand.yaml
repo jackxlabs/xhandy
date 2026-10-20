@@ -4,7 +4,7 @@
 meta:
   name: Xhandy
   slug: xhandy
-  version: 9
+  version: 10
   updated: "2026-10-20"
   parent: null
   languages: [zh, en]
@@ -389,7 +389,7 @@ visual:
       zh: "真实的插件界面截图，标出要看的地方；宣传图用品牌渐变背景加标志"
       en: "Real screenshots of the extension with the relevant part highlighted; promo images use the brand gradient background with the logo"
     do:
-      - { zh: "用真实 X 页面上的截图，其他用户的头像、名字打码", en: "Screenshots from real X pages, with other people's avatars and names blurred" }
+      - { zh: "用真实 X 页面上的截图，其他用户的头像、名字打码；公众人物的公开帖子可以不打码（Jack 2026-10-20）", en: "Screenshots from real X pages, with other people's avatars and names blurred; public posts by public figures may stay unblurred (Jack 2026-10-20)" }
       - { zh: "截图里的数字保持真实，不改成夸张的数据", en: "Keep the numbers in screenshots real; never inflate them" }
       - { zh: "中英文界面各截一套", en: "One set of screenshots per interface language" }
     dont:
@@ -641,6 +641,11 @@ messaging:
 # minor (new assets, tokens, templates, blocks), patch (fixes and wording). v1-v5 were reconstructed on 2026-10-20 from
 # logo/decisions.md and brand.yaml comments: the order inside 2026-10-19 is inferred (reconstructed: true), Jack to check.
 changelog:
+  - version: 10
+    date: "2026-10-20"
+    type: patch
+    items:
+      - { kind: changed, zh: "图片规范：公众人物的公开帖子截图可以不打码，其他用户照旧打码", en: "Imagery: screenshots of public posts by public figures may stay unblurred; everyone else is still blurred" }
   - version: 9
     date: "2026-10-20"
     type: patch

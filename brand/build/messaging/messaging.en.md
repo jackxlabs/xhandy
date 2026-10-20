@@ -1,6 +1,6 @@
 # Xhandy Messaging (draft)
 
-> Generated from brand.yaml by messaging.py. Do not edit by hand. brand.yaml v9 (2026-10-20)
+> Generated from brand.yaml by messaging.py. Do not edit by hand. brand.yaml v10 (2026-10-20)
 
 ## Pitch
 

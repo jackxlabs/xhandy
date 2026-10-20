@@ -1,6 +1,6 @@
 # Xhandy brand voice and rules
 
-> Generated from brand.yaml v9 (2026-10-20). Edit brand.yaml, then run compile.py.
+> Generated from brand.yaml v10 (2026-10-20). Edit brand.yaml, then run compile.py.
 
 ## Identity
 - **Short**: Quiet hints while you use X

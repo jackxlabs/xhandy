@@ -1,6 +1,6 @@
 # Xhandy 传播文案（草稿）
 
-> 由 brand.yaml 生成（messaging.py），不要手改。 brand.yaml v9 (2026-10-20)
+> 由 brand.yaml 生成（messaging.py），不要手改。 brand.yaml v10 (2026-10-20)
 
 ## 电梯演讲
 

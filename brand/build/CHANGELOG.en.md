@@ -10,6 +10,12 @@ Versioning: `meta.version` in brand.yaml is a single counter, bumped when the ow
 
 > Generated from brand.yaml by changelog.py. Do not edit by hand.
 
+## [10] - 2026-10-20 · patch
+
+### Changed
+
+- Imagery: screenshots of public posts by public figures may stay unblurred; everyone else is still blurred
+
 ## [9] - 2026-10-20 · patch
 
 ### Changed
