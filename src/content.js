@@ -618,8 +618,10 @@
     payload.f.forEach(onFriendship);
     if (payload.v.length) {
       for (const p of payload.v) {
-        views.delete(p.id); // keep the Map in arrival order so the oldest go first
-        views.set(p.id, { n: p.views, at: payload.at });
+        if (typeof p.views === "number") {
+          views.delete(p.id); // keep the Map in arrival order so the oldest go first
+          views.set(p.id, { n: p.views, at: payload.at });
+        }
       }
       for (const id of views.keys()) {
         if (views.size <= MAX_VIEWS) break;

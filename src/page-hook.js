@@ -16,21 +16,31 @@
       }
       if (v.__typename === "User" && v.relationship_perspectives && v.core && v.core.screen_name) {
         const r = v.relationship_perspectives;
-        out.set(v.core.screen_name.toLowerCase(), {
+        const entry = {
           handle: v.core.screen_name,
           name: v.core.name || null,
           id: v.rest_id || null,
           following: !!r.following,
           followedBy: !!r.followed_by,
-        });
+        };
+        if (v.relationship_counts && v.relationship_counts.followers != null) {
+          const fc = Number(v.relationship_counts.followers);
+          if (Number.isFinite(fc) && fc >= 0) entry.followers = fc;
+        }
+        const key = v.core.screen_name.toLowerCase();
+        const existing = out.get(key);
+        if (existing && entry.followers == null && existing.followers != null) {
+          entry.followers = existing.followers;
+        }
+        out.set(key, entry);
       }
       for (const k in v) stack.push(v[k]);
     }
     return [...out.values()];
   }
 
-  // Walk any JSON value and collect view counts of posts: [{ id, views }].
-  function collectViews(root) {
+  // Walk any JSON value and collect post stats: [{ id, views?, replies?, author?, authorFollowers?, inReplyTo? }].
+  function collectPosts(root) {
     const out = new Map();
     const stack = [root];
     while (stack.length) {
@@ -40,14 +50,35 @@
         for (const x of v) stack.push(x);
         continue;
       }
-      if (v.__typename === "Tweet" && v.rest_id && v.views && v.views.count != null) {
-        const n = Number(v.views.count);
-        if (Number.isFinite(n)) out.set(v.rest_id, { id: v.rest_id, views: n });
+      if (v.__typename === "Tweet" && v.rest_id) {
+        const post = { id: String(v.rest_id) };
+        if (v.views && v.views.count != null) {
+          const n = Number(v.views.count);
+          if (Number.isFinite(n) && n >= 0) post.views = n;
+        }
+        if (v.legacy && v.legacy.reply_count != null) {
+          const r = Number(v.legacy.reply_count);
+          if (Number.isFinite(r) && r >= 0) post.replies = r;
+        }
+        const user = v.core && v.core.user_results && v.core.user_results.result;
+        const author = user && ((user.core && user.core.screen_name) || (user.legacy && user.legacy.screen_name));
+        if (typeof author === "string" && author) {
+          post.author = author;
+        }
+        if (user && user.relationship_counts && user.relationship_counts.followers != null) {
+          const f = Number(user.relationship_counts.followers);
+          if (Number.isFinite(f) && f >= 0) post.authorFollowers = f;
+        }
+        if (v.legacy && typeof v.legacy.in_reply_to_status_id_str === "string" && v.legacy.in_reply_to_status_id_str) {
+          post.inReplyTo = v.legacy.in_reply_to_status_id_str;
+        }
+        out.set(post.id, post);
       }
       for (const k in v) stack.push(v[k]);
     }
     return [...out.values()];
   }
+  const collectViews = collectPosts;
 
   // The user's own follow or unfollow, from X's reply to it: POST .../friendships/create.json
   // (or destroy.json) answers with the account. Seeing the request rather than a button means
@@ -102,7 +133,7 @@
   }
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { collectRelations, collectViews, collectFriendship, collectCreated };
+    module.exports = { collectRelations, collectViews, collectPosts, collectFriendship, collectCreated };
     return;
   }
 
@@ -138,7 +169,7 @@
   function emit(json, url, ok = true) {
     try {
       const u = ok ? collectRelations(json) : [];
-      const v = ok ? collectViews(json) : [];
+      const v = ok ? collectPosts(json) : [];
       const f = ok ? collectFriendship(url, json) : [];
       const created = collectCreated(url, json, ok);
       const c = created ? [created] : [];

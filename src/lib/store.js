@@ -53,6 +53,7 @@
   const DAY = /^\d{4}-\d{2}-\d{2}$/;
   const isHandle = (h) => typeof h === "string" && HANDLE.test(h);
   const isId = (id) => typeof id === "string" && ID.test(id);
+  const isNonNegInt = (n) => typeof n === "number" && Number.isInteger(n) && n >= 0;
   const isObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
   const num = (n, def = 0) => (typeof n === "number" && Number.isFinite(n) ? n : def);
   const str = (s, max) => (typeof s === "string" ? s.slice(0, max) : null);
@@ -124,18 +125,37 @@
       return null;
     }
     if (!isObj(p)) return null;
-    const u = (Array.isArray(p.u) ? p.u : [])
-      .filter((x) => isObj(x) && isHandle(x.handle))
-      .map((x) => ({
+    const u = [];
+    for (const x of Array.isArray(p.u) ? p.u : []) {
+      if (!isObj(x) || !isHandle(x.handle)) continue;
+      if (x.followers != null && !isNonNegInt(x.followers)) continue;
+      const uEntry = {
         handle: x.handle,
         name: str(x.name, 100),
         id: isId(x.id) ? x.id : null,
         following: x.following === true,
         followedBy: x.followedBy === true,
-      }));
-    const v = (Array.isArray(p.v) ? p.v : [])
-      .filter((x) => isObj(x) && isId(x.id) && num(x.views, -1) >= 0)
-      .map((x) => ({ id: x.id, views: x.views }));
+      };
+      if (isNonNegInt(x.followers)) uEntry.followers = x.followers;
+      u.push(uEntry);
+    }
+    const v = [];
+    for (const x of Array.isArray(p.v) ? p.v : []) {
+      if (!isObj(x) || !isId(x.id)) continue;
+      if (x.views != null && !isNonNegInt(x.views)) continue;
+      if (x.replies != null && !isNonNegInt(x.replies)) continue;
+      if (x.author != null && !isHandle(x.author)) continue;
+      if (x.authorFollowers != null && !isNonNegInt(x.authorFollowers)) continue;
+      if (x.inReplyTo != null && !isId(x.inReplyTo)) continue;
+
+      const post = { id: x.id };
+      if (isNonNegInt(x.views)) post.views = x.views;
+      if (isNonNegInt(x.replies)) post.replies = x.replies;
+      if (isHandle(x.author)) post.author = x.author;
+      if (isNonNegInt(x.authorFollowers)) post.authorFollowers = x.authorFollowers;
+      if (isId(x.inReplyTo)) post.inReplyTo = x.inReplyTo;
+      v.push(post);
+    }
     const f = (Array.isArray(p.f) ? p.f : [])
       .filter((x) => isObj(x) && isHandle(x.handle) && typeof x.on === "boolean")
       .map((x) => ({ handle: x.handle, name: str(x.name, 100), id: isId(x.id) ? x.id : null, on: x.on }));
@@ -297,5 +317,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, cleanRelations, untriple };
+  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple };
 })();

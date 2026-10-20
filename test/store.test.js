@@ -223,6 +223,75 @@ test("cleanRelations validates confirmation entries in c", () => {
   ]);
 });
 
+test("cleanRelations validates new post fields and user followers", () => {
+  const store = loadStore(fakeChrome());
+
+  // 1. Valid fields
+  const valid = store.cleanRelations(
+    JSON.stringify({
+      u: [
+        { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true, followers: 46000 },
+        { handle: "bob", followers: 0 },
+      ],
+      v: [
+        { id: "100", views: 15000, replies: 23, author: "alice", authorFollowers: 46000, inReplyTo: "90" },
+        { id: "101", views: 0, replies: 0, author: "bob", authorFollowers: 0 },
+        { id: "102", replies: 5, author: "carol" },
+        { id: "103" },
+      ],
+      at: 100,
+    })
+  );
+
+  assert.deepStrictEqual(valid.u, [
+    { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true, followers: 46000 },
+    { handle: "bob", name: null, id: null, following: false, followedBy: false, followers: 0 },
+  ]);
+
+  assert.deepStrictEqual(valid.v, [
+    { id: "100", views: 15000, replies: 23, author: "alice", authorFollowers: 46000, inReplyTo: "90" },
+    { id: "101", views: 0, replies: 0, author: "bob", authorFollowers: 0 },
+    { id: "102", replies: 5, author: "carol" },
+    { id: "103" },
+  ]);
+
+  // 2. Malformed fields are rejected/dropped
+  const malformed = store.cleanRelations(
+    JSON.stringify({
+      u: [
+        { handle: "bad_f1", followers: -1 },
+        { handle: "bad_f2", followers: 10.5 },
+        { handle: "bad_f3", followers: "500" },
+        { handle: "good_user", followers: 100 },
+      ],
+      v: [
+        { id: "201", replies: -1 },
+        { id: "202", replies: "10" },
+        { id: "203", replies: 2.5 },
+        { id: "204", author: "/invalid handle" },
+        { id: "205", author: "author_handle_too_long_for_x" },
+        { id: "206", author: 123 },
+        { id: "207", authorFollowers: -10 },
+        { id: "208", authorFollowers: "46000" },
+        { id: "209", authorFollowers: 1.2 },
+        { id: "210", inReplyTo: "not an id" },
+        { id: "211", inReplyTo: 12345 },
+        { id: "invalid_id", replies: 5 },
+        { id: "212", views: 100, unknownExtra: "stripMe" },
+      ],
+      at: 200,
+    })
+  );
+
+  assert.deepStrictEqual(malformed.u, [
+    { handle: "good_user", name: null, id: null, following: false, followedBy: false, followers: 100 },
+  ]);
+
+  assert.deepStrictEqual(malformed.v, [
+    { id: "212", views: 100 },
+  ]);
+});
+
 test("untriple collapses three identical copies and keeps non-triples", () => {
   const store = loadStore(fakeChrome());
   assert.strictEqual(store.untriple("hello\nhello\nhello"), "hello", "simple triple collapses");

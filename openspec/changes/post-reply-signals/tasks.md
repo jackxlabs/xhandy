@@ -2,11 +2,11 @@
 
 ## 1. Read the data
 
-- [ ] 1.1 Replace `collectViews` with `collectPosts` in `src/page-hook.js` (keep the exported name working
+- [x] 1.1 Replace `collectViews` with `collectPosts` in `src/page-hook.js` (keep the exported name working
   for existing tests or update them) and read `relationship_counts.followers` in `collectRelations`.
   Verify with unit tests on a made-up fixture shaped like real X (no real accounts): reply count, author
   handle and followers, `inReplyTo`, posts without views.
-- [ ] 1.2 Extend `store.cleanRelations` for the new fields (non-negative integers, valid ids and handles).
+- [x] 1.2 Extend `store.cleanRelations` for the new fields (non-negative integers, valid ids and handles).
   Verify with unit tests for valid and malformed values.
 
 ## 2. Storage
