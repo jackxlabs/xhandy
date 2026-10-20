@@ -27,7 +27,8 @@ It is not synced to other devices and is never sent anywhere.
 
 - The X pages you open and your own actions on them (likes, replies, posts, follows).
 - The data X's own website already sends to your browser while you use it. Xhandy reads copies of these
-  responses (follow relationships, view counts, and X's answers to your own follows and unfollows).
+  responses (follow relationships, view counts, and X's answers to your own follows, unfollows, posts and
+  replies; a post or reply is recorded only once X confirms it was created).
   It never changes them, never sends extra requests to X and never sends anything to anyone else.
 
 ## Permissions

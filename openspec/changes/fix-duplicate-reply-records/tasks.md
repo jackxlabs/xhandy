@@ -54,10 +54,10 @@
 
 ## 5. Docs and release
 
-- [ ] 5.1 Update `PRIVACY.md` ("Where the data comes from": X's answers to your own posts and replies) and
+- [x] 5.1 Update `PRIVACY.md` ("Where the data comes from": X's answers to your own posts and replies) and
   the README Privacy section in English and Chinese. Verify: both name the new source, and nothing else
   about stored data changes.
-- [ ] 5.2 Run `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e`; report pass/fail counts. Verify:
+- [x] 5.2 Run `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e`; report pass/fail counts. Verify:
   all pass, and the e2e steps "extension never clicks anything by itself" and "extension never fakes mouse
   or pointer events" are unchanged (`git diff test/e2e.mjs` shows no edits inside them).
 

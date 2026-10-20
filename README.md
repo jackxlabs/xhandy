@@ -64,8 +64,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
 - Stored in this browser only: your settings, daily counts, per-author like/reply counts, follow relationships,
   and the text of your last 300 replies and posts (used for the duplicate-reply warning).
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
-  view counts, and X's answers to your own follows and unfollows). It clones responses and never changes or
-  sends anything.
+  view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
+  changes or sends anything. A reply or post is recorded only after X confirms it was created.
 - No network requests, no analytics, no remote code.
 - Export, import or delete everything from the Options page.
 
