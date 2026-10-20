@@ -1,0 +1,14 @@
+/* Motion tokens used by brand-kit animate.py. Defaults, not brand decisions: change them in animate.py if the owner wants. */
+:root {
+  --ease-draw: cubic-bezier(.65,0,.35,1);
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-linear: linear;
+  --duration-fast: 150ms;      /* hover, press */
+  --duration-base: 250ms;      /* menus, toggles */
+  --duration-slow: 400ms;      /* panels, page elements */
+  --duration-logo: 1800ms;     /* logo draw-on */
+  --duration-loader: 1200ms;   /* one loader loop */
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; }
+}

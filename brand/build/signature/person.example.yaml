@@ -1,0 +1,7 @@
+# Person data for signature.py. Copy next to brand.yaml (e.g. brand/signature.yaml), fill in, pass with --person.
+name: { zh: "", en: "" }
+title: { zh: "", en: "" }
+email: ""
+phone: ""
+links:                       # optional, max 3; label may be {zh, en}
+  - { label: "X", url: "" }

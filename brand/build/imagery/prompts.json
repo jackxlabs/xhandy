@@ -1,0 +1,58 @@
+{
+  "zh": {
+    "variables": {
+      "palette_named": "青（#06b6d4） → 紫（#8b5cf6） → 粉（#ec4899）",
+      "mood": "直白、懂行、顺手",
+      "aspect": "<16:9 | 1:1 | 2:1>",
+      "text_side": "<left | right>",
+      "text_side_zh": "<左侧 | 右侧>",
+      "neutral_desc": "<light #f7f6f9 | dark #1e1d23>",
+      "neutral_desc_zh": "<浅色 #f7f6f9 | 深色 #1e1d23>"
+    },
+    "templates": [
+      {
+        "use": "渐变背景底图（宣传图、幻灯片、OG 图）",
+        "prompt": "抽象的柔和渐变背景，青（#06b6d4） → 紫（#8b5cf6） → 粉（#ec4899），从左上到右下的斜向流动，细微胶片颗粒，<左侧 | 右侧>留出大片干净区域放标题，没有物体，没有文字，直白、懂行、顺手，扁平二维，<16:9 | 1:1 | 2:1>",
+        "negative": "假的界面效果图或夸大的浏览数据; 图库照片和泛 AI 插画; 出现 X 官方 logo 当装饰; 文字、字母、水印、标志、界面、人物、手、设备"
+      },
+      {
+        "use": "真实截图背后的底纹",
+        "prompt": "青（#06b6d4） → 紫（#8b5cf6） → 粉（#ec4899） 的柔和模糊色场，<浅色 #f7f6f9 | 深色 #1e1d23>底色，对比度很低，失焦，没有形状，没有文字，没有界面，中间留空放真实的产品截图，<16:9 | 1:1 | 2:1>",
+        "negative": "假的界面效果图或夸大的浏览数据; 图库照片和泛 AI 插画; 出现 X 官方 logo 当装饰; 文字、字母、水印、标志、界面、人物、手、设备"
+      },
+      {
+        "use": "给品牌负责人看的情绪探索（仅内部，不发布）",
+        "prompt": "只有颜色和光的情绪板：青（#06b6d4） → 紫（#8b5cf6） → 粉（#ec4899），直白、懂行、顺手；没有人物，没有设备，没有标志，没有文字，<16:9 | 1:1 | 2:1>",
+        "negative": "假的界面效果图或夸大的浏览数据; 图库照片和泛 AI 插画; 出现 X 官方 logo 当装饰; 文字、字母、水印、标志、界面、人物、手、设备"
+      }
+    ]
+  },
+  "en": {
+    "variables": {
+      "palette_named": "cyan (#06b6d4) → violet (#8b5cf6) → pink (#ec4899)",
+      "mood": "Plain, Savvy, Handy",
+      "aspect": "<16:9 | 1:1 | 2:1>",
+      "text_side": "<left | right>",
+      "text_side_zh": "<左侧 | 右侧>",
+      "neutral_desc": "<light #f7f6f9 | dark #1e1d23>",
+      "neutral_desc_zh": "<浅色 #f7f6f9 | 深色 #1e1d23>"
+    },
+    "templates": [
+      {
+        "use": "Gradient background plate (promo images, slides, OG)",
+        "prompt": "Abstract smooth gradient background, cyan (#06b6d4) → violet (#8b5cf6) → pink (#ec4899), soft diagonal flow from top-left to bottom-right, subtle film grain, large calm empty area on the <left | right> for a headline, no objects, no text, Plain, Savvy, Handy, flat 2D, <16:9 | 1:1 | 2:1>",
+        "negative": "Fake UI mock-ups or inflated view counts; Stock photos and generic AI illustrations; X's own logo used as decoration; text, letters, watermark, logos, user interface, people, hands, devices"
+      },
+      {
+        "use": "Texture behind a real screenshot",
+        "prompt": "Soft blurred colour field in cyan (#06b6d4) → violet (#8b5cf6) → pink (#ec4899) on a <light #f7f6f9 | dark #1e1d23> base, very low contrast, out of focus, no shapes, no text, no interface, leaves the centre clear for a product screenshot placed on top, <16:9 | 1:1 | 2:1>",
+        "negative": "Fake UI mock-ups or inflated view counts; Stock photos and generic AI illustrations; X's own logo used as decoration; text, letters, watermark, logos, user interface, people, hands, devices"
+      },
+      {
+        "use": "Mood exploration for the owner (internal only, not published)",
+        "prompt": "Moodboard of colour and light only: cyan (#06b6d4) → violet (#8b5cf6) → pink (#ec4899), Plain, Savvy, Handy; no people, no devices, no logos, no text, <16:9 | 1:1 | 2:1>",
+        "negative": "Fake UI mock-ups or inflated view counts; Stock photos and generic AI illustrations; X's own logo used as decoration; text, letters, watermark, logos, user interface, people, hands, devices"
+      }
+    ]
+  }
+}

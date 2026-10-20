@@ -1,0 +1,302 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xhandy Components</title><link rel="stylesheet" href="../fonts/fonts.css"><style>
+/* Generated from brand.yaml 2026-10-20 by brand-kit compile.py. Do not edit. */
+:root {
+  --brand-cyan: #06b6d4;
+  --brand-violet: #8b5cf6;
+  --brand-pink: #ec4899;
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-wordmark: Inter, sans-serif;
+  --cyan-50: #eef9fc;
+  --cyan-100: #d7f0f7;
+  --cyan-200: #b2e3ef;
+  --cyan-300: #7fcfe3;
+  --cyan-400: #06b6d4;
+  --cyan-500: #0098b1;
+  --cyan-600: #007e93;
+  --cyan-700: #006678;
+  --cyan-800: #004f5e;
+  --cyan-900: #003843;
+  --cyan-950: #00232a;
+  --violet-50: #f7f5ff;
+  --violet-100: #ebe8ff;
+  --violet-200: #dad2ff;
+  --violet-300: #c3b4ff;
+  --violet-400: #a88dff;
+  --violet-500: #8b5cf6;
+  --violet-600: #794bdc;
+  --violet-700: #6339b8;
+  --violet-800: #4d2a93;
+  --violet-900: #371a6e;
+  --violet-950: #220c4a;
+  --pink-50: #fff3f7;
+  --pink-100: #ffe2ec;
+  --pink-200: #ffc7dc;
+  --pink-300: #ff9fc6;
+  --pink-400: #f869aa;
+  --pink-500: #ec4899;
+  --pink-600: #c12277;
+  --pink-700: #a11361;
+  --pink-800: #80084c;
+  --pink-900: #5e0036;
+  --pink-950: #3d0021;
+  --neutral-50: #f7f6f9;
+  --neutral-100: #ebeaef;
+  --neutral-200: #d9d8de;
+  --neutral-300: #c1c0c8;
+  --neutral-400: #a3a1ac;
+  --neutral-500: #888692;
+  --neutral-600: #706e7a;
+  --neutral-700: #5b5964;
+  --neutral-800: #46454e;
+  --neutral-900: #323038;
+  --neutral-950: #1e1d23;
+  --success-50: #eefbf0;
+  --success-100: #d8f4dd;
+  --success-200: #b4e9be;
+  --success-300: #82d895;
+  --success-400: #41bf68;
+  --success-500: #00a34a;
+  --success-600: #00873c;
+  --success-700: #006e30;
+  --success-800: #005624;
+  --success-900: #003d17;
+  --success-950: #00260c;
+  --warning-50: #fff5e9;
+  --warning-100: #fce8cd;
+  --warning-200: #f9d29e;
+  --warning-300: #f0b55d;
+  --warning-400: #d99300;
+  --warning-500: #b57a00;
+  --warning-600: #976500;
+  --warning-700: #7b5100;
+  --warning-800: #603f00;
+  --warning-900: #452c00;
+  --warning-950: #2b1a00;
+  --danger-50: #fff4f3;
+  --danger-100: #ffe4e1;
+  --danger-200: #ffcac5;
+  --danger-300: #ffa59e;
+  --danger-400: #fa736c;
+  --danger-500: #e44a49;
+  --danger-600: #c43234;
+  --danger-700: #a32327;
+  --danger-800: #81171b;
+  --danger-900: #60090f;
+  --danger-950: #3f0205;
+  --info-50: #eef9ff;
+  --info-100: #d6efff;
+  --info-200: #afe1ff;
+  --info-300: #72cdff;
+  --info-400: #00b0f3;
+  --info-500: #0093cc;
+  --info-600: #0079a9;
+  --info-700: #00628a;
+  --info-800: #004d6d;
+  --info-900: #00364e;
+  --info-950: #002132;
+  --color-bg: var(--neutral-50);
+  --color-surface: #ffffff;
+  --color-border: var(--neutral-200);
+  --color-text: var(--neutral-900);
+  --color-text-muted: var(--neutral-600);
+  --color-solid: var(--violet-600);
+  --color-solid-hover: var(--violet-700);
+  --color-on-solid: #ffffff;
+  --color-link: var(--violet-600);
+  --color-focus: var(--violet-500);
+  --color-success-solid: var(--success-600);
+  --color-success-text: var(--success-700);
+  --color-warning-solid: var(--warning-600);
+  --color-warning-text: var(--warning-700);
+  --color-danger-solid: var(--danger-600);
+  --color-danger-text: var(--danger-700);
+  --color-info-solid: var(--info-600);
+  --color-info-text: var(--info-700);
+  --text-xs: 0.640rem;
+  --leading-xs: 1.5;
+  --tracking-xs: 0em;
+  --text-sm: 0.800rem;
+  --leading-sm: 1.5;
+  --tracking-sm: 0em;
+  --text-base: 1.000rem;
+  --leading-base: 1.5;
+  --tracking-base: 0em;
+  --text-lg: 1.250rem;
+  --leading-lg: 1.35;
+  --tracking-lg: 0em;
+  --text-xl: clamp(1.469rem, 1.432rem + 0.163vw, 1.562rem);
+  --leading-xl: 1.35;
+  --tracking-xl: -0.01em;
+  --text-2xl: clamp(1.719rem, 1.627rem + 0.408vw, 1.953rem);
+  --leading-2xl: 1.15;
+  --tracking-2xl: -0.01em;
+  --text-3xl: clamp(2.002rem, 1.830rem + 0.764vw, 2.441rem);
+  --leading-3xl: 1.15;
+  --tracking-3xl: -0.02em;
+  --text-4xl: clamp(2.319rem, 2.033rem + 1.274vw, 3.052rem);
+  --leading-4xl: 1.15;
+  --tracking-4xl: -0.02em;
+  --text-5xl: clamp(2.670rem, 2.222rem + 1.990vw, 3.815rem);
+  --leading-5xl: 1.15;
+  --tracking-5xl: -0.02em;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: var(--neutral-950);
+    --color-surface: var(--neutral-900);
+    --color-border: var(--neutral-800);
+    --color-text: var(--neutral-50);
+    --color-text-muted: var(--neutral-400);
+    --color-solid: var(--violet-600);
+    --color-solid-hover: var(--violet-500);
+    --color-on-solid: #ffffff;
+    --color-link: var(--violet-300);
+    --color-focus: var(--violet-400);
+    --color-success-solid: var(--success-600);
+    --color-success-text: var(--success-300);
+    --color-warning-solid: var(--warning-600);
+    --color-warning-text: var(--warning-300);
+    --color-danger-solid: var(--danger-600);
+    --color-danger-text: var(--danger-300);
+    --color-info-solid: var(--info-600);
+    --color-info-text: var(--info-300);
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: var(--neutral-950);
+  --color-surface: var(--neutral-900);
+  --color-border: var(--neutral-800);
+  --color-text: var(--neutral-50);
+  --color-text-muted: var(--neutral-400);
+  --color-solid: var(--violet-600);
+  --color-solid-hover: var(--violet-500);
+  --color-on-solid: #ffffff;
+  --color-link: var(--violet-300);
+  --color-focus: var(--violet-400);
+  --color-success-solid: var(--success-600);
+  --color-success-text: var(--success-300);
+  --color-warning-solid: var(--warning-600);
+  --color-warning-text: var(--warning-300);
+  --color-danger-solid: var(--danger-600);
+  --color-danger-text: var(--danger-300);
+  --color-info-solid: var(--info-600);
+  --color-info-text: var(--info-300);
+}
+
+/* Xhandy theme for shadcn/ui (Tailwind v4), generated by brand-kit components.py from brand.yaml. Do not edit by hand.
+   Paste into app/globals.css (replacing the :root, .dark and @theme inline blocks), or keep it as its own file.
+   Extra variables (--primary-hover, --secondary-hover, --link) are brand additions; shadcn components ignore them. */
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.975 0.004 301.4); /* #f7f6f9 role bg */
+  --foreground: oklch(0.314 0.014 297.0); /* #323038 role text */
+  --card: oklch(1.000 0.000 0.0); /* #ffffff role surface */
+  --card-foreground: oklch(0.314 0.014 297.0); /* #323038 role text */
+  --popover: oklch(1.000 0.000 0.0); /* #ffffff role surface */
+  --popover-foreground: oklch(0.314 0.014 297.0); /* #323038 role text */
+  --primary: oklch(0.545 0.209 292.7); /* #794bdc role solid */
+  --primary-foreground: oklch(1.000 0.000 0.0); /* #ffffff role on-solid */
+  --secondary: oklch(0.939 0.007 295.4); /* #ebeaef neutral.100 */
+  --secondary-foreground: oklch(0.314 0.014 297.0); /* #323038 role text */
+  --muted: oklch(0.939 0.007 295.4); /* #ebeaef neutral.100 */
+  --muted-foreground: oklch(0.470 0.018 294.0); /* #5b5964 neutral.700 */
+  --accent: oklch(0.940 0.031 291.8); /* #ebe8ff violet.100 */
+  --accent-foreground: oklch(0.395 0.162 292.7); /* #4d2a93 violet.800 */
+  --destructive: oklch(0.545 0.183 25.1); /* #c43234 role danger-solid */
+  --destructive-foreground: oklch(1.000 0.000 0.0); /* #ffffff white */
+  --border: oklch(0.885 0.008 293.9); /* #d9d8de role border */
+  --input: oklch(0.626 0.018 293.5); /* #888692 neutral.500 */
+  --ring: oklch(0.606 0.219 292.7); /* #8b5cf6 role focus */
+  --chart-1: oklch(0.625 0.110 214.8); /* #0098b1 cyan.500 */
+  --chart-2: oklch(0.606 0.219 292.7); /* #8b5cf6 violet.500 */
+  --chart-3: oklch(0.656 0.212 354.3); /* #ec4899 pink.500 */
+  --chart-4: oklch(0.315 0.135 292.7); /* #371a6e violet.900 */
+  --chart-5: oklch(0.626 0.018 293.5); /* #888692 neutral.500 */
+  --primary-hover: oklch(0.470 0.188 292.9); /* #6339b8 role solid-hover */
+  --secondary-hover: oklch(0.885 0.008 293.9); /* #d9d8de neutral.200 */
+  --link: oklch(0.545 0.209 292.7); /* #794bdc role link */
+  --sidebar: oklch(1.000 0.000 0.0);
+  --sidebar-foreground: oklch(0.314 0.014 297.0);
+  --sidebar-primary: oklch(0.545 0.209 292.7);
+  --sidebar-primary-foreground: oklch(1.000 0.000 0.0);
+  --sidebar-accent: oklch(0.940 0.031 291.8);
+  --sidebar-accent-foreground: oklch(0.395 0.162 292.7);
+  --sidebar-border: oklch(0.885 0.008 293.9);
+  --sidebar-ring: oklch(0.606 0.219 292.7);
+}
+
+.dark {
+  --background: oklch(0.234 0.011 293.1); /* #1e1d23 role bg */
+  --foreground: oklch(0.975 0.004 301.4); /* #f7f6f9 role text */
+  --card: oklch(0.314 0.014 297.0); /* #323038 role surface */
+  --card-foreground: oklch(0.975 0.004 301.4); /* #f7f6f9 role text */
+  --popover: oklch(0.314 0.014 297.0); /* #323038 role surface */
+  --popover-foreground: oklch(0.975 0.004 301.4); /* #f7f6f9 role text */
+  --primary: oklch(0.545 0.209 292.7); /* #794bdc role solid */
+  --primary-foreground: oklch(1.000 0.000 0.0); /* #ffffff role on-solid */
+  --secondary: oklch(0.395 0.015 290.8); /* #46454e neutral.800 */
+  --secondary-foreground: oklch(0.975 0.004 301.4); /* #f7f6f9 role text */
+  --muted: oklch(0.395 0.015 290.8); /* #46454e neutral.800 */
+  --muted-foreground: oklch(0.811 0.011 291.9); /* #c1c0c8 neutral.300 */
+  --accent: oklch(0.315 0.135 292.7); /* #371a6e violet.900 */
+  --accent-foreground: oklch(0.940 0.031 291.8); /* #ebe8ff violet.100 */
+  --destructive: oklch(0.545 0.183 25.1); /* #c43234 role danger-solid */
+  --destructive-foreground: oklch(1.000 0.000 0.0); /* #ffffff white */
+  --border: oklch(0.395 0.015 290.8); /* #46454e role border */
+  --input: oklch(0.626 0.018 293.5); /* #888692 neutral.500 */
+  --ring: oklch(0.716 0.163 292.7); /* #a88dff role focus */
+  --chart-1: oklch(0.625 0.110 214.8); /* #0098b1 cyan.500 */
+  --chart-2: oklch(0.606 0.219 292.7); /* #8b5cf6 violet.500 */
+  --chart-3: oklch(0.656 0.212 354.3); /* #ec4899 pink.500 */
+  --chart-4: oklch(0.809 0.105 293.1); /* #c3b4ff violet.300 */
+  --chart-5: oklch(0.626 0.018 293.5); /* #888692 neutral.500 */
+  --primary-hover: oklch(0.606 0.219 292.7); /* #8b5cf6 role solid-hover */
+  --secondary-hover: oklch(0.470 0.018 294.0); /* #5b5964 neutral.700 */
+  --link: oklch(0.809 0.105 293.1); /* #c3b4ff role link */
+  --sidebar: oklch(0.314 0.014 297.0);
+  --sidebar-foreground: oklch(0.975 0.004 301.4);
+  --sidebar-primary: oklch(0.545 0.209 292.7);
+  --sidebar-primary-foreground: oklch(1.000 0.000 0.0);
+  --sidebar-accent: oklch(0.315 0.135 292.7);
+  --sidebar-accent-foreground: oklch(0.940 0.031 291.8);
+  --sidebar-border: oklch(0.395 0.015 290.8);
+  --sidebar-ring: oklch(0.716 0.163 292.7);
+}
+
+
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-sans),"PingFang SC","Noto Sans SC",sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr))}
+.col{background:var(--background);color:var(--foreground);padding:0 0 28px}
+.wrap{padding:0 24px}
+h2{font-size:12.8px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground);margin:24px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.state{display:grid;gap:4px;justify-items:start}.state small{font-size:11px;color:var(--muted-foreground);font-family:var(--font-mono),monospace}
+.btn{font:600 16px/1.5 var(--font-sans),"PingFang SC",sans-serif;height:40px;padding:8px 16px;border-radius:calc(var(--radius) - 2px);border:0;cursor:pointer;display:inline-flex;align-items:center}
+.btn.primary{background:var(--primary);color:var(--primary-foreground)}.btn.primary.is-hover{background:var(--primary-hover)}
+.btn.secondary{background:var(--secondary);color:var(--secondary-foreground)}.btn.secondary.is-hover{background:var(--secondary-hover)}
+.btn.ghost{background:transparent;color:var(--foreground)}.btn.ghost.is-hover{background:var(--accent);color:var(--accent-foreground)}
+.btn.is-focus,.input.is-focus,.nav a.is-focus{outline:none;box-shadow:0 0 0 2px var(--background),0 0 0 4px var(--ring)}
+.btn.primary[disabled],.btn.secondary[disabled]{background:var(--muted);color:var(--muted-foreground);cursor:not-allowed}
+.btn.ghost[disabled]{color:var(--muted-foreground);cursor:not-allowed}
+.field{display:grid;gap:6px;min-width:200px;flex:1}.field label{font-weight:600;font-size:14px}
+.input{font:400 16px/1.5 var(--font-sans),"PingFang SC",sans-serif;height:40px;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:1px solid var(--input);background:var(--card);color:var(--foreground);width:100%}
+.input::placeholder{color:var(--muted-foreground)}.input.is-hover{border-color:var(--muted-foreground)}.input.is-focus{border-color:var(--ring)}
+.input[disabled]{background:var(--muted);color:var(--muted-foreground)}
+.card{background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);padding:24px}
+.card h3{margin:0 0 6px;font-size:20px;letter-spacing:-.01em}.card p{margin:0 0 14px;color:var(--muted-foreground)}
+.badge{display:inline-flex;align-items:center;font:600 12.8px/1.5 var(--font-sans),"PingFang SC",sans-serif;padding:2px 10px;border-radius:9999px;background:var(--primary);color:var(--primary-foreground)}
+.badge.secondary{background:var(--secondary);color:var(--secondary-foreground)}.badge.outline{background:transparent;color:var(--foreground);box-shadow:inset 0 0 0 1px var(--border)}
+.nav{height:64px;display:flex;align-items:center;gap:6px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--border)}
+.nav .logo{height:22px;color:var(--foreground);margin-right:auto;display:flex}.nav .logo svg{height:22px;width:auto}
+.nav a{font-weight:600;font-size:15px;color:var(--muted-foreground);text-decoration:none;padding:6px 12px;border-radius:calc(var(--radius) - 2px)}
+.nav a.is-hover{background:var(--accent);color:var(--accent-foreground)}.nav a[aria-current]{background:var(--accent);color:var(--link)}
+.charts{display:flex;gap:6px;align-items:flex-end;height:64px}.charts span{width:36px;border-radius:4px 4px 0 0}
+table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{padding:4px 6px;border-bottom:1px solid var(--border);text-align:left}
+th{color:var(--muted-foreground);font-weight:600}td.n{font-family:var(--font-mono),monospace;text-align:right}
+.ok{color:var(--foreground)}.bad{color:var(--destructive);font-weight:700}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;box-shadow:inset 0 0 0 1px rgba(127,127,127,.4)}
+</style></head><body><div class="cols"><section class="col"><nav class="nav"><span class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-7.28 -80.03 381.55 107.71"><path fill="currentColor" d="M268.90 1.08Q259.98 1.08 254.93 -4.69Q249.87 -10.47 249.87 -20.13Q249.87 -26.18 251.66 -31.97Q253.46 -37.76 256.87 -42.43Q260.28 -47.10 265.15 -49.88Q270.01 -52.65 276.13 -52.65Q279.68 -52.65 282.51 -51.64Q285.34 -50.64 287.41 -48.67Q289.48 -46.69 290.68 -43.81L290.73 -43.81L295.49 -72.75L309.85 -72.75L297.84 0L283.67 0L284.89 -7.59L284.84 -7.59Q282.90 -4.48 280.41 -2.58Q277.93 -0.68 275.01 0.20Q272.10 1.08 268.90 1.08ZM150.01 1.08Q143.29 1.08 138.81 -2.28Q134.33 -5.65 132.58 -11.71Q130.82 -17.77 132.14 -25.83Q133.46 -33.77 137.27 -39.81Q141.08 -45.85 146.66 -49.25Q152.23 -52.65 158.79 -52.65Q162.16 -52.65 164.89 -51.74Q167.62 -50.85 169.62 -49.06Q171.62 -47.27 172.74 -44.58L172.91 -44.58L174.08 -51.56L188.09 -51.56L179.54 0L165.53 0L166.80 -7.71L166.65 -7.71Q164.70 -4.81 162.11 -2.85Q159.51 -0.90 156.46 0.09Q153.40 1.08 150.01 1.08ZM86.03 0L71.67 0L83.73 -72.75L98.09 -72.75L93.30 -43.87Q94.13 -44.97 95.01 -45.94Q97.94 -49.18 101.64 -50.91Q105.34 -52.65 110.02 -52.65Q115.54 -52.65 119.36 -50.27Q123.17 -47.89 124.81 -43.35Q126.45 -38.81 125.36 -32.29L120.01 0L105.64 0L110.55 -29.65Q111.41 -34.84 109.38 -37.53Q107.35 -40.23 102.81 -40.23Q99.84 -40.23 97.35 -39.01Q94.86 -37.78 93.15 -35.22Q91.44 -32.66 90.78 -28.65L86.03 0ZM1.69 -67.22L1.70 -67.23C0.72 -67.69 0.05 -68.68 0.05 -69.83C0.05 -71.42 1.34 -72.70 2.93 -72.70C3.37 -72.70 3.78 -72.60 4.16 -72.43L4.16 -72.43C13.54 -68.06 25.49 -62.34 32.19 -54.25C38.90 -62.34 50.85 -68.06 60.23 -72.43L60.23 -72.43C60.61 -72.60 61.02 -72.70 61.46 -72.70C63.05 -72.70 64.34 -71.42 64.34 -69.83C64.34 -68.68 63.67 -67.69 62.69 -67.23L62.70 -67.22C56.51 -64.26 50.95 -60.20 47.26 -54.31C45.89 -52.13 44.81 -49.74 44.11 -47.26C42.42 -41.22 42.42 -31.53 44.11 -25.50C44.81 -23.01 45.89 -20.62 47.26 -18.44C50.95 -12.56 56.51 -8.50 62.70 -5.53L62.69 -5.53C63.67 -5.07 64.34 -4.08 64.34 -2.93C64.34 -1.34 63.05 -0.05 61.46 -0.05C61.02 -0.05 60.61 -0.15 60.23 -0.33L60.23 -0.33C50.85 -4.70 38.90 -10.42 32.19 -18.51C25.49 -10.42 13.54 -4.70 4.16 -0.33L4.16 -0.33C3.78 -0.15 3.37 -0.05 2.93 -0.05C1.34 -0.05 0.05 -1.34 0.05 -2.93C0.05 -4.08 0.72 -5.07 1.70 -5.53L1.69 -5.53C7.88 -8.50 13.44 -12.56 17.13 -18.44C18.50 -20.62 19.58 -23.01 20.28 -25.50C21.97 -31.53 21.97 -41.22 20.28 -47.26C19.58 -49.74 18.50 -52.13 17.13 -54.31C13.44 -60.20 7.88 -64.26 1.69 -67.22ZM306.62 20.41L308.50 9.03L315.05 9.03Q316.77 9.03 317.94 8.47Q319.11 7.92 320.06 6.72Q321.02 5.53 322.03 3.59L324.09 -0.20L312.74 -51.56L327.24 -51.56L331.65 -26.09Q332.38 -21.57 332.98 -17Q333.12 -15.98 333.25 -14.95Q333.72 -15.98 334.21 -17.01Q336.36 -21.59 338.58 -26.09L351.47 -51.56L367 -51.56L334.45 7.94Q332.15 12.18 329.40 14.95Q326.65 17.72 323.36 19.07Q320.07 20.41 316.13 20.41L306.62 20.41ZM204.15 0L189.78 0L198.28 -51.56L212.42 -51.56L211.20 -44.07Q213.51 -47.04 216.24 -49.03Q221.19 -52.65 227.94 -52.65Q233.63 -52.65 237.46 -50.14Q241.29 -47.64 242.88 -42.99Q244.47 -38.33 243.37 -31.82L238.12 0L223.76 0L228.72 -30.13Q229.58 -35.32 227.54 -37.77Q225.50 -40.23 221.25 -40.23Q218.11 -40.23 215.52 -38.88Q212.94 -37.53 211.20 -34.85Q209.46 -32.18 208.79 -28.17L204.15 0ZM155.66 -10.63Q159.31 -10.63 162.35 -12.51Q165.38 -14.39 167.47 -17.81Q169.55 -21.24 170.29 -25.83Q171.06 -30.45 170.10 -33.85Q169.14 -37.25 166.74 -39.13Q164.34 -41 160.69 -41Q157.22 -41 154.33 -39.22Q151.45 -37.43 149.46 -34.05Q147.47 -30.68 146.66 -25.83Q145.87 -21.01 146.73 -17.61Q147.60 -14.21 149.89 -12.42Q152.19 -10.63 155.66 -10.63ZM273 -10.63Q276.69 -10.63 279.61 -12.36Q282.54 -14.10 284.63 -16.98Q286.71 -19.86 287.82 -23.37Q288.92 -26.88 288.92 -30.44Q288.92 -35.38 286.45 -38.19Q283.98 -41 279.58 -41Q275.87 -41 273.02 -39.21Q270.17 -37.42 268.22 -34.46Q266.27 -31.51 265.27 -27.92Q264.26 -24.34 264.26 -20.70Q264.26 -15.81 266.56 -13.22Q268.86 -10.63 273 -10.63Z"/></svg></span><a href="#" aria-current="page">Features</a><a href="#" class="is-hover">Privacy</a><a href="#" class="is-focus">Help</a></nav><div class="wrap"><h2>Light · Button</h2><div class="row"><div class="state"><button class="btn primary">Save</button><small>Default</small></div><div class="state"><button class="btn primary is-hover">Save</button><small>Hover</small></div><div class="state"><button class="btn primary is-focus">Save</button><small>Focus</small></div><div class="state"><button class="btn primary" disabled>Save</button><small>Disabled</small></div></div><div class="row"><div class="state"><button class="btn secondary">Cancel</button><small>Default</small></div><div class="state"><button class="btn secondary is-hover">Cancel</button><small>Hover</small></div><div class="state"><button class="btn secondary is-focus">Cancel</button><small>Focus</small></div><div class="state"><button class="btn secondary" disabled>Cancel</button><small>Disabled</small></div></div><div class="row"><div class="state"><button class="btn ghost">More</button><small>Default</small></div><div class="state"><button class="btn ghost is-hover">More</button><small>Hover</small></div><div class="state"><button class="btn ghost is-focus">More</button><small>Focus</small></div><div class="state"><button class="btn ghost" disabled>More</button><small>Disabled</small></div></div><h2>Input</h2><div class="row"><div class="field"><label>Keyword · Default</label><input class="input" placeholder="Search posts"></div><div class="field"><label>Keyword · Focus</label><input class="input is-focus" placeholder="Search posts"></div><div class="field"><label>Keyword · Disabled</label><input class="input" placeholder="Search posts" disabled></div></div><h2>Card · Badge</h2><div class="card"><div class="row" style="margin-bottom:10px"><span class="badge">New</span><span class="badge secondary">Open source</span><span class="badge outline">Xhandy</span></div><h3>Quiet hints while you use X</h3><p>Xhandy puts post heat, your relationship with the author and your interaction history next to every post, so you can see which ones are worth a reply.</p><div class="row"><button class="btn primary">Save</button><button class="btn ghost">More</button></div></div><h2>Chart colours</h2><div class="charts"><span style="background:var(--chart-1);height:37px"></span><span style="background:var(--chart-2);height:44px"></span><span style="background:var(--chart-3);height:51px"></span><span style="background:var(--chart-4);height:58px"></span><span style="background:var(--chart-5);height:65px"></span></div><h2>Contrast check (WCAG 2.x)</h2><table><tr><th>foreground / background</th><th>ratio</th><th>needs</th><th></th></tr><tr><td><span class="sw" style="background:#323038"></span> <span class="sw" style="background:#f7f6f9"></span> foreground / background</td><td class="n">12.07:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#323038"></span> <span class="sw" style="background:#ffffff"></span> card-foreground / card</td><td class="n">13.0:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#323038"></span> <span class="sw" style="background:#ffffff"></span> popover-foreground / popover</td><td class="n">13.0:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ffffff"></span> <span class="sw" style="background:#794bdc"></span> primary-foreground / primary</td><td class="n">5.45:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#323038"></span> <span class="sw" style="background:#ebeaef"></span> secondary-foreground / secondary</td><td class="n">10.86:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#323038"></span> <span class="sw" style="background:#d9d8de"></span> secondary-foreground / secondary-hover</td><td class="n">9.18:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#5b5964"></span> <span class="sw" style="background:#ebeaef"></span> muted-foreground / muted</td><td class="n">5.74:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#5b5964"></span> <span class="sw" style="background:#f7f6f9"></span> muted-foreground / background</td><td class="n">6.38:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#5b5964"></span> <span class="sw" style="background:#ffffff"></span> muted-foreground / card</td><td class="n">6.87:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#4d2a93"></span> <span class="sw" style="background:#ebe8ff"></span> accent-foreground / accent</td><td class="n">8.47:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ffffff"></span> <span class="sw" style="background:#c43234"></span> destructive-foreground / destructive</td><td class="n">5.45:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#794bdc"></span> <span class="sw" style="background:#f7f6f9"></span> link / background</td><td class="n">5.06:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#794bdc"></span> <span class="sw" style="background:#ffffff"></span> link / card</td><td class="n">5.45:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#888692"></span> <span class="sw" style="background:#f7f6f9"></span> input / background</td><td class="n">3.32:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#888692"></span> <span class="sw" style="background:#ffffff"></span> input / card</td><td class="n">3.58:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#8b5cf6"></span> <span class="sw" style="background:#f7f6f9"></span> ring / background</td><td class="n">3.93:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#794bdc"></span> <span class="sw" style="background:#f7f6f9"></span> primary / background</td><td class="n">5.06:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#0098b1"></span> <span class="sw" style="background:#f7f6f9"></span> chart-1 / background</td><td class="n">3.18:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#8b5cf6"></span> <span class="sw" style="background:#f7f6f9"></span> chart-2 / background</td><td class="n">3.93:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ec4899"></span> <span class="sw" style="background:#f7f6f9"></span> chart-3 / background</td><td class="n">3.28:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#371a6e"></span> <span class="sw" style="background:#f7f6f9"></span> chart-4 / background</td><td class="n">12.7:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#888692"></span> <span class="sw" style="background:#f7f6f9"></span> chart-5 / background</td><td class="n">3.32:1</td><td class="n">3.0</td><td class="ok">pass</td></tr></table></div></section><section class="col dark"><nav class="nav"><span class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-7.28 -80.03 381.55 107.71"><path fill="currentColor" d="M268.90 1.08Q259.98 1.08 254.93 -4.69Q249.87 -10.47 249.87 -20.13Q249.87 -26.18 251.66 -31.97Q253.46 -37.76 256.87 -42.43Q260.28 -47.10 265.15 -49.88Q270.01 -52.65 276.13 -52.65Q279.68 -52.65 282.51 -51.64Q285.34 -50.64 287.41 -48.67Q289.48 -46.69 290.68 -43.81L290.73 -43.81L295.49 -72.75L309.85 -72.75L297.84 0L283.67 0L284.89 -7.59L284.84 -7.59Q282.90 -4.48 280.41 -2.58Q277.93 -0.68 275.01 0.20Q272.10 1.08 268.90 1.08ZM150.01 1.08Q143.29 1.08 138.81 -2.28Q134.33 -5.65 132.58 -11.71Q130.82 -17.77 132.14 -25.83Q133.46 -33.77 137.27 -39.81Q141.08 -45.85 146.66 -49.25Q152.23 -52.65 158.79 -52.65Q162.16 -52.65 164.89 -51.74Q167.62 -50.85 169.62 -49.06Q171.62 -47.27 172.74 -44.58L172.91 -44.58L174.08 -51.56L188.09 -51.56L179.54 0L165.53 0L166.80 -7.71L166.65 -7.71Q164.70 -4.81 162.11 -2.85Q159.51 -0.90 156.46 0.09Q153.40 1.08 150.01 1.08ZM86.03 0L71.67 0L83.73 -72.75L98.09 -72.75L93.30 -43.87Q94.13 -44.97 95.01 -45.94Q97.94 -49.18 101.64 -50.91Q105.34 -52.65 110.02 -52.65Q115.54 -52.65 119.36 -50.27Q123.17 -47.89 124.81 -43.35Q126.45 -38.81 125.36 -32.29L120.01 0L105.64 0L110.55 -29.65Q111.41 -34.84 109.38 -37.53Q107.35 -40.23 102.81 -40.23Q99.84 -40.23 97.35 -39.01Q94.86 -37.78 93.15 -35.22Q91.44 -32.66 90.78 -28.65L86.03 0ZM1.69 -67.22L1.70 -67.23C0.72 -67.69 0.05 -68.68 0.05 -69.83C0.05 -71.42 1.34 -72.70 2.93 -72.70C3.37 -72.70 3.78 -72.60 4.16 -72.43L4.16 -72.43C13.54 -68.06 25.49 -62.34 32.19 -54.25C38.90 -62.34 50.85 -68.06 60.23 -72.43L60.23 -72.43C60.61 -72.60 61.02 -72.70 61.46 -72.70C63.05 -72.70 64.34 -71.42 64.34 -69.83C64.34 -68.68 63.67 -67.69 62.69 -67.23L62.70 -67.22C56.51 -64.26 50.95 -60.20 47.26 -54.31C45.89 -52.13 44.81 -49.74 44.11 -47.26C42.42 -41.22 42.42 -31.53 44.11 -25.50C44.81 -23.01 45.89 -20.62 47.26 -18.44C50.95 -12.56 56.51 -8.50 62.70 -5.53L62.69 -5.53C63.67 -5.07 64.34 -4.08 64.34 -2.93C64.34 -1.34 63.05 -0.05 61.46 -0.05C61.02 -0.05 60.61 -0.15 60.23 -0.33L60.23 -0.33C50.85 -4.70 38.90 -10.42 32.19 -18.51C25.49 -10.42 13.54 -4.70 4.16 -0.33L4.16 -0.33C3.78 -0.15 3.37 -0.05 2.93 -0.05C1.34 -0.05 0.05 -1.34 0.05 -2.93C0.05 -4.08 0.72 -5.07 1.70 -5.53L1.69 -5.53C7.88 -8.50 13.44 -12.56 17.13 -18.44C18.50 -20.62 19.58 -23.01 20.28 -25.50C21.97 -31.53 21.97 -41.22 20.28 -47.26C19.58 -49.74 18.50 -52.13 17.13 -54.31C13.44 -60.20 7.88 -64.26 1.69 -67.22ZM306.62 20.41L308.50 9.03L315.05 9.03Q316.77 9.03 317.94 8.47Q319.11 7.92 320.06 6.72Q321.02 5.53 322.03 3.59L324.09 -0.20L312.74 -51.56L327.24 -51.56L331.65 -26.09Q332.38 -21.57 332.98 -17Q333.12 -15.98 333.25 -14.95Q333.72 -15.98 334.21 -17.01Q336.36 -21.59 338.58 -26.09L351.47 -51.56L367 -51.56L334.45 7.94Q332.15 12.18 329.40 14.95Q326.65 17.72 323.36 19.07Q320.07 20.41 316.13 20.41L306.62 20.41ZM204.15 0L189.78 0L198.28 -51.56L212.42 -51.56L211.20 -44.07Q213.51 -47.04 216.24 -49.03Q221.19 -52.65 227.94 -52.65Q233.63 -52.65 237.46 -50.14Q241.29 -47.64 242.88 -42.99Q244.47 -38.33 243.37 -31.82L238.12 0L223.76 0L228.72 -30.13Q229.58 -35.32 227.54 -37.77Q225.50 -40.23 221.25 -40.23Q218.11 -40.23 215.52 -38.88Q212.94 -37.53 211.20 -34.85Q209.46 -32.18 208.79 -28.17L204.15 0ZM155.66 -10.63Q159.31 -10.63 162.35 -12.51Q165.38 -14.39 167.47 -17.81Q169.55 -21.24 170.29 -25.83Q171.06 -30.45 170.10 -33.85Q169.14 -37.25 166.74 -39.13Q164.34 -41 160.69 -41Q157.22 -41 154.33 -39.22Q151.45 -37.43 149.46 -34.05Q147.47 -30.68 146.66 -25.83Q145.87 -21.01 146.73 -17.61Q147.60 -14.21 149.89 -12.42Q152.19 -10.63 155.66 -10.63ZM273 -10.63Q276.69 -10.63 279.61 -12.36Q282.54 -14.10 284.63 -16.98Q286.71 -19.86 287.82 -23.37Q288.92 -26.88 288.92 -30.44Q288.92 -35.38 286.45 -38.19Q283.98 -41 279.58 -41Q275.87 -41 273.02 -39.21Q270.17 -37.42 268.22 -34.46Q266.27 -31.51 265.27 -27.92Q264.26 -24.34 264.26 -20.70Q264.26 -15.81 266.56 -13.22Q268.86 -10.63 273 -10.63Z"/></svg></span><a href="#" aria-current="page">Features</a><a href="#" class="is-hover">Privacy</a><a href="#" class="is-focus">Help</a></nav><div class="wrap"><h2>Dark · Button</h2><div class="row"><div class="state"><button class="btn primary">Save</button><small>Default</small></div><div class="state"><button class="btn primary is-hover">Save</button><small>Hover</small></div><div class="state"><button class="btn primary is-focus">Save</button><small>Focus</small></div><div class="state"><button class="btn primary" disabled>Save</button><small>Disabled</small></div></div><div class="row"><div class="state"><button class="btn secondary">Cancel</button><small>Default</small></div><div class="state"><button class="btn secondary is-hover">Cancel</button><small>Hover</small></div><div class="state"><button class="btn secondary is-focus">Cancel</button><small>Focus</small></div><div class="state"><button class="btn secondary" disabled>Cancel</button><small>Disabled</small></div></div><div class="row"><div class="state"><button class="btn ghost">More</button><small>Default</small></div><div class="state"><button class="btn ghost is-hover">More</button><small>Hover</small></div><div class="state"><button class="btn ghost is-focus">More</button><small>Focus</small></div><div class="state"><button class="btn ghost" disabled>More</button><small>Disabled</small></div></div><h2>Input</h2><div class="row"><div class="field"><label>Keyword · Default</label><input class="input" placeholder="Search posts"></div><div class="field"><label>Keyword · Focus</label><input class="input is-focus" placeholder="Search posts"></div><div class="field"><label>Keyword · Disabled</label><input class="input" placeholder="Search posts" disabled></div></div><h2>Card · Badge</h2><div class="card"><div class="row" style="margin-bottom:10px"><span class="badge">New</span><span class="badge secondary">Open source</span><span class="badge outline">Xhandy</span></div><h3>Quiet hints while you use X</h3><p>Xhandy puts post heat, your relationship with the author and your interaction history next to every post, so you can see which ones are worth a reply.</p><div class="row"><button class="btn primary">Save</button><button class="btn ghost">More</button></div></div><h2>Chart colours</h2><div class="charts"><span style="background:var(--chart-1);height:37px"></span><span style="background:var(--chart-2);height:44px"></span><span style="background:var(--chart-3);height:51px"></span><span style="background:var(--chart-4);height:58px"></span><span style="background:var(--chart-5);height:65px"></span></div><h2>Contrast check (WCAG 2.x)</h2><table><tr><th>foreground / background</th><th>ratio</th><th>needs</th><th></th></tr><tr><td><span class="sw" style="background:#f7f6f9"></span> <span class="sw" style="background:#1e1d23"></span> foreground / background</td><td class="n">15.54:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#f7f6f9"></span> <span class="sw" style="background:#323038"></span> card-foreground / card</td><td class="n">12.07:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#f7f6f9"></span> <span class="sw" style="background:#323038"></span> popover-foreground / popover</td><td class="n">12.07:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ffffff"></span> <span class="sw" style="background:#794bdc"></span> primary-foreground / primary</td><td class="n">5.45:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#f7f6f9"></span> <span class="sw" style="background:#46454e"></span> secondary-foreground / secondary</td><td class="n">8.78:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#f7f6f9"></span> <span class="sw" style="background:#5b5964"></span> secondary-foreground / secondary-hover</td><td class="n">6.38:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#c1c0c8"></span> <span class="sw" style="background:#46454e"></span> muted-foreground / muted</td><td class="n">5.24:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#c1c0c8"></span> <span class="sw" style="background:#1e1d23"></span> muted-foreground / background</td><td class="n">9.27:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#c1c0c8"></span> <span class="sw" style="background:#323038"></span> muted-foreground / card</td><td class="n">7.21:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ebe8ff"></span> <span class="sw" style="background:#371a6e"></span> accent-foreground / accent</td><td class="n">11.41:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ffffff"></span> <span class="sw" style="background:#c43234"></span> destructive-foreground / destructive</td><td class="n">5.45:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#c3b4ff"></span> <span class="sw" style="background:#1e1d23"></span> link / background</td><td class="n">9.0:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#c3b4ff"></span> <span class="sw" style="background:#323038"></span> link / card</td><td class="n">6.99:1</td><td class="n">4.5</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#888692"></span> <span class="sw" style="background:#1e1d23"></span> input / background</td><td class="n">4.68:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#888692"></span> <span class="sw" style="background:#323038"></span> input / card</td><td class="n">3.63:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#a88dff"></span> <span class="sw" style="background:#1e1d23"></span> ring / background</td><td class="n">6.31:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#794bdc"></span> <span class="sw" style="background:#1e1d23"></span> primary / background</td><td class="n">3.07:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#0098b1"></span> <span class="sw" style="background:#1e1d23"></span> chart-1 / background</td><td class="n">4.88:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#8b5cf6"></span> <span class="sw" style="background:#1e1d23"></span> chart-2 / background</td><td class="n">3.95:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#ec4899"></span> <span class="sw" style="background:#1e1d23"></span> chart-3 / background</td><td class="n">4.74:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#c3b4ff"></span> <span class="sw" style="background:#1e1d23"></span> chart-4 / background</td><td class="n">9.0:1</td><td class="n">3.0</td><td class="ok">pass</td></tr><tr><td><span class="sw" style="background:#888692"></span> <span class="sw" style="background:#1e1d23"></span> chart-5 / background</td><td class="n">4.68:1</td><td class="n">3.0</td><td class="ok">pass</td></tr></table></div></section></div></body></html>

@@ -1,0 +1,22 @@
+/* Brand patterns from brand-kit brand_patterns.py. Files sit next to this CSS; copy them together. */
+
+.pattern-tile { background: #f7f6f9 url(tile-light.svg) 0 0 / 240px 120px repeat; }
+.pattern-grid { background: #f7f6f9 url(grid-light.svg) 0 0 / 206px 270px repeat; }
+.pattern-crop { background: #f7f6f9 url(crop-light-1920x1080.svg) center / cover no-repeat; }
+.pattern-crop.square { background-image: url(crop-light-1080x1080.svg); }
+.pattern-generative { background: #f7f6f9 url(generative-light-1920x1080.svg) center / cover no-repeat; }
+.pattern-generative.square { background-image: url(generative-light-1080x1080.svg); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pattern-tile { background: #1e1d23 url(tile-dark.svg) 0 0 / 240px 120px repeat; }
+  :root:not([data-theme="light"]) .pattern-grid { background: #1e1d23 url(grid-dark.svg) 0 0 / 206px 270px repeat; }
+  :root:not([data-theme="light"]) .pattern-crop { background: #1e1d23 url(crop-dark-1920x1080.svg) center / cover no-repeat; }
+  :root:not([data-theme="light"]) .pattern-crop.square { background-image: url(crop-dark-1080x1080.svg); }
+  :root:not([data-theme="light"]) .pattern-generative { background: #1e1d23 url(generative-dark-1920x1080.svg) center / cover no-repeat; }
+  :root:not([data-theme="light"]) .pattern-generative.square { background-image: url(generative-dark-1080x1080.svg); }
+}
+:root[data-theme="dark"] .pattern-tile { background: #1e1d23 url(tile-dark.svg) 0 0 / 240px 120px repeat; }
+:root[data-theme="dark"] .pattern-grid { background: #1e1d23 url(grid-dark.svg) 0 0 / 206px 270px repeat; }
+:root[data-theme="dark"] .pattern-crop { background: #1e1d23 url(crop-dark-1920x1080.svg) center / cover no-repeat; }
+:root[data-theme="dark"] .pattern-crop.square { background-image: url(crop-dark-1080x1080.svg); }
+:root[data-theme="dark"] .pattern-generative { background: #1e1d23 url(generative-dark-1920x1080.svg) center / cover no-repeat; }
+:root[data-theme="dark"] .pattern-generative.square { background-image: url(generative-dark-1080x1080.svg); }

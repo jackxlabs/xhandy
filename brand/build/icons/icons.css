@@ -1,0 +1,15 @@
+/* Icon tokens from brand-kit icons.py. Library: Iconoir iconoir@7.12.1 (MIT) */
+:root {
+  --icon-size-xs: 12px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 32px;
+  --icon-stroke-xs: 2.0;
+  --icon-stroke-sm: 1.68;
+  --icon-stroke-md: 1.69;
+  --icon-stroke-lg: 1.76;
+  --icon-stroke-xl: 1.65;
+  --icon-stroke: 1.75;
+}
+.icon { width: var(--icon-size-md); height: var(--icon-size-md); stroke-width: var(--icon-stroke); flex: none; vertical-align: -0.2em; }

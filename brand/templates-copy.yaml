@@ -1,0 +1,13 @@
+# Copy for apply.py templates. Every line comes from brand.yaml proof points or the v0.4.7 release.
+announce:
+  label: "v0.4.7"
+  title: { zh: "Xhandy 换了新图标", en: "Xhandy has a new icon" }
+  points:
+    - { zh: "两道相对的月牙，既像 X 也像 H", en: "Two facing crescents that read as both X and H" }
+    - { zh: "工具栏小尺寸用加粗版，看得更清楚", en: "A bolder version at toolbar sizes, so it stays crisp" }
+    - { zh: "功能没有变化", en: "No feature changes" }
+slides:
+  points_title: { zh: "为什么用 Xhandy", en: "Why Xhandy" }
+  number: "0"
+  number_label: { zh: "网络请求、统计、远程代码。数据只在你的浏览器里。", en: "Network requests, analytics or remote code. Your data stays in your browser." }
+  footer: "github.com/jackxlabs/xhandy"

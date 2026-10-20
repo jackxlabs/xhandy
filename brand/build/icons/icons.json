@@ -1,0 +1,82 @@
+{
+  "icon": {
+    "size": {
+      "xs": {
+        "$type": "dimension",
+        "$value": {
+          "value": 12,
+          "unit": "px"
+        },
+        "$description": "pairs with --text-xs"
+      },
+      "sm": {
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        },
+        "$description": "pairs with --text-sm"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": {
+          "value": 20,
+          "unit": "px"
+        },
+        "$description": "pairs with --text-base"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": {
+          "value": 24,
+          "unit": "px"
+        },
+        "$description": "pairs with --text-lg"
+      },
+      "xl": {
+        "$type": "dimension",
+        "$value": {
+          "value": 32,
+          "unit": "px"
+        },
+        "$description": "pairs with --text-xl"
+      }
+    },
+    "stroke": {
+      "xs": {
+        "$type": "number",
+        "$value": 2.0,
+        "$description": "stroke-width on the 24 grid (1.0px drawn)"
+      },
+      "sm": {
+        "$type": "number",
+        "$value": 1.68,
+        "$description": "stroke-width on the 24 grid (1.12px drawn)"
+      },
+      "md": {
+        "$type": "number",
+        "$value": 1.69,
+        "$description": "stroke-width on the 24 grid (1.41px drawn)"
+      },
+      "lg": {
+        "$type": "number",
+        "$value": 1.76,
+        "$description": "stroke-width on the 24 grid (1.76px drawn)"
+      },
+      "xl": {
+        "$type": "number",
+        "$value": 1.65,
+        "$description": "stroke-width on the 24 grid (2.2px drawn)"
+      }
+    },
+    "$extensions": {
+      "brand-kit": {
+        "library": "iconoir",
+        "version": "7.12.1",
+        "licence": "MIT",
+        "react": "iconoir-react",
+        "stroke": 1.75
+      }
+    }
+  }
+}

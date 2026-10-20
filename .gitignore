@@ -5,3 +5,12 @@ dist/
 # brand/logo exploration rounds and full-size showcase renders (~45MB) stay local
 brand/logo/rounds/
 brand/logo/showcase/
+# generated brand kit zips (large, rebuilt by kit.py)
+brand/dist/
+# brand build: heavy outputs are regenerated from brand/brand.yaml (brand-kit), shipped in the kit zip
+brand/build/templates/
+brand/build/print/
+brand/build/pptx/
+brand/build/fonts/
+brand/build/kit/
+brand/build/patterns/*.png

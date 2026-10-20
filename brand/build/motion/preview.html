@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xhandy Motion</title><style>
+:root{--light:#f7f6f9;--dark:#1e1d23}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"PingFang SC",sans-serif;background:var(--light);color:#111}
+header{padding:20px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+h1{font-size:18px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr))}.pair{display:grid;grid-template-columns:1fr 1fr}
+.cell{display:grid;place-items:center;gap:8px;padding:28px 16px;min-height:220px}
+.cell.light{background:var(--light);color:#111}.cell.dark{background:var(--dark);color:#fff}
+.cell img{height:120px;max-width:100%}
+.cell img.wide{height:auto;width:90%;max-height:72px}
+small{opacity:.7;text-align:center}
+button{font:inherit;padding:6px 14px;border-radius:999px;border:1px solid #888;background:transparent;cursor:pointer}
+</style></head><body>
+<header><h1>Xhandy · 标志动效 / Logo motion</h1><button id="r">全部重播 / Replay all</button>
+<small>减少动态效果开启时显示最后一帧 / With reduced motion on, the final frame shows.</small></header>
+<div class="grid"><div class="pair"><div class="cell light"><img src="svg/logo-draw.svg" alt=""><small>logo-draw.svg</small></div><div class="cell dark"><img src="svg/logo-draw-white.svg" alt=""><small>logo-draw-white.svg</small></div></div>
+<div class="pair"><div class="cell light"><img src="svg/logo-reveal.svg" alt=""><small>logo-reveal.svg</small></div><div class="cell dark"><img src="svg/logo-reveal-white.svg" alt=""><small>logo-reveal-white.svg</small></div></div>
+<div class="pair"><div class="cell light"><img src="svg/logo-loader.svg" alt=""><small>logo-loader.svg</small></div><div class="cell dark"><img src="svg/logo-loader-white.svg" alt=""><small>logo-loader-white.svg</small></div></div>
+<div class="pair"><div class="cell light"><img class="wide" src="svg/lockup-reveal.svg" alt=""><small>lockup-reveal.svg</small></div><div class="cell dark"><img class="wide" src="svg/lockup-reveal-white.svg" alt=""><small>lockup-reveal-white.svg</small></div></div>
+<div class="pair"><div class="cell light"><img src="svg/intro.svg" alt=""><small>intro.svg</small></div><div class="cell dark"><img src="svg/intro.svg" alt=""><small>intro.svg</small></div></div></div>
+<script>document.getElementById('r').onclick=()=>document.querySelectorAll('img').forEach(i=>{const s=i.src.split('?')[0];i.src=s+'?'+Date.now()})</script>
+</body></html>
