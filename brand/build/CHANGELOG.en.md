@@ -10,6 +10,18 @@ Versioning: `meta.version` in brand.yaml is a single counter, bumped when the ow
 
 > Generated from brand.yaml by changelog.py. Do not edit by hand.
 
+## [11] - 2026-10-20 · minor
+
+### Changed
+
+- Audience: Chinese and English users are equal core audiences; store text and other user-facing copy ship in both
+- Network: "no network" becomes "offline by default"; the roadmap adds optional sync across devices; new compliance rule that network features are opt-in
+- Imagery: only Elon Musk's public posts may stay unblurred
+
+### Fixed
+
+- Dark-mode numbers in the extension now use violet-200 and the popup accent violet-600 / violet-400, matching the ramp; version numbers removed from evergreen copy; follows added to the English pitch; monospace font note corrected; to-fill placeholders removed
+
 ## [10] - 2026-10-20 · patch
 
 ### Changed

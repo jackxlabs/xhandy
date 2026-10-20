@@ -1,18 +1,18 @@
 # Xhandy brand voice and rules
 
-> Generated from brand.yaml v10 (2026-10-20). Edit brand.yaml, then run compile.py.
+> Generated from brand.yaml v11 (2026-10-20). Edit brand.yaml, then run compile.py.
 
 ## Identity
 - **Short**: Quiet hints while you use X
 - **Medium**: Xhandy puts post heat, your relationship with the author and your interaction history next to every post, so you can see which ones are worth a reply.
 - **Long**: Xhandy is a browser extension for people who engage on X by hand. Next to every post it shows how old the post is and how fast it is getting views, whether you and the author follow each other, and how often you have interacted. It warns you before you send a near-duplicate reply. It never clicks or sends anything for you, keeps all data in your browser, and is free and open source.
 - **Category**: A browser extension for X: hints for people who engage by hand; Scrolling by hand and remembering who is who; opening profiles or hovering over avatars to check follow status; or other X browser extensions
-- **Positioning**: For people who grow on X by replying and engaging by hand: Xhandy shows post heat, your relationship with the author and your interaction history right next to every post, so you can see which ones are worth a reply. Other extensions each cover one of these; Xhandy covers them all, and never acts for you.
+- **Positioning**: For people who grow on X by replying and engaging by hand, in Chinese or English: Xhandy shows post heat, your relationship with the author and your interaction history right next to every post, so you can see which ones are worth a reply. Other extensions each cover one of these; Xhandy covers them all, and never acts for you.
 
-### Audience: Simplified-Chinese creators with X Premium who grow by engaging by hand and care about views and payouts (primary audience)
+### Audience: Simplified-Chinese creators with X Premium who grow by engaging by hand and care about views and payouts (core audience, equal to English-speaking users)
 - problem: They can't tell which posts are worth replying to, and checking who follows them back or how often they've talked means opening profiles or hovering over avatars
 
-### Audience: English-speaking X users who engage by hand (secondary audience)
+### Audience: English-speaking X users who grow by engaging by hand (core audience, equal to Chinese users)
 - problem: The same: no quick way to see which posts deserve a reply, and follow status and past interactions are hidden behind clicks
 
 **Not for**
@@ -20,7 +20,7 @@
 
 **Refuses to be**
 - A tool that acts for you: it never clicks, types, sends, likes, follows or unfollows, and does nothing in bulk
-- A data collector: no network requests, no analytics, no remote code; your data stays in your browser
+- A data collector: no analytics, no remote code; offline by default, and network features such as sync stay off until you turn them on
 - A speed tool that makes accounts look like bots: soft daily limits on follows and unfollows, and warnings on repeated replies
 
 **Naming**
@@ -37,10 +37,11 @@
 - Xhandy (Live, v0.4.7, download from GitHub Releases): A Chromium extension (Chrome, Edge, Brave) that adds post age and views per hour, follow status, interaction history, duplicate-reply warnings and daily stats to X, plus a follow assistant and a "not following you back" panel
 - v0.5 (planned): Roadmap: interaction queue, local idea list, draft prefill for quote posts, export and a generic webhook
 - v0.6 (planned): Roadmap: optional Notion sync, store listing
+- later (planned): Direction: optional sync across devices (online, off until you turn it on)
 
 ## Proof points (the only facts to cite)
 - Never acts for you — It never clicks, types, sends, likes or follows. The follow assistant only moves focus to X's own Follow button; you press Enter. End-to-end tests ("extension never clicks anything by itself", "never fakes mouse or pointer events") enforce it `readme`
-- No network, your data stays in your browser — Only two permissions, storage and unlimitedStorage; no network requests, analytics or remote code; export, import or delete everything `readme`
+- Offline by default, your data stays in your browser — Only two permissions, storage and unlimitedStorage; no network requests, analytics or remote code; export, import or delete everything. Network features to come, such as sync, stay off until you turn them on, and only then ask for network access `readme`
 - See which posts are taking off — Orange from 1,000 views an hour, red with 🔥 from 10,000; posts older than 48 hours go grey `readme`
 - Remembers where you stand with every author — Shows follow status (⇄ mutual / → you follow / ← follows you / not following), how often you have interacted and when you last did `readme`
 - All of it in one extension — Post age and heat, follow status, interaction history, duplicate-reply warnings, daily stats, the follow assistant and the "not following you back" panel `readme`
@@ -88,6 +89,7 @@ Xhandy talks like a friend sitting next to you: says little, and every line is u
 - ban-proof, guaranteed safe, 100% safe: Too absolute and not something Xhandy can promise; say it never acts for you and has soft limits
 - AI-powered, smart engine, intelligent: Xhandy has no AI; every label comes from rules and X's own data
 - growth hack, game-changer, supercharge, 10x, unlock: Empty hype that clashes with being plain
+- never goes online, 100% offline: Sync and other network features are coming; say "offline by default"
 
 Jargon: Technical terms (Manifest V3, service worker, data-testid) belong in developer docs; for users say "browser extension" or "X changed its page"
 
@@ -111,13 +113,14 @@ Jargon: Technical terms (Manifest V3, service worker, data-testid) belong in dev
 ### Channels
 - **README**: format: Docs style: one line on what it is, then features with screenshots; Chinese and English sections; tone: Clear and specific
 - **release notes**: format: Use docs/release-template.md; one or two sentences on changes users will notice; tone: Matter-of-fact
-- **store listing**: format: Short one-liner first, then the features, ending with the X Corp non-affiliation line; length: Title up to 45 characters; short description up to 132
+- **store listing**: format: One version per language (the extension's _locales); short one-liner first, then the features, ending with the X Corp non-affiliation line; length: Title up to 45 characters; short description up to 132
 - **product UI**: format: One line, numbers first; on errors say the likely cause and the next step, never blame the user; tone: Remind, don't command
 - **X posts**: format: When Jack mentions Xhandy on his own account, it is his experience in his voice (jack-personal-brand x-voice-guide); tone: Jack's voice
 
 ## Compliance (hard rules block publishing)
 - [hard] State that Xhandy is independent of X Corp; never suggest it is an official X product or endorsed by X Required: "Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.". Forbidden: "official X", "by X", "X-approved". Applies to: store listing, README, release notes, website. Why: Trademark and store review; the logo also avoids the construction of X's logo `readme` 2026-10-17
 - [hard] Never describe Xhandy as automation or a bulk tool: no auto-follow, auto-reply, one-click bulk actions or growth hacks Forbidden: "auto-follow", "auto-reply", "bulk", "on autopilot". Applies to: all. Why: Product rule 1: it never acts for the user; such claims also invite X enforcement and store review problems `dev-rules` 2026-10-19
+- [hard] Every network feature (sync, push and the like) is off by default and turned on by the user in settings; copy says "offline by default", never "never goes online". Once sync ships, "your data stays in your browser" becomes "your data stays in your browser by default" Forbidden: "never goes online", "100% offline". Applies to: all. Why: Product rule 2: network features are opt-in; sync across devices needs the network `jack-2026-10-20` 2026-10-20
 
 ## Competitors
 
@@ -138,7 +141,7 @@ Jargon: Technical terms (Manifest V3, service worker, data-testid) belong in dev
 
 **tendX / SuperX / BlackMagic** https://www.tendx.app/
 - they say: English-language tools that log the likes, replies and DMs you send, or overlay interaction data on profiles; SuperX and BlackMagic are paid
-- our difference: Xhandy is free, open source and offline, and puts interaction history straight on the timeline
+- our difference: Xhandy is free, open source and offline by default, and puts interaction history straight on the timeline
 - do not echo: interaction history, engagement CRM
 
 **AutoFollowers** https://chromewebstore.google.com/detail/autofollowers/cioeeikbgpoepcgfmpfaajgkaommkbni

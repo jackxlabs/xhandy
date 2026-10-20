@@ -1,6 +1,6 @@
 # Xhandy Messaging (draft)
 
-> Generated from brand.yaml by messaging.py. Do not edit by hand. brand.yaml v10 (2026-10-20)
+> Generated from brand.yaml by messaging.py. Do not edit by hand. brand.yaml v11 (2026-10-20)
 
 ## Pitch
 
@@ -12,17 +12,17 @@ Xhandy is a browser extension that shows post heat, follow status and your inter
 
 Xhandy is a free, open-source browser extension for people who engage on X by hand. Next to every post it shows how old the post is and how fast it is getting views, whether you and the author follow each other, and how often you have interacted. It warns you before you send a near-duplicate reply. It never clicks or sends anything for you, and all data stays in your browser.
 
-### 2min · 267 words
+### 2min · 272 words
 
 If you grow on X by replying and engaging by hand, the hard part is choosing where to spend your replies. You can't tell at a glance which posts are taking off, and checking whether someone follows you back, or how often you've talked, means opening profiles or hovering over avatars.
 
 Xhandy is a browser extension for Chrome, Edge and Brave that puts those answers next to every post. A small label shows the post's age and views per hour, like "2h · 15K/h": orange from 1,000 views an hour, red from 10,000, grey after 48 hours. Next to it you see whether you follow each other (⇄ mutual, → you follow, ← follows you), how many times you've interacted with the author and when you last did.
 
-While you type, Xhandy warns you if a reply is very similar to one you sent recently, since repeated replies are what spam filters look for. A small bar shows today's likes, replies, posts and time on X. Alt+U opens a read-only list of accounts that don't follow you back, and Shift+F moves focus to an author's Follow button so you can press Enter yourself.
+While you type, Xhandy warns you if a reply is very similar to one you sent recently, since repeated replies are what spam filters look for. A small bar shows today's likes, replies, posts, follows and time on X. Alt+U opens a read-only list of accounts that don't follow you back, and Shift+F moves focus to an author's Follow button so you can press Enter yourself.
 
-Xhandy never clicks, types, sends, likes or follows for you. It asks for two permissions, storage and unlimitedStorage, makes no network requests, runs no analytics and keeps all data in your browser, where you can export or delete it at any time.
+Xhandy never clicks, types, sends, likes or follows for you. It asks for two permissions, storage and unlimitedStorage, makes no network requests by default, runs no analytics and keeps all data in your browser, where you can export or delete it at any time.
 
-It is free and open source. Version 0.4.7 is on GitHub Releases at github.com/jackxlabs/xhandy. Next on the roadmap: an interaction queue, a local idea list and export, then a store listing.
+It is free and open source, on GitHub Releases at github.com/jackxlabs/xhandy. Next on the roadmap: an interaction queue, a local idea list and export, then optional sync across devices and a store listing.
 
 ## Message house
 
@@ -44,9 +44,9 @@ No clicks, no sends, no follows; the follow assistant only moves focus to X's ow
 
 ### Your data stays with you
 
-No network and no analytics; data lives in your browser, and the code is public for anyone to check
+Offline by default and no analytics; data lives in your browser, sync will be yours to turn on, and the code is public for anyone to check
 
-- Proof: **No network, your data stays in your browser**: Only two permissions, storage and unlimitedStorage; no network requests, analytics or remote code; export, import or delete everything
+- Proof: **Offline by default, your data stays in your browser**: Only two permissions, storage and unlimitedStorage; no network requests, analytics or remote code; export, import or delete everything. Network features to come, such as sync, stay off until you turn them on, and only then ask for network access
 - Proof: **Free and open source**: Public repository jackxlabs/xhandy; download from GitHub Releases
 
 ## FAQ
@@ -61,8 +61,8 @@ No network and no analytics; data lives in your browser, and the code is public 
 
 **Does Xhandy collect my data?** (draft)
 
-- Short: No. It makes no network requests, runs no analytics and loads no remote code; your data stays in your browser.
-- Long: Xhandy has two permissions, storage and unlimitedStorage, and runs only on x.com and twitter.com. What it keeps in your browser: your settings, daily counts, per-author like and reply counts, follow relationships, and the text of your last 300 replies and posts (for the duplicate-reply warning). You can export, import or delete everything from the Options page. The full privacy policy is PRIVACY.md in the repository.
+- Short: No. It is offline by default, runs no analytics and loads no remote code; your data stays in your browser.
+- Long: Xhandy has two permissions, storage and unlimitedStorage, and runs only on x.com and twitter.com. What it keeps in your browser: your settings, daily counts, per-author like and reply counts, follow relationships, and the text of your last 300 replies and posts (for the duplicate-reply warning). You can export, import or delete everything from the Options page. Network features added later, such as sync across devices, are off by default and only connect once you turn them on. The full privacy policy is PRIVACY.md in the repository.
 - source: `readme` · 2026-10-20
 
 **Which browsers does it support, and how do I install it?** (draft)
@@ -94,7 +94,7 @@ No network and no analytics; data lives in your browser, and the code is public 
 **Who makes Xhandy?** (draft)
 
 - Short: Xhandy is an independent project maintained by Jack; feedback goes to @JackHuang47 on X.
-- Long: [to fill: maker bio, Jack to confirm]
+- Long: Xhandy is an independent project maintained by Jack. Send feedback to @JackHuang47 on X or open an issue at github.com/jackxlabs/xhandy/issues.
 - source: `readme` · 2026-10-20
 
 **Is Xhandy affiliated with X?** (draft)
@@ -103,29 +103,25 @@ No network and no analytics; data lives in your browser, and the code is public 
 - Long: Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp. Its logo is deliberately built differently from X's.
 - source: `readme` · 2026-10-20
 
-**What is the current version, and where do I get it?** (draft)
+**Where do I get it, and what comes next?** (draft)
 
-- Short: Version 0.4.7, from GitHub Releases. A store listing is on the v0.6 roadmap.
-- Long: The current version is 0.4.7, downloaded from Releases at github.com/jackxlabs/xhandy and loaded into Chrome, Edge or Brave by hand. Roadmap: v0.5 adds an interaction queue, a local idea list, draft prefill for quote posts, export and a generic webhook; v0.6 adds optional Notion sync and a store listing.
+- Short: From GitHub Releases. A store listing is on the v0.6 roadmap.
+- Long: Download the latest release from github.com/jackxlabs/xhandy and load it into Chrome, Edge or Brave by hand. Roadmap: v0.5 adds an interaction queue, a local idea list, draft prefill for quote posts, export and a generic webhook; v0.6 adds optional Notion sync and a store listing; optional sync across devices comes after that.
 - source: `readme` · 2026-10-20
-
-**How many people use it?** [to fill]
 
 ### Partners
 
 **Does Xhandy have an API or integrations?** (draft)
 
-- Short: Not yet: Xhandy makes no network requests. Export and a generic webhook are on the v0.5 roadmap, optional Notion sync on v0.6.
-- Long: [to fill: terms and contact for integrations]
+- Short: Not yet: the current version makes no network requests. Export and a generic webhook are on the v0.5 roadmap, optional Notion sync on v0.6.
+- Long: Not yet: the current version makes no network requests. Export and a generic webhook are on the v0.5 roadmap, optional Notion sync on v0.6. To talk about an integration, message @JackHuang47 on X.
 - source: `readme` · 2026-10-20
 
 **Can I use the Xhandy name and logo?** (draft)
 
 - Short: The MIT licence covers the code, not the name or logo. When writing about Xhandy, use the files in the brand kit unchanged.
-- Long: [to fill: trademark use policy, Jack to confirm]
+- Long: The MIT licence covers the code, not the name or logo. When writing about Xhandy, use the files in the brand kit unchanged, and don't present your own product as Xhandy.
 - source: `readme` · 2026-10-20
-
-**Do you take sponsorships or paid partnerships?** [to fill]
 
 ## Platform bios
 
@@ -135,7 +131,7 @@ No network and no analytics; data lives in your browser, and the code is public 
 | X · bio (draft) | Quiet hints while you use X: post heat, follow status and interaction history next to every post. Never acts for you. Your data stays in your browser. | 150/160 (third-party) |
 | GitHub repository · description | Browser helpers for people who engage on X by hand. Never clicks, sends or follows for you; all data stays in your browser. | 123/350 (observed) |
 | Chrome Web Store · short description | Hints for engaging on X by hand: post heat, follow status, interaction history and duplicate-reply warnings. Data stays local. | 126/132 (verified) |
-| Chrome Web Store · Live today | Hints for engaging on X by hand: post heat, follow status, interaction history and duplicate-reply warnings. Data stays local. | 126/132 (`x-helper/manifest.json`, 2026-10-20) |
+| Chrome Web Store · Live today | Hints for engaging on X by hand: post heat, follow status, interaction history and duplicate-reply warnings. Data stays local. | 126/132 (`x-helper/_locales/en/messages.json, x-helper/_locales/zh_CN/messages.json`, 2026-10-20) |
 | GitHub organisation | [to fill] | |
 | LinkedIn | [to fill] | |
 | YouTube | [to fill] | |
@@ -148,21 +144,20 @@ No network and no analytics; data lives in your browser, and the code is public 
 
 Xhandy is a free, open-source browser extension for people who engage on X by hand. Next to every post it shows post heat, follow status and interaction history, so you can see which posts are worth a reply. It never acts for you and keeps all data in your browser.
 
-### 100 · 104 words
+### 100 · 103 words
 
-Xhandy is a browser extension for people who engage on X by hand. Next to every post it shows how old the post is and how fast it is getting views, whether you and the author follow each other, and how often you have interacted. It warns you before you send a near-duplicate reply. It never clicks or sends anything for you, keeps all data in your browser, and is free and open source. Xhandy runs on Chrome, Edge and Brave; version 0.4.7 is on GitHub Releases. Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.
+Xhandy is a browser extension for people who engage on X by hand. Next to every post it shows how old the post is and how fast it is getting views, whether you and the author follow each other, and how often you have interacted. It warns you before you send a near-duplicate reply. It never clicks or sends anything for you, keeps all data in your browser, and is free and open source. Xhandy runs on Chrome, Edge and Brave; download it from GitHub Releases. Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.
 
-### 250 · 230 words
+### 250 · 231 words
 
 Xhandy is a browser extension for people who engage on X by hand, available for Chrome, Edge and Brave. For anyone growing an account through replies, the hard part is knowing which posts deserve one and where you stand with the author. Xhandy puts the answers next to every post: how old it is and how many views it is getting per hour (orange from 1,000 an hour, red from 10,000, grey after 48 hours), whether you and the author follow each other, and how often you have interacted and when you last did.
 
-While you type, Xhandy warns you if a reply is very similar to one you sent recently. A small bar tracks today's likes, replies, posts and time on X. A read-only "not following you back" panel has no unfollow button, and soft daily limits remind you before you follow or unfollow too fast.
+While you type, Xhandy warns you if a reply is very similar to one you sent recently. A small bar tracks today's likes, replies, posts, follows and time on X. A read-only "not following you back" panel has no unfollow button, and soft daily limits remind you before you follow or unfollow too fast.
 
-Xhandy never acts for you: it does not click, type, send, like or follow. It has two permissions, storage and unlimitedStorage, makes no network requests, runs no analytics and loads no remote code, so all data stays in your browser. The interface follows your browser language, in Chinese or English.
+Xhandy never acts for you: it does not click, type, send, like or follow. It has two permissions, storage and unlimitedStorage, makes no network requests by default, runs no analytics and loads no remote code, so all data stays in your browser. The interface follows your browser language, in Chinese or English.
 
-Xhandy is free and open source. Version 0.4.7 is available at github.com/jackxlabs/xhandy. Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.
+Xhandy is free and open source. Download it at github.com/jackxlabs/xhandy. Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.
 
 ## Contacts
 
 - Feedback: X @JackHuang47 · github.com/jackxlabs/xhandy/issues
-- Press: [to fill]

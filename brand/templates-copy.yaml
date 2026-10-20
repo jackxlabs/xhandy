@@ -9,5 +9,5 @@ announce:
 slides:
   points_title: { zh: "为什么用 Xhandy", en: "Why Xhandy" }
   number: "0"
-  number_label: { zh: "网络请求、统计、远程代码。数据只在你的浏览器里。", en: "Network requests, analytics or remote code. Your data stays in your browser." }
+  number_label: { zh: "统计、远程代码。默认不联网，数据只在你的浏览器里。", en: "Analytics or remote code. Offline by default; your data stays in your browser." }
   footer: "github.com/jackxlabs/xhandy"

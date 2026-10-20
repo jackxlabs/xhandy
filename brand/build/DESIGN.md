@@ -225,7 +225,7 @@ Personality: Plain (not a flashy analytics dashboard); Savvy (not preachy); Hand
 | token | hex | use |
 |---|---|---|
 | brand-cyan | #06b6d4 | Gradient start; extension panel edge, icon tile |
-| brand-violet | #8b5cf6 | Gradient middle; primary colour for UI. Numbers in the extension use violet-800 (replaces the old separate ink #4c1d95, Jack 2026-10-20) |
+| brand-violet | #8b5cf6 | Gradient middle; primary colour for UI. Numbers in the extension use violet-800 in light mode and violet-200 in dark mode (replaces the old ink #4c1d95 and #e9d5ff, Jack 2026-10-20) |
 | brand-pink | #ec4899 | Gradient end |
 | bg | #f7f6f9 | light role (neutral.50) |
 | surface | #ffffff | light role (white) |
@@ -451,7 +451,7 @@ components:
 
 ## Do's and Don'ts
 Imagery: Real screenshots of the extension with the relevant part highlighted; promo images use the brand gradient background with the logo
-- Do: Screenshots from real X pages, with other people's avatars and names blurred; public posts by public figures may stay unblurred (Jack 2026-10-20)
+- Do: Screenshots from real X pages, with other people's avatars and names blurred; the only exception is Elon Musk (@elonmusk), whose public posts may stay unblurred (Jack 2026-10-20: X is his platform)
 - Do: Keep the numbers in screenshots real; never inflate them
 - Do: One set of screenshots per interface language
 - Don't: Fake UI mock-ups or inflated view counts
