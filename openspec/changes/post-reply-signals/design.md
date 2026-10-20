@@ -31,8 +31,9 @@ change quickly and are on every response anyway).
    version bump; `cleanState` validates ids with `isId`.
 3. **Own follower count in `relMeta.me = { handle, followers, t }`**, updated when a `User` with the
    signed-in handle appears. Small, avoids a new part.
-4. **Formatting.** Compact numbers reuse `XH.compact` (already locale-aware: 万 in zh, K/M in en). Ratio:
-   `author / me`, `Math.round` when ≥ 2, one decimal below, omitted when `me` is 0 or unknown. Chip order:
+4. **Formatting** (revised after Jack saw it on real X, 2026-10-20: the chip was too long for X's name row
+   and "0.4×" for smaller authors was confusing). `XH.replyChip` in i18n.js: reply count via `XH.compact`,
+   author followers via `XH.kNum` (K/M in every language), ratio `Math.round(author / me)` only when ≥ 2. Chip order:
    age/heat, relationship, interactions, replies/size, replied, target.
 5. **Settings** `showReplies` and `showReplied`, default `true`, in `DEFAULTS.settings`, `cleanSettings`
    and the options page.

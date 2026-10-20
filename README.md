@@ -16,8 +16,8 @@ That is the point: you get faster without anything that looks like a bot to X.
   from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
   The view count is the one X already sent with the post; posts under 30 minutes old count as 30 minutes
   so a few early views don't look like a spike. Thresholds are in Options.
-- **Reply signals**: `💬 23 · 46K followers · 12×` shows how many replies a post already has, how many
-  followers its author has, and how much bigger the author is than you, so you can pick posts where a reply
+- **Reply signals**: `💬 23 · 46K · 12×` shows how many replies a post already has, how many
+  followers its author has, and, when the author is at least twice your size, how many times bigger, so you can pick posts where a reply
   gets seen. `✓ replied` marks posts you already replied to, also from another device once X has shown your
   reply in this browser. Both come from data X already sent and each can be turned off in Options.
 - **Follow relationship**: each post shows whether you and the author follow each other
@@ -125,7 +125,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
   - 发了多久和每小时浏览量，例如 `2小时 · 1.5万/时`。每小时 1000 以上变橙，1 万以上变红并带 🔥，说明这条正在火，值得去回复；超过 48 小时的帖子会变灰，回复了也很少有人看到。
   - 你和作者的关注关系：`⇄ 互关`、`→ 我关注他`、`← 他关注我` 或 `未关注`。
   - 你和这个作者互动过几次、最近一次是什么时候，例如 `互动3次 · 今天`。
-  - 帖子已有多少回复、作者有多少粉丝、作者是你的几倍，例如 `💬 23 · 4.6万粉 · 12×`，方便挑回复了能被看到的帖子。
+  - 帖子已有多少回复、作者有多少粉丝、作者是你的几倍，例如 `💬 23 · 46K · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
 
   这两项都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。

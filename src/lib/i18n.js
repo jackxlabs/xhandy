@@ -58,7 +58,6 @@
       hours_ago: "{n} h ago",
       days_ago: "{n} d ago",
       replied: "✓ replied",
-      author_followers: "{n} followers",
     },
     zh: {
       age_min: "{n}分钟",
@@ -115,7 +114,6 @@
       hours_ago: "{n}小时前",
       days_ago: "{n}天前",
       replied: "✓ 已回复",
-      author_followers: "{n}粉",
     },
   };
 
@@ -140,6 +138,26 @@
     if (n >= 1e6) return r(n / 1e6) + "M";
     if (n >= 1e3) return r(n / 1e3) + "K";
     return String(Math.round(n));
+  };
+
+  // Follower counts in K/M in every language, so the chip stays short: 950 / 3.2K / 46K / 1.2M.
+  XH.kNum = function (n) {
+    const r = (x) => (x < 10 ? Math.round(x * 10) / 10 : Math.round(x));
+    if (n >= 1e6) return r(n / 1e6) + "M";
+    if (n >= 1e3) return r(n / 1e3) + "K";
+    return String(Math.round(n));
+  };
+
+  // Reply-signal chip: "💬 23 · 46K · 12×". The size ratio only shows when the author is at least
+  // twice as big as the user, the range reply guides aim for; a smaller author adds nothing.
+  XH.replyChip = function (replies, authorFollowers, myFollowers) {
+    const parts = ["💬 " + XH.compact(replies)];
+    if (typeof authorFollowers === "number") {
+      parts.push(XH.kNum(authorFollowers));
+      const ratio = myFollowers > 0 ? authorFollowers / myFollowers : 0;
+      if (ratio >= 2) parts.push(Math.round(ratio) + "×");
+    }
+    return parts.join(" · ");
   };
 
   // "3 h ago" style, for timestamps in ms.

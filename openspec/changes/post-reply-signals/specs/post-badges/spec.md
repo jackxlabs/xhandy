@@ -9,13 +9,17 @@ post is worth a reply, as short plain labels built only from data X already sent
 
 ### Requirement: Reply count and author size chip
 When "show replies and author size" is on and X has sent the post's reply count, the badge SHALL show a
-chip with the reply count and the author's follower count, both in compact form. When the user's own
-follower count is also known and above zero, the chip SHALL add the author's size relative to the user,
-rounded to a whole number when 2× or more and to one decimal below that.
+chip with the reply count and the author's follower count, the follower count in K/M in every language.
+When the user's own follower count is known and the author has at least twice as many followers, the chip
+SHALL add the size ratio rounded to a whole number. The chip SHALL stay short enough for X's name row.
 
 #### Scenario: All data known
 - **WHEN** a post has 23 replies, its author has 46,000 followers, and the user has 3,800 followers
-- **THEN** the chip reads "💬 23 · 4.6万粉 · 12×" in Chinese and "💬 23 · 46K followers · 12×" in English
+- **THEN** the chip reads "💬 23 · 46K · 12×" in both languages
+
+#### Scenario: Author smaller than twice the user
+- **WHEN** a post has 6 replies, its author has 3,200 followers, and the user has 4,600 followers
+- **THEN** the chip reads "💬 6 · 3.2K" with no ratio
 
 #### Scenario: Own follower count unknown
 - **WHEN** the reply and author counts are known but the user's own follower count is not

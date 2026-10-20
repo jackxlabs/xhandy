@@ -539,7 +539,7 @@ test("settings showReplies and showReplied default to true and can be saved", as
   assert.strictEqual(cleaned.settings.showReplied, true);
 });
 
-test("i18n formatting for replies/size chip and replied chip in zh and en", () => {
+test("reply chip: short follower counts, ratio only when the author is at least 2x bigger", () => {
   function loadI18n(lang) {
     // Node has its own read-only navigator, so a plain assignment would be ignored.
     Object.defineProperty(globalThis, "navigator", { value: { language: lang }, configurable: true });
@@ -549,40 +549,17 @@ test("i18n formatting for replies/size chip and replied chip in zh and en", () =
     require(path);
     return globalThis.XH;
   }
-
-  // English
-  const en = loadI18n("en-US");
-  assert.strictEqual(en.t("replied"), "✓ replied");
-  assert.strictEqual(en.t("author_followers", { n: en.compact(46000) }), "46K followers");
-  assert.strictEqual(en.compact(23), "23");
-
-  const repEn = 23;
-  const afEn = 46000;
-  const meEn = 3800;
-  const rEn = afEn / meEn;
-  const ratioStrEn = (rEn >= 2 ? Math.round(rEn) : Math.round(rEn * 10) / 10) + "×";
-  const chipEn = ["💬 " + en.compact(repEn), en.t("author_followers", { n: en.compact(afEn) }), ratioStrEn].join(" · ");
-  assert.strictEqual(chipEn, "💬 23 · 46K followers · 12×");
-
-  // Chinese
-  const zh = loadI18n("zh-CN");
-  assert.strictEqual(zh.t("replied"), "✓ 已回复");
-  assert.strictEqual(zh.t("author_followers", { n: zh.compact(46000) }), "4.6万粉");
-  assert.strictEqual(zh.compact(23), "23");
-
-  const chipZh = ["💬 " + zh.compact(repEn), zh.t("author_followers", { n: zh.compact(afEn) }), ratioStrEn].join(" · ");
-  assert.strictEqual(chipZh, "💬 23 · 4.6万粉 · 12×");
-
-  // Ratio rounding edge cases
-  const ratio = (af, me) => {
-    const r = af / me;
-    return (r >= 2 ? Math.round(r) : Math.round(r * 10) / 10) + "×";
-  };
-  assert.strictEqual(ratio(46000, 3800), "12×");
-  assert.strictEqual(ratio(2000, 1000), "2×");
-  assert.strictEqual(ratio(1950, 1000), "2×");
-  assert.strictEqual(ratio(1540, 1000), "1.5×");
-  assert.strictEqual(ratio(1500, 1000), "1.5×");
-  assert.strictEqual(ratio(500, 1000), "0.5×");
-  assert.strictEqual(ratio(0, 1000), "0×");
+  for (const lang of ["en-US", "zh-CN"]) {
+    const XH = loadI18n(lang);
+    assert.strictEqual(XH.replyChip(23, 46000, 3800), "💬 23 · 46K · 12×", lang + " all data");
+    assert.strictEqual(XH.replyChip(6, 3200, 4600), "💬 6 · 3.2K", lang + " smaller author: no ratio");
+    assert.strictEqual(XH.replyChip(6, 9000, 4600), "💬 6 · 9K", lang + " under 2x: no ratio");
+    assert.strictEqual(XH.replyChip(6, 9200, 4600), "💬 6 · 9.2K · 2×", lang + " exactly 2x");
+    assert.strictEqual(XH.replyChip(23, 46000, 0), "💬 23 · 46K", lang + " own count unknown");
+    assert.strictEqual(XH.replyChip(23, undefined, 3800), "💬 23", lang + " author count unknown");
+    assert.strictEqual(XH.replyChip(0, 950, 100), "💬 0 · 950 · 10×", lang + " small numbers");
+    assert.strictEqual(XH.replyChip(5, 1_200_000, 4600), "💬 5 · 1.2M · 261×", lang + " millions");
+  }
+  assert.strictEqual(loadI18n("en-US").t("replied"), "✓ replied");
+  assert.strictEqual(loadI18n("zh-CN").t("replied"), "✓ 已回复");
 });

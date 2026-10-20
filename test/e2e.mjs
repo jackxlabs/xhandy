@@ -515,7 +515,7 @@ try {
         })
       );
     });
-    await page.waitForFunction(() => /💬 23 · 46K followers(?! ·)/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /💬 23 · 46K(?! ·)/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#dan .xh-chip.xh-replies"));
 
     // 2. Scenario: All data known (own follower count 3800 arrives for me_test)
@@ -532,7 +532,7 @@ try {
         })
       );
     });
-    await page.waitForFunction(() => /💬 23 · 46K followers · 12×/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /💬 23 · 46K · 12×/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
 
     // Wait for relMeta.me batch write (2 s) and verify persisted
     await page.waitForTimeout(2200);

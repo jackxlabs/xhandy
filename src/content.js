@@ -111,17 +111,8 @@
     if (s.showReplies) {
       const rep = replyCounts.get(info.id);
       if (typeof rep === "number") {
-        const parts = ["💬 " + XH.compact(rep)];
-        const af = authorFollowers.get(info.id);
-        if (typeof af === "number") {
-          parts.push(t("author_followers", { n: XH.compact(af) }));
-          const myFollowers = S.relMeta && S.relMeta.me && S.relMeta.me.followers;
-          if (typeof myFollowers === "number" && myFollowers > 0) {
-            const r = af / myFollowers;
-            parts.push((r >= 2 ? Math.round(r) : Math.round(r * 10) / 10) + "×");
-          }
-        }
-        chips.push(["replies", parts.join(" · ")]);
+        const me = S.relMeta && S.relMeta.me && S.relMeta.me.followers;
+        chips.push(["replies", XH.replyChip(rep, authorFollowers.get(info.id), me)]);
       }
     }
     if (s.showReplied && S.replied && S.replied[info.id]) {
