@@ -10,6 +10,16 @@ Versioning: `meta.version` in brand.yaml is a single counter, bumped when the ow
 
 > Generated from brand.yaml by changelog.py. Do not edit by hand.
 
+## [9] - 2026-10-20 · patch
+
+### Changed
+
+- The non-affiliation line now has a Chinese and an English version, so Chinese guidelines, letterhead and one-pager no longer print the English line; competitors with Chinese names got English names
+
+### Fixed
+
+- Chinese copy no longer mixes in English: ordinary words now in Chinese, test names and store text paraphrased; proper nouns kept in Latin are listed in keep_latin
+
 ## [8] - 2026-10-20 · patch
 
 ### Changed

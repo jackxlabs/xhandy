@@ -4,7 +4,7 @@
 meta:
   name: Xhandy
   slug: xhandy
-  version: 8
+  version: 9
   updated: "2026-10-20"
   parent: null
   languages: [zh, en]
@@ -86,10 +86,10 @@ identity:
       what:
         zh: "Chromium 浏览器扩展（Chrome、Edge、Brave），在 X 上显示帖子时效和每小时浏览量、关注关系、互动记忆、重复回复提醒、每日统计；关注助手和「没回关我」面板"
         en: "A Chromium extension (Chrome, Edge, Brave) that adds post age and views per hour, follow status, interaction history, duplicate-reply warnings and daily stats to X, plus a follow assistant and a \"not following you back\" panel"
-      status: { zh: "已上线，v0.4.7，从 GitHub Releases 下载", en: "Live, v0.4.7, download from GitHub Releases" }
+      status: { zh: "已上线，v0.4.7，从 GitHub 发布页下载", en: "Live, v0.4.7, download from GitHub Releases" }
     - name: "v0.5"
       what:
-        zh: "路线图：互动队列、灵感清单、引用草稿预填、导出和 webhook"
+        zh: "路线图：互动队列、灵感清单、引用草稿预填、导出和推送到自定义地址"
         en: "Roadmap: interaction queue, local idea list, draft prefill for quote posts, export and a generic webhook"
       status: planned
     - name: "v0.6"
@@ -107,12 +107,12 @@ identity:
   proof_points:
     - claim: { zh: "从不替你操作", en: "Never acts for you" }
       evidence:
-        zh: "不点击、不输入、不发送、不点赞、不关注；关注助手只把焦点放到 X 自己的关注按钮上，按 Enter 的是用户。e2e 测试 extension never clicks anything by itself 和 never fakes mouse or pointer events 保证这一点"
+        zh: "不点击、不输入、不发送、不点赞、不关注；关注助手只把焦点放到 X 自己的关注按钮上，按 Enter 的是用户。端到端测试里的「插件从不自行点击」和「从不伪造鼠标或指针事件」两项保证这一点"
         en: "It never clicks, types, sends, likes or follows. The follow assistant only moves focus to X's own Follow button; you press Enter. End-to-end tests (\"extension never clicks anything by itself\", \"never fakes mouse or pointer events\") enforce it"
       source: readme
     - claim: { zh: "不联网，数据只在你的浏览器里", en: "No network, your data stays in your browser" }
       evidence:
-        zh: "只有 storage 和 unlimitedStorage 两个权限；没有网络请求、统计或远程代码；可导出、导入、清空"
+        zh: "只申请「存储」和「无限存储」两个权限；没有网络请求、统计或远程代码；可导出、导入、清空"
         en: "Only two permissions, storage and unlimitedStorage; no network requests, analytics or remote code; export, import or delete everything"
       source: readme
     - claim: { zh: "一眼看出哪条帖子正火", en: "See which posts are taking off" }
@@ -132,7 +132,7 @@ identity:
       source: readme
     - claim: { zh: "开源，免费", en: "Free and open source" }
       evidence:
-        zh: "公开仓库 jackxlabs/xhandy，从 GitHub Releases 下载"
+        zh: "公开仓库 jackxlabs/xhandy，从 GitHub 发布页下载"
         en: "Public repository jackxlabs/xhandy; download from GitHub Releases"
       source: readme
     - claim: { zh: "中英文界面", en: "Chinese and English interface" }
@@ -142,10 +142,10 @@ identity:
       source: readme
 
 competitors:               # confirmed list by Jack 2026-10-19; user numbers not checked (store pages block scraping)
-  - name: X互关雷达
+  - name: { zh: "X互关雷达", en: "X Mutual Radar (Chinese store listing)" }
     url: https://chromewebstore.google.com/detail/x-mutual-radar/gheaelnpnfiakildlchjkomnbfccddep
     positioning:
-      zh: "在 x.com 页面标记互关和单向关注关系，并可选择显示 following / followers 关注率（商店描述原文）"
+      zh: "在 x.com 页面标记互关和单向关注关系，并可选择显示关注数和粉丝数之比（据商店描述）"
       en: "Marks mutual and one-way follows on x.com, with an optional following/followers ratio (from its store description, translated)"
     owns: ["互关雷达", "关注率", "mutual radar"]
     our_difference:
@@ -155,7 +155,7 @@ competitors:               # confirmed list by Jack 2026-10-19; user numbers not
     visual: { colors: [], logo_notes: "" }
     source: web-2026-10-19
     checked: "2026-10-19"
-  - name: X 爆款监测
+  - name: { zh: "X 爆款监测", en: "X Viral Monitor (Chinese store listing)" }
     url: https://chromewebstore.google.com/detail/x-viral-monitor/dkplofpecmjmbhgjgleeflcnfgfkdfpd
     positioning:
       zh: "X 推文流速徽章、长图阅读、Markdown 复制、转发星图、Grok 回复辅助，全部本地处理，零数据收集（商店描述原文）"
@@ -168,7 +168,9 @@ competitors:               # confirmed list by Jack 2026-10-19; user numbers not
     visual: { colors: [], logo_notes: "" }
     source: web-2026-10-19
     checked: "2026-10-19"
-  - name: "互关检测 / 粉丝数类小插件（X(Twitter) 互关检测助手、X Following Tracker、Follower Lens、x-follower-count）"
+  - name:
+      zh: "互关检测 / 粉丝数类小插件（X(Twitter) 互关检测助手、X Following Tracker、Follower Lens、x-follower-count）"
+      en: "Mutual-check and follower-count add-ons (a Chinese X mutual checker, X Following Tracker, Follower Lens, x-follower-count)"
     url: https://github.com/yaohongan/x-follower-lens
     positioning:
       zh: "单项工具：识别互关、导出关注列表、在用户名旁显示粉丝数"
@@ -245,6 +247,9 @@ voice:
         zh: "选中帖子按 Shift+F，焦点会跳到作者的关注按钮上。"
         en: "Select a post and press Shift+F: focus jumps to the author's Follow button."
   vocabulary:
+    # English words allowed inside Chinese copy (proper nouns only), checked by brand-kit langmix.py; Jack 2026-10-20:
+    # Chinese copy carries no other English, English copy carries no Chinese
+    keep_latin: [Jack, Corp, SuperX, BlackMagic, AutoFollowers, Following, Tracker, Follower, Lens, Handy, X-handy, handy]
     use:
       - { lang: zh, use: "帖子", not: "推文、推特", reason: "README 和界面统一用帖子；平台已改名 X", source: readme }
       - { lang: en, use: "post", not: "tweet", reason: "X's own term since 2023; the README and UI use post", source: readme }
@@ -263,7 +268,7 @@ voice:
       - { lang: en, word: "growth hack, game-changer, supercharge, 10x, unlock", reason: "Empty hype that clashes with being plain", source: jack-2026-10-19 }
       - { lang: zh, word: "您", reason: "README 和界面都用「你」", source: readme }
     jargon_policy:
-      zh: "技术词（Manifest V3、service worker、data-testid）只出现在开发文档；面向用户时换成「浏览器插件」「X 改了页面」这类说法"
+      zh: "技术词（`Manifest V3`、`service worker`、`data-testid`）只出现在开发文档；面向用户时换成「浏览器插件」「X 改了页面」这类说法"
       en: "Technical terms (Manifest V3, service worker, data-testid) belong in developer docs; for users say \"browser extension\" or \"X changed its page\""
   style:
     numbers:
@@ -276,7 +281,7 @@ voice:
       zh: "不用感叹号；界面名、按钮名用「」"
       en: "No exclamation marks; UI names in quotes or bold, not both; Oxford comma optional, keep each document consistent"
     emoji:
-      zh: "产品文案不用 emoji；界面标签里只有 🔥（热帖）和 ⇄ → ←（关系）"
+      zh: "产品文案不用表情符号；界面标签里只有 🔥（热帖）和 ⇄ → ←（关系）"
       en: "No emoji in product copy; the UI only uses 🔥 for hot posts and ⇄ → ← for follow status"
     emphasis:
       zh: "加粗只用于警告和关键操作，例如「把它放在一个以后不会动的位置」"
@@ -325,10 +330,12 @@ compliance:
         en: "State that Xhandy is independent of X Corp; never suggest it is an official X product or endorsed by X"
       severity: hard
       applies_to: [store_listing, readme, release_notes, website]
-      required_phrase: "Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp."
+      required_phrase:
+        zh: "Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。"
+        en: "Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp."
       forbidden: ["X 官方", "X 认证", "official X", "by X", "X-approved"]
       reason:
-        zh: "商标和商店审核；logo 也刻意避开 X 官方 logo 的造型"
+        zh: "商标和商店审核；标志也刻意避开 X 官方标志的造型"
         en: "Trademark and store review; the logo also avoids the construction of X's logo"
       source: readme
       date: "2026-10-17"
@@ -379,7 +386,7 @@ visual:
   imagery:                   # draft from README practice, Jack to confirm
     status: draft
     style:
-      zh: "真实的插件界面截图，标出要看的地方；宣传图用品牌渐变背景加 logo"
+      zh: "真实的插件界面截图，标出要看的地方；宣传图用品牌渐变背景加标志"
       en: "Real screenshots of the extension with the relevant part highlighted; promo images use the brand gradient background with the logo"
     do:
       - { zh: "用真实 X 页面上的截图，其他用户的头像、名字打码", en: "Screenshots from real X pages, with other people's avatars and names blurred" }
@@ -388,22 +395,22 @@ visual:
     dont:
       - { zh: "假的界面效果图或夸大的浏览数据", en: "Fake UI mock-ups or inflated view counts" }
       - { zh: "图库照片和泛 AI 插画", en: "Stock photos and generic AI illustrations" }
-      - { zh: "出现 X 官方 logo 当装饰", en: "X's own logo used as decoration" }
+      - { zh: "出现 X 官方标志当装饰", en: "X's own logo used as decoration" }
   anti_patterns:
-    - rule: { zh: "不用 X 官方 logo 的造型（一粗一细直线斜交加断口）", en: "Never build the mark like X's logo (a thick and a thin straight diagonal with a break)" }
+    - rule: { zh: "不用 X 官方标志的造型（一粗一细直线斜交加断口）", en: "Never build the mark like X's logo (a thick and a thin straight diagonal with a break)" }
       severity: hard
     - rule: { zh: "标志本身只用纯黑或纯白，品牌色只放在底座和背景", en: "The mark itself is pure black or white; brand colours go on the tile and backgrounds" }
       severity: soft
 
 sources:
-  - { id: readme, what: "Xhandy README (features, privacy, Chinese guide)", where: "README.md", date: "2026-10-19" }
-  - { id: dev-rules, what: "x-helper CLAUDE.md, rules that must not break", where: "CLAUDE.md", date: "2026-10-19" }
-  - { id: logo-decisions, what: "Logo design decision log", where: "brand/logo/decisions.md", date: "2026-10-19" }
-  - { id: web-2026-10-19, what: "Competitor search: Chrome Web Store titles and descriptions, GitHub repos, third-party round-ups", where: "chromewebstore.google.com, github.com, xengageai.com, contentdrips.com", date: "2026-10-19" }
-  - { id: jack-2026-10-19, what: "Jack's answers in the brand-kit conversation (audience, alternatives, difference, rules)", where: "conversation", date: "2026-10-19" }
-  - { id: google-fonts, what: "Google Fonts repository; licences checked by directory (ofl/inter, ofl/jetbrainsmono)", where: "github.com/google/fonts", date: "2026-10-19" }
-  - { id: x-voice-guide, what: "Jack's personal X voice guide (source of the zh AI-ism list)", where: "jack-personal-brand/personal-brand/x-voice-guide.md", date: "2026-10-13" }
-  - { id: content-css, what: "Extension UI colours", where: "src/content.css", date: "2026-10-19" }
+  - { id: readme, what: { zh: "Xhandy 的 README（功能、隐私、中文说明）", en: "Xhandy README (features, privacy, Chinese guide)" }, where: "README.md", date: "2026-10-19" }
+  - { id: dev-rules, what: { zh: "x-helper 仓库的 CLAUDE.md（不能破的规矩）", en: "x-helper CLAUDE.md, rules that must not break" }, where: "CLAUDE.md", date: "2026-10-19" }
+  - { id: logo-decisions, what: { zh: "标志设计决策记录", en: "Logo design decision log" }, where: "brand/logo/decisions.md", date: "2026-10-19" }
+  - { id: web-2026-10-19, what: { zh: "竞品搜索：Chrome 应用商店的标题和描述、GitHub 仓库、第三方盘点文章", en: "Competitor search: Chrome Web Store titles and descriptions, GitHub repos, third-party round-ups" }, where: "chromewebstore.google.com, github.com, xengageai.com, contentdrips.com", date: "2026-10-19" }
+  - { id: jack-2026-10-19, what: { zh: "Jack 在品牌包对话里的回答（受众、替代方案、差异、规则）", en: "Jack's answers in the brand-kit conversation (audience, alternatives, difference, rules)" }, where: "conversation", date: "2026-10-19" }
+  - { id: google-fonts, what: { zh: "Google Fonts 仓库，按目录核对字体授权（ofl/inter、ofl/jetbrainsmono）", en: "Google Fonts repository; licences checked by directory (ofl/inter, ofl/jetbrainsmono)" }, where: "github.com/google/fonts", date: "2026-10-19" }
+  - { id: x-voice-guide, what: { zh: "Jack 的个人 X 语气指南（中文 AI 腔清单的来源）", en: "Jack's personal X voice guide (source of the zh AI-ism list)" }, where: "jack-personal-brand/personal-brand/x-voice-guide.md", date: "2026-10-13" }
+  - { id: content-css, what: { zh: "插件界面的颜色", en: "Extension UI colours" }, where: "src/content.css", date: "2026-10-19" }
 
 # Messaging kit (messaging.py validates lengths and renders build/messaging/). Composed 2026-10-20 from the confirmed
 # identity, proof points and README; every newly written line is status: draft until Jack approves it.
@@ -424,9 +431,9 @@ messaging:
 
         写回复时，如果和你最近发过的某条很像，Xhandy 会提醒你：重复的回复最容易被当成垃圾内容。页面底部的小条统计今天的点赞、回复、发帖、关注数和在线时长。按 Alt+U 打开「没回关我」列表，只能看，没有取关按钮；选中帖子按 Shift+F，焦点跳到作者的关注按钮上，按 Enter 的是你自己。
 
-        Xhandy 不点击、不输入、不发送、不点赞、不关注。它只要 storage 和 unlimitedStorage 两个权限，不联网、不做统计、不加载远程代码，数据只在你的浏览器里，可以随时导出或清空。
+        Xhandy 不点击、不输入、不发送、不点赞、不关注。它只申请「存储」和「无限存储」两个权限，不联网、不做统计、不加载远程代码，数据只在你的浏览器里，可以随时导出或清空。
 
-        Xhandy 开源免费，现在是 v0.4.7，从 GitHub Releases 下载：github.com/jackxlabs/xhandy。路线图上接下来是互动队列、灵感清单和导出，之后上架商店。
+        Xhandy 开源免费，现在是 v0.4.7，从 GitHub 发布页下载：github.com/jackxlabs/xhandy。路线图上接下来是互动队列、灵感清单和导出，之后上架商店。
       en: |-
         If you grow on X by replying and engaging by hand, the hard part is choosing where to spend your replies. You can't tell at a glance which posts are taking off, and checking whether someone follows you back, or how often you've talked, means opening profiles or hovering over avatars.
 
@@ -467,7 +474,7 @@ messaging:
           zh: "Xhandy 不替你点击、发送或关注，关注和取关超过每日软上限会提醒你。没有哪个工具能保证账号不被限流。"
           en: "Xhandy never clicks, sends or follows for you, and it reminds you when follows or unfollows pass a daily soft limit. No tool can promise an account won't be limited."
         long:
-          zh: "Xhandy 只读取页面和你自己的操作，不点击、不输入、不发送、不点赞、不关注，也不模拟鼠标事件，e2e 测试会检查这一点。关注和取关默认每天超过 20 个会提醒（只提醒，不拦截），因为关注太快容易被限流；写回复时，和最近发过的很像也会提醒。账号会不会被限流最终由 X 决定，Xhandy 只能帮你避开最常见的问题。"
+          zh: "Xhandy 只读取页面和你自己的操作，不点击、不输入、不发送、不点赞、不关注，也不模拟鼠标事件，端到端测试会检查这一点。关注和取关默认每天超过 20 个会提醒（只提醒，不拦截），因为关注太快容易被限流；写回复时，和最近发过的很像也会提醒。账号会不会被限流最终由 X 决定，Xhandy 只能帮你避开最常见的问题。"
           en: "Xhandy only reads the page and your own actions. It never clicks, types, sends, likes or follows, and never fakes mouse events; end-to-end tests check this. By default it reminds you after 20 follows or 20 unfollows a day (a reminder only, nothing is blocked), because following fast is what gets accounts limited, and it warns you when a reply is very similar to a recent one. Whether an account gets limited is X's call; Xhandy helps you avoid the most common causes."
         source: readme
         checked: "2026-10-20"
@@ -477,17 +484,17 @@ messaging:
           zh: "不会。它不联网、不做统计、不加载远程代码，数据只存在你的浏览器里。"
           en: "No. It makes no network requests, runs no analytics and loads no remote code; your data stays in your browser."
         long:
-          zh: "Xhandy 只有 storage 和 unlimitedStorage 两个权限，只在 x.com 和 twitter.com 上运行。存在你浏览器里的有：设置、每日计数、每个作者的点赞和回复次数、关注关系，以及你最近 300 条回复和帖子的文字（用来提醒重复回复）。在设置页可以导出、导入或清空全部数据。完整隐私政策见仓库里的 PRIVACY.md。"
+          zh: "Xhandy 只申请「存储」和「无限存储」两个权限，只在 x.com 和 twitter.com 上运行。存在你浏览器里的有：设置、每日计数、每个作者的点赞和回复次数、关注关系，以及你最近 300 条回复和帖子的文字（用来提醒重复回复）。在设置页可以导出、导入或清空全部数据。完整隐私政策见仓库里的 PRIVACY.md。"
           en: "Xhandy has two permissions, storage and unlimitedStorage, and runs only on x.com and twitter.com. What it keeps in your browser: your settings, daily counts, per-author like and reply counts, follow relationships, and the text of your last 300 replies and posts (for the duplicate-reply warning). You can export, import or delete everything from the Options page. The full privacy policy is PRIVACY.md in the repository."
         source: readme
         checked: "2026-10-20"
         status: draft
       - q: { zh: "支持哪些浏览器？怎么安装？", en: "Which browsers does it support, and how do I install it?" }
         short:
-          zh: "Chrome、Edge、Brave。从 GitHub Releases 下载 zip，解压后在 chrome://extensions 打开开发者模式，加载已解压的扩展程序。"
+          zh: "Chrome、Edge、Brave。从 GitHub 发布页下载压缩包，解压后在 chrome://extensions 打开开发者模式，加载已解压的扩展程序。"
           en: "Chrome, Edge and Brave. Download the zip from GitHub Releases, unzip it, turn on Developer mode in chrome://extensions and choose Load unpacked."
         long:
-          zh: "到 github.com/jackxlabs/xhandy 的 Releases 页面下载 xhandy-版本号.zip，解压得到 xhandy 文件夹，把它放在以后不会动的位置。在 chrome://extensions 打开开发者模式，点「加载已解压的扩展程序」，选 xhandy 文件夹。更新时解压覆盖原文件夹，再点「重新加载」。不要换文件夹位置：扩展 ID 跟着路径走，换了位置原来的数据就读不到了。"
+          zh: "到 github.com/jackxlabs/xhandy 的发布页下载 xhandy-版本号.zip，解压得到 xhandy 文件夹，把它放在以后不会动的位置。在 chrome://extensions 打开开发者模式，点「加载已解压的扩展程序」，选 xhandy 文件夹。更新时解压覆盖原文件夹，再点「重新加载」。不要换文件夹位置：扩展 ID 跟着路径走，换了位置原来的数据就读不到了。"
           en: "Download xhandy-<version>.zip from Releases at github.com/jackxlabs/xhandy and unzip it somewhere it can stay. Open chrome://extensions, turn on Developer mode, click Load unpacked and choose the xhandy folder. To update, unzip the new release over the same folder and click reload. Keep the folder where it is: the extension ID, and with it your data, is tied to the folder's path."
         source: readme
         checked: "2026-10-20"
@@ -534,17 +541,17 @@ messaging:
           zh: "Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。"
           en: "Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp."
         long:
-          zh: "Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。Xhandy 的 logo 也刻意避开了 X 那个 logo 的造型。"
+          zh: "Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。Xhandy 的标志也刻意避开了 X 那个标志的造型。"
           en: "Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp. Its logo is deliberately built differently from X's."
         source: readme
         checked: "2026-10-20"
         status: draft
       - q: { zh: "现在是什么版本，在哪里下载？", en: "What is the current version, and where do I get it?" }
         short:
-          zh: "v0.4.7，从 GitHub Releases 下载。上架商店在 v0.6 的路线图上。"
+          zh: "v0.4.7，从 GitHub 发布页下载。上架商店在 v0.6 的路线图上。"
           en: "Version 0.4.7, from GitHub Releases. A store listing is on the v0.6 roadmap."
         long:
-          zh: "当前版本 v0.4.7，在 github.com/jackxlabs/xhandy 的 Releases 页面下载，手动加载到 Chrome、Edge 或 Brave。路线图：v0.5 互动队列、本地灵感清单、引用草稿预填、导出和通用 webhook；v0.6 可选的 Notion 同步和上架商店。"
+          zh: "当前版本 v0.4.7，在 github.com/jackxlabs/xhandy 的发布页下载，手动加载到 Chrome、Edge 或 Brave。路线图：v0.5 互动队列、本地灵感清单、引用草稿预填、导出和推送到自定义地址；v0.6 可选的 Notion 同步和上架商店。"
           en: "The current version is 0.4.7, downloaded from Releases at github.com/jackxlabs/xhandy and loaded into Chrome, Edge or Brave by hand. Roadmap: v0.5 adds an interaction queue, a local idea list, draft prefill for quote posts, export and a generic webhook; v0.6 adds optional Notion sync and a store listing."
         source: readme
         checked: "2026-10-20"
@@ -554,7 +561,7 @@ messaging:
     partners:
       - q: { zh: "Xhandy 有接口或集成吗？", en: "Does Xhandy have an API or integrations?" }
         short:
-          zh: "现在没有，Xhandy 不联网。导出和通用 webhook 在 v0.5 路线图上，可选的 Notion 同步在 v0.6。"
+          zh: "现在没有，Xhandy 不联网。导出和推送到自定义地址 在 v0.5 路线图上，可选的 Notion 同步在 v0.6。"
           en: "Not yet: Xhandy makes no network requests. Export and a generic webhook are on the v0.5 roadmap, optional Notion sync on v0.6."
         long:
           zh: "[待填写：集成合作的条件和联系人]"
@@ -562,9 +569,9 @@ messaging:
         source: readme
         checked: "2026-10-20"
         status: draft
-      - q: { zh: "可以使用 Xhandy 的名字和 logo 吗？", en: "Can I use the Xhandy name and logo?" }
+      - q: { zh: "可以使用 Xhandy 的名字和标志吗？", en: "Can I use the Xhandy name and logo?" }
         short:
-          zh: "代码是 MIT 协议，名字和 logo 不在这个协议里。介绍 Xhandy 时请用品牌包里的原文件，不改形状和颜色。"
+          zh: "代码是 MIT 协议，名字和标志不在这个协议里。介绍 Xhandy 时请用品牌包里的原文件，不改形状和颜色。"
           en: "The MIT licence covers the code, not the name or logo. When writing about Xhandy, use the files in the brand kit unchanged."
         long:
           zh: "[待填写：商标使用规则，需 Jack 确认]"
@@ -604,7 +611,7 @@ messaging:
       zh: "Xhandy 是给手动玩 X 的人用的浏览器插件，开源免费。它把帖子热度、你和作者的关注关系、互动记录标在每条帖子旁边，一眼看出该回哪条。它从不替你操作，数据只在你的浏览器里。"
       en: "Xhandy is a free, open-source browser extension for people who engage on X by hand. Next to every post it shows post heat, follow status and interaction history, so you can see which posts are worth a reply. It never acts for you and keeps all data in your browser."
     "100":
-      zh: "Xhandy 是给手动玩 X 的创作者用的浏览器插件。刷 X 时，它把帖子发了多久、每小时多少浏览、你和作者是否互关、互动过几次，直接标在每条帖子旁边，一眼看出该回哪条；打字时还会提醒你别发重复回复。它从不替你点击或发送，数据只存在你的浏览器里，开源免费。Xhandy 支持 Chrome、Edge 和 Brave，当前版本 v0.4.7 可从 GitHub Releases 下载。Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。"
+      zh: "Xhandy 是给手动玩 X 的创作者用的浏览器插件。刷 X 时，它把帖子发了多久、每小时多少浏览、你和作者是否互关、互动过几次，直接标在每条帖子旁边，一眼看出该回哪条；打字时还会提醒你别发重复回复。它从不替你点击或发送，数据只存在你的浏览器里，开源免费。Xhandy 支持 Chrome、Edge 和 Brave，当前版本 v0.4.7 可从 GitHub 发布页下载。Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。"
       en: "Xhandy is a browser extension for people who engage on X by hand. Next to every post it shows how old the post is and how fast it is getting views, whether you and the author follow each other, and how often you have interacted. It warns you before you send a near-duplicate reply. It never clicks or sends anything for you, keeps all data in your browser, and is free and open source. Xhandy runs on Chrome, Edge and Brave; version 0.4.7 is on GitHub Releases. Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp."
     "250":
       zh: |-
@@ -612,7 +619,7 @@ messaging:
 
         写回复时，如果和最近发过的很像，Xhandy 会提醒你；页面底部统计今天的点赞、回复、发帖和在线时长；「没回关我」列表只读，没有取关按钮；关注和取关超过每日软上限会提醒。
 
-        Xhandy 从不替你操作：不点击、不输入、不发送、不点赞、不关注。它只有 storage 和 unlimitedStorage 两个权限，不联网、不做统计、不加载远程代码，数据只在你的浏览器里。界面跟随浏览器语言显示中文或英文。
+        Xhandy 从不替你操作：不点击、不输入、不发送、不点赞、不关注。它只申请「存储」和「无限存储」两个权限，不联网、不做统计、不加载远程代码，数据只在你的浏览器里。界面跟随浏览器语言显示中文或英文。
 
         Xhandy 开源免费，当前版本 v0.4.7，在 github.com/jackxlabs/xhandy 下载。Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。
       en: |-
@@ -634,6 +641,12 @@ messaging:
 # minor (new assets, tokens, templates, blocks), patch (fixes and wording). v1-v5 were reconstructed on 2026-10-20 from
 # logo/decisions.md and brand.yaml comments: the order inside 2026-10-19 is inferred (reconstructed: true), Jack to check.
 changelog:
+  - version: 9
+    date: "2026-10-20"
+    type: patch
+    items:
+      - { kind: fixed, zh: "中文文案不再夹英文：标志、端到端测试、发布页、压缩包、表情符号等改成中文，测试名和商店描述改为转述；保留的专有名词登记在 keep_latin", en: "Chinese copy no longer mixes in English: ordinary words now in Chinese, test names and store text paraphrased; proper nouns kept in Latin are listed in keep_latin" }
+      - { kind: changed, zh: "非官方声明改为中英文各一句，中文版规范、信纸和单页不再印英文声明；中文名的竞品补了英文名", en: "The non-affiliation line now has a Chinese and an English version, so Chinese guidelines, letterhead and one-pager no longer print the English line; competitors with Chinese names got English names" }
   - version: 8
     date: "2026-10-20"
     type: patch
@@ -649,7 +662,7 @@ changelog:
       - { kind: added, zh: "可编辑的 PowerPoint 模板（10 种版式）、邮件签名、单页介绍和信纸、各平台横幅和封面", en: "Editable PowerPoint template (10 layouts), email signature, one-pager and letterhead, platform banners and covers" }
       - { kind: added, zh: "标志动效（SVG、Lottie、MP4、WebM、GIF）、图标库推荐、品牌图案、界面组件规范、图片规范", en: "Logo motion (SVG, Lottie, MP4, WebM, GIF), icon library choice, brand patterns, UI component specs, imagery guide" }
       - { kind: added, zh: "传播文案包草稿：电梯演讲（10 秒、30 秒、2 分钟）、信息屋、分受众 FAQ、各平台简介、新闻稿样板段", en: "Messaging kit draft: 10-second, 30-second and 2-minute pitches, message house, FAQ by audience, platform bios, press boilerplate" }
-      - { kind: added, zh: "品牌包下载：logo、色板（.ase、.gpl、tokens）、字体、规范 PDF、模板、新闻资料", en: "Downloadable brand kit: logos, palettes (.ase, .gpl, tokens), fonts, guidelines PDF, templates, press materials" }
+      - { kind: added, zh: "品牌包下载：标志、色板（.ase、.gpl、设计变量文件）、字体、规范 PDF、模板、新闻资料", en: "Downloadable brand kit: logos, palettes (.ase, .gpl, tokens), fonts, guidelines PDF, templates, press materials" }
       - { kind: added, zh: "品牌包更新记录", en: "Brand kit changelog" }
   - version: 6
     date: "2026-10-20"
@@ -668,7 +681,7 @@ changelog:
     type: minor
     reconstructed: true
     items:
-      - { kind: added, zh: "视觉系统：主色 violet，cyan 和 pink 作辅助，渐变只做装饰；色阶、亮暗角色色、对比度报告", en: "Visual system: violet as primary, cyan and pink as accents, gradient decorative only; ramps, light and dark roles, contrast report" }
+      - { kind: added, zh: "视觉系统：主色紫色，青色和粉色作辅助，渐变只做装饰；色阶、亮暗角色色、对比度报告", en: "Visual system: violet as primary, cyan and pink as accents, gradient decorative only; ramps, light and dark roles, contrast report" }
       - { kind: added, zh: "字体：Inter（正文和标题）、JetBrains Mono（数字和快捷键），均为 OFL；字号阶梯", en: "Fonts: Inter for text and headings, JetBrains Mono for numbers and shortcuts, both OFL; type scale" }
       - { kind: added, zh: "规范页和第一版应用模板", en: "Guidelines page and the first application templates" }
   - version: 3
@@ -691,5 +704,5 @@ changelog:
     items:
       - { kind: added, zh: "建立 brand.yaml：产品、命名、证据点、拒绝成为什么、合规规则（与 X Corp 无关、不说成自动化工具）", en: "brand.yaml created: products, naming, proof points, refuses-to-be, compliance (independent of X Corp, never called automation)" }
       - { kind: added, zh: "标志（在 brand.yaml 之前完成）：两道相对的月牙，既像 X 也像 H；小尺寸加粗版；横版标志；导出包；路径清理为可编辑 SVG", en: "Logo (made before brand.yaml): two facing crescents that read as X and H; bold small version; lockup; export package; paths cleaned into editable SVGs", source: logo-decisions }
-      - { kind: added, zh: "品牌色：cyan、violet、pink 渐变，来自插件界面", en: "Brand colours: the cyan, violet and pink gradient from the extension UI", source: content-css }
+      - { kind: added, zh: "品牌色：青、紫、粉渐变，来自插件界面", en: "Brand colours: the cyan, violet and pink gradient from the extension UI", source: content-css }
 

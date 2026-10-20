@@ -18,7 +18,7 @@ Tick every line before an image goes out. (brand.yaml) rules are the owner's; (s
 - [ ] 6. **Never**: X's own logo used as decoration (brand.yaml)
 - [ ] 7. **Rule** [hard]: Never build the mark like X's logo (a thick and a thin straight diagonal with a break) (brand.yaml)
 - [ ] 8. **Rule** [soft]: The mark itself is pure black or white; brand colours go on the tile and backgrounds (brand.yaml)
-- [ ] 9. Sizes follow the templates: post 1600x900, quote 1080x1080, og 1280x640, slides 1920x1080; export at 2x (e.g. 3200x1800) so platform compression keeps it sharp (system)
+- [ ] 9. Sizes follow the templates: `post` 1600x900, `quote` 1080x1080, `og` 1280x640, `slides` 1920x1080; export at 2x (e.g. 3200x1800) so platform compression keeps it sharp (system)
 - [ ] 10. Text on an image keeps 4.5:1 against the worst patch of background behind it (3:1 for large text); add a panel when it does not (system)
 - [ ] 11. Marks or patterns in a background stay at or below 15% opacity; the mark is never rotated, stretched or redrawn (system)
 - [ ] 12. Brand colours are only cyan #06b6d4, violet #8b5cf6, pink #ec4899; neutrals #f7f6f9 / #1e1d23; no extra hues (system)
