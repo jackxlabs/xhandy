@@ -3,6 +3,7 @@
 // Usage: CHROMIUM=/usr/bin/chromium npm run e2e
 import { chromium } from "playwright-core";
 import { mkdtempSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,19 @@ const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "x
   args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, "--headless=new"],
 });
 
+// The content script runs in an isolated world, so the page can't see XH. Read storage from an
+// extension page instead. An unpacked extension's id is derived from its folder path.
+const extId = createHash("sha256").update(root).digest("hex").slice(0, 32).replace(/./g, (x) => String.fromCharCode(97 + parseInt(x, 16)));
+async function storedSent() {
+  const p = await ctx.newPage();
+  try {
+    await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+    return (await p.evaluate(() => chrome.storage.local.get("xh:sent")))["xh:sent"] || [];
+  } finally {
+    await p.close();
+  }
+}
+
 let failed = false;
 const step = async (name, fn) => {
   try {
@@ -46,6 +60,41 @@ try {
       const h = body.get("screen_name");
       const user = { id_str: body.get("user_id"), screen_name: h, name: h[0].toUpperCase() + h.slice(1), following: friendship[1] === "create" };
       return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(user) });
+    }
+    const createTweet = r.request().url().match(/\/graphql\/[^/]+\/CreateTweet(\?|$)/);
+    if (createTweet) {
+      let data = {};
+      try { data = JSON.parse(r.request().postData() || "{}"); } catch (_) {}
+      const text = data.text || "";
+      const to = data.to || "alice";
+      if (text.includes("[reject]") || text.includes("[error]")) {
+        return r.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ errors: [{ code: 187, message: "Status is a duplicate." }] }),
+        });
+      }
+      const full_text = `@${to} ${text}`;
+      const toCodePoints = Array.from(`@${to} `).length;
+      const textCodePoints = Array.from(text).length;
+      const body = {
+        data: {
+          create_tweet: {
+            tweet_results: {
+              result: {
+                legacy: {
+                  full_text,
+                  display_text_range: [toCodePoints, toCodePoints + textCodePoints],
+                  in_reply_to_status_id_str: "12345",
+                  in_reply_to_screen_name: to,
+                  is_quote_status: false,
+                },
+              },
+            },
+          },
+        },
+      };
+      return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     }
     const name = Object.keys(api).find((k) => r.request().url().endsWith("/" + k));
     if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
@@ -135,6 +184,102 @@ try {
     await page.waitForTimeout(500);
     assert.strictEqual(await page.textContent(".xh-hud [data-k=likes] b"), "1");
     await page.fill(box, "");
+  });
+
+  await step("nested composer text is recorded once", async () => {
+    const count = await page.evaluate(() => document.querySelectorAll('[data-testid^="tweetTextarea_"]').length);
+    assert.strictEqual(count, 3, "fixture has 3 nested elements");
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, "Testing nested composer recorded once");
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "3");
+    const lastSent = (await storedSent()).at(-1);
+    assert.strictEqual(lastSent.text, "Testing nested composer recorded once");
+  });
+
+  await step("a confirmed reply counts once, to X's named author", async () => {
+    await page.focus("#old");
+    await page.keyboard.press("r");
+    await page.fill(box, "Bob, this confirms author comes from X");
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "4");
+    await page.waitForFunction(() => /you: 2×/.test(document.querySelector("#old .xh-badge").textContent));
+    const lastSent = (await storedSent()).at(-1);
+    assert.strictEqual(lastSent.to, "bob");
+    assert.strictEqual(lastSent.kind, "reply");
+  });
+
+  await step("a rejected send is not recorded or counted", async () => {
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, "This reply will be rejected [reject]");
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForTimeout(600);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=replies] b"), "4");
+    const sentTexts = (await storedSent()).map((x) => x.text);
+    assert.ok(!sentTexts.includes("This reply will be rejected [reject]"));
+  });
+
+  await step("text from a rejected send does not warn", async () => {
+    await page.waitForFunction((sel) => document.querySelector(sel).textContent === "", box);
+    await page.fill(box, "This reply will be rejected [reject]");
+    await page.waitForTimeout(600);
+    assert.strictEqual(await page.$(".xh-dup:not([hidden])"), null);
+    await page.fill(box, "");
+  });
+
+  await step("the third identical short reply warns", async () => {
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, "谢谢");
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "5");
+
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, "谢谢");
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "6");
+
+    await page.waitForFunction((sel) => document.querySelector(sel).textContent === "", box);
+    await page.fill(box, "谢谢");
+    await page.waitForSelector(".xh-dup:not([hidden])", { timeout: 3000 });
+    assert.match(await page.textContent(".xh-dup"), /sent.*2 times/i);
+    await page.fill(box, "");
+    await page.waitForSelector(".xh-dup[hidden]", { state: "attached", timeout: 2000 });
+  });
+
+  await step("with no post request, the send is recorded from the composer after 3 s", async () => {
+    await page.evaluate(() => { window.__noCreateTweet = true; });
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, "Fallback recording when no post request is seen");
+    await page.click('[data-testid="tweetButton"]');
+
+    await page.waitForTimeout(1000);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=replies] b"), "6");
+
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "7", null, { timeout: 5000 });
+    const lastSent = (await storedSent()).at(-1);
+    assert.strictEqual(lastSent.text, "Fallback recording when no post request is seen");
+    assert.strictEqual(lastSent.to, "alice");
+    await page.evaluate(() => { window.__noCreateTweet = false; });
+  });
+
+  await step("a forged confirmation without a send is ignored", async () => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [],
+            f: [],
+            c: [{ ok: true, kind: "reply", text: "Forged reply text", to: "alice" }],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    await page.waitForTimeout(500);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=replies] b"), "7");
+    const sentTexts = (await storedSent()).map((x) => x.text);
+    assert.ok(!sentTexts.includes("Forged reply text"));
   });
 
   await step("Shift+F on someone you already follow just says so", async () => {

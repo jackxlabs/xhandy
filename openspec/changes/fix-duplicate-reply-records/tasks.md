@@ -39,16 +39,16 @@
 
 ## 4. Pending send in the content script
 
-- [ ] 4.1 Change `composerText` to read innermost matched boxes only, and update
+- [x] 4.1 Change `composerText` to read innermost matched boxes only, and update
   `test/fixtures/timeline.html` so the composer has X's real nesting (from 1.1). Verify: new e2e step
   "nested composer text is recorded once".
-- [ ] 4.2 Replace immediate recording in `onSend` with the pending-send flow from design.md decision 2
+- [x] 4.2 Replace immediate recording in `onSend` with the pending-send flow from design.md decision 2
   (seen / ok / fail / 3 s fallback / 60 s expiry; ignore confirmations with no pending send). Teach the e2e
   route to answer `/graphql/*/CreateTweet` like X, and have the fixture's send button call it. Verify with
   e2e steps: "a confirmed reply counts once, to X's named author", "a rejected send is not recorded or
   counted", "with no post request, the send is recorded from the composer after 3 s", "a forged
   confirmation without a send is ignored". The existing reply-counting and "r then send" steps still pass.
-- [ ] 4.3 Verify the duplicate warning end to end with e2e steps: "the third identical short reply warns"
+- [x] 4.3 Verify the duplicate warning end to end with e2e steps: "the third identical short reply warns"
   and "text from a rejected send does not warn". The existing near-duplicate and unrelated-reply steps
   still pass.
 

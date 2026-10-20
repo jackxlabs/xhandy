@@ -79,7 +79,11 @@
       </article>
     </main>
     <div role="dialog" id="composer">
-      <div data-testid="tweetTextarea_0" contenteditable="true" role="textbox"></div>
+      <div data-testid="tweetTextarea_0_label">
+        <div data-testid="tweetTextarea_0RichTextInputContainer">
+          <div data-testid="tweetTextarea_0" contenteditable="true" role="textbox"></div>
+        </div>
+      </div>
       <button data-testid="tweetButton">Reply</button>
     </div>
     <script>
@@ -146,10 +150,38 @@
         const btn = document.activeElement.closest("article")?.querySelector('[data-testid="like"],[data-testid="unlike"]');
         if (btn) btn.dataset.testid = btn.dataset.testid === "like" ? "unlike" : "like";
       });
-      // Like X: the composer is cleared after send. Done synchronously because headless
-      // Chromium throttles timers, which made a delayed clear wipe the next test input.
+      let currentReplyTo = "alice";
+      document.addEventListener("click", (e) => {
+        const article = e.target.closest("article");
+        if (article) {
+          const h = article.querySelector('[data-testid="User-Name"] a')?.getAttribute("href")?.slice(1);
+          if (h) currentReplyTo = h;
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "r") {
+          const article = document.activeElement?.closest("article");
+          if (article) {
+            const h = article.querySelector('[data-testid="User-Name"] a')?.getAttribute("href")?.slice(1);
+            if (h) currentReplyTo = h;
+          }
+        }
+      });
+
+      // Like X: the send button makes a CreateTweet mutation, then clears the composer.
+      // Done synchronously because headless Chromium throttles timers, which made a delayed
+      // clear wipe the next test input.
       document.querySelector('[data-testid="tweetButton"]').addEventListener("click", () => {
-        document.querySelector('[data-testid="tweetTextarea_0"]').textContent = "";
+        const box = document.querySelector('[data-testid="tweetTextarea_0"]');
+        const text = box ? box.textContent : "";
+        if (!window.__noCreateTweet) {
+          fetch("https://x.com/i/api/graphql/abc/CreateTweet", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text, to: currentReplyTo }),
+          });
+        }
+        if (box) box.textContent = "";
       });
     </script>
   </body>

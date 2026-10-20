@@ -139,9 +139,38 @@
 
   function composerText(container) {
     return Array.from(container.querySelectorAll(SEL.textarea))
+      .filter((el) => !el.querySelector(SEL.textarea))
       .map((el) => el.innerText.trim())
       .filter(Boolean)
       .join("\n");
+  }
+
+  let pendingSend = null;
+
+  function clearPending() {
+    if (!pendingSend) return;
+    clearTimeout(pendingSend.fallbackTimer);
+    clearTimeout(pendingSend.expiryTimer);
+    pendingSend = null;
+  }
+
+  function recordSend(t, text, kind, to) {
+    if (!text) return;
+    const parts = kind === "reply" && to ? ["days", "people", "sent"] : ["days", "sent"];
+    store.update(parts, (s) => {
+      const d = store.today(s);
+      if (kind === "reply") {
+        d.replies++;
+        if (to) {
+          const p = store.person(s, to);
+          p.replies++;
+          p.last = t;
+        }
+      } else {
+        d.posts++;
+      }
+      s.sent.push({ t, text, kind, to: kind === "reply" ? to : null });
+    });
   }
 
   function onSend(button) {
@@ -152,30 +181,38 @@
     if (!text) return;
     lastSendAt = now;
 
-    let kind = "post";
-    let to = null;
+    let fallbackKind = "post";
+    let fallbackTo = null;
     if (dialog && pendingReply && now - pendingReply.t < 10 * 60 * 1000) {
-      kind = "reply";
-      to = pendingReply.handle;
+      fallbackKind = "reply";
+      fallbackTo = pendingReply.handle;
     } else if (!dialog && button.matches('[data-testid="tweetButtonInline"]') && pageStatusAuthor()) {
-      kind = "reply";
-      to = pageStatusAuthor();
+      fallbackKind = "reply";
+      fallbackTo = pageStatusAuthor();
     }
     pendingReply = null;
     hideDup();
 
-    store.update(["days", "people", "sent"], (s) => {
-      const d = store.today(s);
-      if (kind === "reply") {
-        d.replies++;
-        const p = store.person(s, to);
-        p.replies++;
-        p.last = now;
-      } else {
-        d.posts++;
-      }
-      s.sent.push({ t: now, text, kind, to });
-    });
+    clearPending();
+
+    const ps = {
+      t: now,
+      text,
+      kind: fallbackKind,
+      to: fallbackTo,
+      seen: false,
+      fallbackTimer: null,
+      expiryTimer: null,
+    };
+    ps.fallbackTimer = setTimeout(() => {
+      if (!pendingSend || pendingSend !== ps || ps.seen) return;
+      recordSend(ps.t, ps.text, ps.kind, ps.to);
+      clearPending();
+    }, 3000);
+    ps.expiryTimer = setTimeout(() => {
+      if (pendingSend === ps) clearPending();
+    }, 60000);
+    pendingSend = ps;
   }
 
   function countLike(info, delta) {
@@ -558,6 +595,25 @@
     // Any script on x.com can send this event, so only well-formed entries get through.
     const payload = store.cleanRelations(e.detail);
     if (!payload) return;
+    if (Array.isArray(payload.c)) {
+      for (const entry of payload.c) {
+        if (!pendingSend) continue;
+        if (entry.seen === true) {
+          pendingSend.seen = true;
+          clearTimeout(pendingSend.fallbackTimer);
+          pendingSend.fallbackTimer = null;
+        } else if (entry.ok === false) {
+          clearPending();
+        } else if (entry.shape === "unknown") {
+          recordSend(pendingSend.t, pendingSend.text, pendingSend.kind, pendingSend.to);
+          clearPending();
+        } else if (entry.ok === true) {
+          recordSend(Date.now(), entry.text, entry.kind, entry.to);
+          clearTimeout(pendingSend.fallbackTimer);
+          pendingSend.fallbackTimer = null;
+        }
+      }
+    }
     const users = payload.u;
     payload.f.forEach(onFriendship);
     if (payload.v.length) {
