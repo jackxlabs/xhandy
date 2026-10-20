@@ -37,7 +37,7 @@ CHROMIUM=/usr/bin/chromium npm run e2e     # 在真实 Chromium 里加载扩展�
 
 ## 发版
 
-- 版本号在 `manifest.json`。提交信息用 `vX.Y.Z: 改了什么` 的格式。
+- 版本号在 `manifest.json`。商店描述在 `_locales/en/messages.json` 和 `_locales/zh_CN/messages.json`，中英文都要有，各不超过 132 字符，来源是 `brand/brand.yaml` 的 `bios.chrome_web_store`。提交信息用 `vX.Y.Z: 改了什么` 的格式。
 - 用户界面上的功能有变化时，同步更新 README 的功能列表（英文）和「中文说明」一节。
 - 公开仓库是 `jackxlabs/xhandy`（remote `public`），日常开发推 `origin`（私有）。Jack 说可以发布时才推 `public`。
 - 发布给用户：`npm run pack` 从 HEAD 打出 `dist/xhandy-<版本>.zip`（只含扩展需要的文件），然后在公开仓库建 Release 并附上这个 zip：`gh release create v<版本> dist/xhandy-<版本>.zip -R jackxlabs/xhandy --notes-file <说明>`。说明用 `scripts/release-notes.sh <版本> "<中文更新>" "<英文更新>"` 从 `docs/release-template.md` 生成：下载页（releases/latest）是分享出去的链接，每个版本的说明都要带完整的安装、更新和使用方法，不能只写改了什么。功能或快捷键变了，同步改模板。README 的安装说明指向 Releases，下载次数从 Release 附件统计。

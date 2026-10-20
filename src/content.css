@@ -24,7 +24,7 @@
      edge and violet monospace numbers. Post badges stay in X's colours. */
   --xh-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
   --xh-edge: linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899);
-  --xh-num: #4c1d95;
+  --xh-num: #4d2a93;
   --xh-frame: rgba(124, 58, 237, 0.22);
   --xh-glow: 0 8px 28px rgba(124, 58, 237, 0.14), 0 1px 3px rgba(15, 20, 25, 0.08);
   --xh-panel: rgba(255, 255, 255, 0.97);
@@ -48,7 +48,7 @@
   --xh-purple-bg: rgba(120, 86, 255, 0.18);
   --xh-red: #ff6b74;
   --xh-red-bg: rgba(244, 33, 46, 0.16);
-  --xh-num: #e9d5ff;
+  --xh-num: #dad2ff;
   --xh-frame: rgba(167, 139, 250, 0.3);
   --xh-glow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 20px rgba(139, 92, 246, 0.18);
   --xh-ok: #34d399;
