@@ -14,15 +14,15 @@
 
 ## 2. Storage
 
-- [ ] 2.1 Add `people[h].in` handling in `cleanState` and part `inSeen` with the 20,000 cap, included in
+- [x] 2.1 Add `people[h].in` handling in `cleanState` and part `inSeen` with the 20,000 cap, included in
   export/import/clear. Verify with unit tests: cap, old exports import, malformed entries dropped.
 
 ## 3. Counting and display
 
-- [ ] 3.1 Count candidates in the content script (skip seen keys and the user's own posts; batched
+- [x] 3.1 Count candidates in the content script (skip seen keys and the user's own posts; batched
   writes). Verify with e2e steps: "a notifications response counts likes and replies from others" and
   "loading the same notifications twice does not change counts".
-- [ ] 3.2 Show both directions in the interaction chip with zh/en strings, and add the `showInbound`
+- [x] 3.2 Show both directions in the interaction chip with zh/en strings, and add the `showInbound`
   setting to options. Verify with e2e steps for the three chip scenarios in the spec.
 
 ## 4. Docs

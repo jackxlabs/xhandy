@@ -26,8 +26,9 @@
       relStaleDays: 30,
       showReplies: true, // show reply count and author follower count in post badges
       showReplied: true, // mark posts the user already replied to
+      showInbound: true, // show interactions from others in post badges
     },
-    people: {}, // handle -> { likes, replies, last }
+    people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
     days: {}, // "YYYY-MM-DD" -> { likes, replies, posts, seconds }
     rel: {}, // handle (lowercase) -> { f: I follow them, fb: they follow me, id, n: display name, t: seen at }
@@ -37,11 +38,13 @@
       me: { handle: null, followers: 0, id: null, t: 0 }, // handle, followers, id, t of the signed-in account
     },
     replied: {}, // postId -> timestamp
+    inSeen: {}, // key -> timestamp
   };
   const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
   const MAX_SENT = 300;
   const MAX_REPLIED = 5000;
+  const MAX_IN_SEEN = 20000;
 
   const keyOf = (part) => PREFIX + part;
   const partOf = (key) => (key.startsWith(PREFIX) && PARTS.includes(key.slice(PREFIX.length)) ? key.slice(PREFIX.length) : null);
@@ -59,6 +62,7 @@
   const HANDLE = /^[A-Za-z0-9_]{1,15}$/;
   const ID = /^\d{1,20}$/;
   const DAY = /^\d{4}-\d{2}-\d{2}$/;
+  const INBOUND_KEY = /^(L:\d{1,20}:\d{1,20}|P:\d{1,20})$/; // L:<liker>:<post>, P:<post>
   const isHandle = (h) => typeof h === "string" && HANDLE.test(h);
   const isId = (id) => typeof id === "string" && ID.test(id);
   const isNonNegInt = (n) => typeof n === "number" && Number.isInteger(n) && n >= 0;
@@ -94,6 +98,24 @@
     ids.sort((a, b) => r[a] - r[b]).slice(0, ids.length - MAX_REPLIED).forEach((id) => delete r[id]);
   }
 
+  // Keep the newest MAX_IN_SEEN counted inbound interaction keys.
+  function capInSeen(seen) {
+    const keys = Object.keys(seen);
+    if (keys.length <= MAX_IN_SEEN) return;
+    keys.sort((a, b) => seen[a] - seen[b]).slice(0, keys.length - MAX_IN_SEEN).forEach((k) => delete seen[k]);
+  }
+
+  function cleanInbound(v) {
+    if (!isObj(v)) return null;
+    return {
+      likes: num(v.likes),
+      replies: num(v.replies),
+      quotes: num(v.quotes),
+      mentions: num(v.mentions),
+      last: num(v.last),
+    };
+  }
+
   // Each setting keeps the type of its default; a wrong type falls back to the default.
   function cleanSettings(v) {
     const def = DEFAULTS.settings;
@@ -127,9 +149,17 @@
       rel: {},
       relMeta: { ...DEFAULTS.relMeta, me: { ...DEFAULTS.relMeta.me } },
       replied: {},
+      inSeen: {},
     };
     for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
-      if (isHandle(h) && isObj(p)) out.people[h.toLowerCase()] = { likes: num(p.likes), replies: num(p.replies), last: num(p.last) };
+      if (isHandle(h) && isObj(p)) {
+        const entry = { likes: num(p.likes), replies: num(p.replies), last: num(p.last) };
+        if (p.in != null) {
+          const inbound = cleanInbound(p.in);
+          if (inbound) entry.in = inbound;
+        }
+        out.people[h.toLowerCase()] = entry;
+      }
     }
     for (const x of Array.isArray(s.sent) ? s.sent : []) {
       if (!isObj(x) || typeof x.text !== "string") continue;
@@ -156,6 +186,10 @@
       if (isId(id)) out.replied[id] = num(t);
     }
     capReplied(out.replied);
+    for (const [k, t] of Object.entries(isObj(s.inSeen) ? s.inSeen : {})) {
+      if (typeof k === "string" && INBOUND_KEY.test(k)) out.inSeen[k] = num(t);
+    }
+    capInSeen(out.inSeen);
     return out;
   }
 
@@ -230,7 +264,6 @@
       }
     }
     const n = [];
-    const INBOUND_KEY = /^[LP]:\d{1,20}(:\d{1,20})?$/;
     const INBOUND_KINDS = ["like", "reply", "quote", "mention"];
     for (const x of Array.isArray(p.n) ? p.n : []) {
       if (!isObj(x) || !INBOUND_KINDS.includes(x.kind)) continue;
@@ -345,6 +378,7 @@
         }
       }
       if (s.replied) capReplied(s.replied);
+      if (s.inSeen) capInSeen(s.inSeen);
       const out = {};
       for (const part of parts) out[keyOf(part)] = s[part];
       await chrome.storage.local.set(out);
@@ -389,5 +423,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple };
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple };
 })();

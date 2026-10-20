@@ -666,4 +666,163 @@ test("reply chip: short follower counts, ratio only when the author is at least 
   }
   assert.strictEqual(loadI18n("en-US").t("replied"), "✓ replied");
   assert.strictEqual(loadI18n("zh-CN").t("replied"), "✓ 已回复");
+  assert.strictEqual(loadI18n("en-US").t("interacted_both", { a: 3, b: 5, ago: "today" }), "you 3 · them 5 · today");
+  assert.strictEqual(loadI18n("zh-CN").t("interacted_both", { a: 3, b: 5, ago: "今天" }), "我3 · 他5 · 今天");
+});
+
+test("capInSeen keeps at most 20,000 entries, dropping the oldest", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  // 1. Through cleanState / replaceAll:
+  const overflow = {};
+  for (let i = 1; i <= 20005; i++) overflow[`P:${i}`] = i * 10;
+  await store.replaceAll({ inSeen: overflow });
+
+  const s1 = await store.get();
+  assert.strictEqual(Object.keys(s1.inSeen).length, 20000);
+  assert.strictEqual(s1.inSeen["P:1"], undefined, "oldest key P:1 dropped");
+  assert.strictEqual(s1.inSeen["P:5"], undefined, "oldest key P:5 dropped");
+  assert.strictEqual(s1.inSeen["P:6"], 60, "key P:6 kept");
+  assert.strictEqual(s1.inSeen["P:20005"], 200050, "newest key kept");
+
+  // 2. In store.update:
+  await store.update(["inSeen"], (s) => {
+    s.inSeen["L:99:88"] = 999990;
+  });
+  const s2 = await store.get();
+  assert.strictEqual(Object.keys(s2.inSeen).length, 20000);
+  assert.strictEqual(s2.inSeen["P:6"], undefined, "oldest key P:6 dropped after update overflow");
+  assert.strictEqual(s2.inSeen["L:99:88"], 999990, "new entry kept");
+});
+
+test("cleanState handles people[h].in, drops malformed, and imports old exports", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  // 1. Old export without inSeen and without in field
+  await store.replaceAll({
+    settings: {},
+    people: {
+      alice: { likes: 3, replies: 1, last: 100 },
+    },
+  });
+  const s1 = await store.get();
+  assert.deepStrictEqual(s1.inSeen, {}, "old export gets empty inSeen default");
+  assert.strictEqual("in" in s1.people.alice, false, "old export has absent in field, not zeros");
+  assert.strictEqual(s1.people.alice.likes, 3);
+
+  // 2. Valid people[h].in preserved
+  await store.replaceAll({
+    people: {
+      bob: {
+        likes: 1,
+        replies: 2,
+        last: 50,
+        in: { likes: 4, replies: 1, quotes: 2, mentions: 3, last: 150 },
+      },
+    },
+    inSeen: {
+      "P:101": 500,
+      "L:201:301": 600,
+    },
+  });
+  const s2 = await store.get();
+  assert.deepStrictEqual(s2.people.bob.in, {
+    likes: 4,
+    replies: 1,
+    quotes: 2,
+    mentions: 3,
+    last: 150,
+  });
+  assert.deepStrictEqual(s2.inSeen, {
+    "P:101": 500,
+    "L:201:301": 600,
+  });
+
+  // 3. Malformed people[h].in and malformed inSeen dropped
+  await store.replaceAll({
+    people: {
+      carol: {
+        likes: 0,
+        replies: 0,
+        last: 0,
+        in: "not an object", // non-object dropped
+      },
+      dan: {
+        likes: 0,
+        replies: 0,
+        last: 0,
+        in: [1, 2, 3], // array dropped
+      },
+      eve: {
+        likes: 0,
+        replies: 0,
+        last: 0,
+        in: { likes: "bad", replies: null, quotes: undefined, mentions: -1, last: "time" },
+      },
+    },
+    inSeen: {
+      "not_a_key": 100,
+      "P:": 200,
+      "P:abc": 300,
+      "L:1": 400,
+      "X:1:2": 500,
+      "P:123456789012345678901": 600, // 21 digits dropped
+      "P:12345678901234567890": 700, // 20 digits kept
+    },
+  });
+  const s3 = await store.get();
+  assert.strictEqual("in" in s3.people.carol, false);
+  assert.strictEqual("in" in s3.people.dan, false);
+  assert.deepStrictEqual(s3.people.eve.in, {
+    likes: 0,
+    replies: 0,
+    quotes: 0,
+    mentions: -1,
+    last: 0,
+  });
+  assert.deepStrictEqual(s3.inSeen, {
+    "P:12345678901234567890": 700,
+  });
+});
+
+test("reset and replaceAll include inSeen part", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  await store.update(["inSeen"], (s) => {
+    s.inSeen["P:111"] = 1000;
+  });
+  assert.deepStrictEqual(chrome.data["xh:inSeen"], { "P:111": 1000 });
+
+  // reset clears inSeen
+  await store.reset();
+  assert.strictEqual(chrome.data["xh:inSeen"], undefined);
+  const fresh = await store.get();
+  assert.deepStrictEqual(fresh.inSeen, {});
+
+  // replaceAll writes inSeen
+  await store.replaceAll({ inSeen: { "L:2:3": 2000 } });
+  assert.deepStrictEqual(chrome.data["xh:inSeen"], { "L:2:3": 2000 });
+});
+
+test("setting showInbound defaults to true and can be saved", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  const fresh = await store.get();
+  assert.strictEqual(fresh.settings.showInbound, true);
+
+  await store.update(["settings"], (s) => {
+    s.settings.showInbound = false;
+  });
+  const updated = await store.get();
+  assert.strictEqual(updated.settings.showInbound, false);
+
+  await store.replaceAll({
+    settings: { showInbound: true },
+  });
+  const cleaned = await store.get();
+  assert.strictEqual(cleaned.settings.showInbound, true);
 });

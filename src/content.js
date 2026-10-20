@@ -101,15 +101,27 @@
       const old = now - rel.t > s.relStaleDays * 86400000;
       chips.push(["rel-" + key, t("rel_" + key) + (old ? t("rel_stale") : "")]);
     }
-    if (!own && p && p.likes + p.replies > 0) {
-      const days = Math.floor((now - p.last) / 86400000);
-      chips.push([
-        "seen",
-        t("interacted", {
-          n: p.likes + p.replies,
-          ago: days < 1 ? t("ago_today") : t("ago_days", { n: days }),
-        }),
-      ]);
+    if (!own) {
+      const ownCount = p ? p.likes + p.replies : 0;
+      const inCount = p && p.in ? p.in.likes + p.in.replies + p.in.quotes + p.in.mentions : 0;
+      if (s.showInbound && inCount > 0) {
+        const latest = Math.max(p?.last || 0, p?.in?.last || 0);
+        const days = Math.floor((now - latest) / 86400000);
+        const ago = days < 1 ? t("ago_today") : t("ago_days", { n: days });
+        chips.push([
+          "seen",
+          t("interacted_both", { a: ownCount, b: inCount, ago }),
+        ]);
+      } else if (ownCount > 0) {
+        const days = Math.floor((now - p.last) / 86400000);
+        chips.push([
+          "seen",
+          t("interacted", {
+            n: ownCount,
+            ago: days < 1 ? t("ago_today") : t("ago_days", { n: days }),
+          }),
+        ]);
+      }
     }
     if (s.showReplies) {
       const rep = replyCounts.get(info.id);
@@ -665,6 +677,74 @@
     }, delay);
   }
 
+  let inSeenPending = {};
+  let inboundPending = {};
+  let inboundTimer = null;
+  let lastInboundWrite = 0;
+
+  function recordInbound(candidates) {
+    if (!Array.isArray(candidates) || !candidates.length) return;
+    let changed = false;
+    for (const c of candidates) {
+      if (!c || !c.key || !c.from || !c.from.handle) continue;
+      if (isMe(c.from.handle)) continue;
+      if ((S && S.inSeen && S.inSeen[c.key]) || inSeenPending[c.key]) continue;
+
+      const h = c.from.handle.toLowerCase();
+      const at = typeof c.at === "number" ? c.at : Date.now();
+
+      inSeenPending[c.key] = at;
+      const cur = inboundPending[h] || { likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 };
+      if (c.kind === "like") cur.likes++;
+      else if (c.kind === "reply") cur.replies++;
+      else if (c.kind === "quote") cur.quotes++;
+      else if (c.kind === "mention") cur.mentions++;
+      cur.last = Math.max(cur.last, at);
+      inboundPending[h] = cur;
+
+      if (S) {
+        if (!S.inSeen) S.inSeen = {};
+        S.inSeen[c.key] = at;
+        let p = S.people[h];
+        if (!p) p = S.people[h] = { likes: 0, replies: 0, last: 0 };
+        if (!p.in) p.in = { likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 };
+        if (c.kind === "like") p.in.likes++;
+        else if (c.kind === "reply") p.in.replies++;
+        else if (c.kind === "quote") p.in.quotes++;
+        else if (c.kind === "mention") p.in.mentions++;
+        p.in.last = Math.max(p.in.last, at);
+      }
+      changed = true;
+    }
+
+    if (!changed) return;
+    annotateAll();
+
+    if (inboundTimer) return;
+    const delay = Math.max(0, 2000 - (Date.now() - lastInboundWrite));
+    inboundTimer = setTimeout(() => {
+      inboundTimer = null;
+      lastInboundWrite = Date.now();
+      const batchSeen = inSeenPending;
+      const batchInbound = inboundPending;
+      inSeenPending = {};
+      inboundPending = {};
+
+      store.update(["people", "inSeen"], (s) => {
+        Object.assign(s.inSeen, batchSeen);
+        for (const [h, diff] of Object.entries(batchInbound)) {
+          const p = store.person(s, h);
+          if (!p.in) p.in = { likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 };
+          p.in.likes += diff.likes;
+          p.in.replies += diff.replies;
+          p.in.quotes += diff.quotes;
+          p.in.mentions += diff.mentions;
+          p.in.last = Math.max(p.in.last, diff.last);
+        }
+      });
+    }, delay);
+  }
+
   window.addEventListener("xh-relations", (e) => {
     // Any script on x.com can send this event, so only well-formed entries get through.
     const payload = store.cleanRelations(e.detail);
@@ -695,6 +775,7 @@
     }
     const users = payload.u;
     payload.f.forEach(onFriendship);
+    if (payload.n && payload.n.length) recordInbound(payload.n);
     const me = myHandle();
     const meLower = me ? me.toLowerCase() : null;
     if (payload.v.length) {

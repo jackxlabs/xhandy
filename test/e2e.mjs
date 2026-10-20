@@ -572,6 +572,127 @@ try {
     assert.doesNotMatch(badge, /not following|you:/, "no relationship or interaction chip on your own post");
     assert.doesNotMatch(badge, /4\.6K/, "no follower count of your own account");
   });
+
+  await step("a notifications response counts likes and replies from others", async () => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [],
+            f: [],
+            n: [
+              { kind: "like", from: { handle: "liker_bob", id: "102" }, key: "L:102:501", at: Date.now() },
+              { kind: "like", from: { handle: "liker_carol", id: "103" }, key: "L:103:502", at: Date.now() },
+              { kind: "like", from: { handle: "liker_carol", id: "103" }, key: "L:103:503", at: Date.now() },
+              { kind: "reply", from: { handle: "replier_frank", id: "106" }, key: "P:601", at: Date.now() },
+              { kind: "like", from: { handle: "me_test", id: "9999" }, key: "L:9999:501", at: Date.now() },
+            ],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(2200);
+
+    const inSeen = await storedPart("inSeen");
+    assert.ok(inSeen && typeof inSeen["L:102:501"] === "number");
+    assert.ok(inSeen && typeof inSeen["L:103:502"] === "number");
+    assert.ok(inSeen && typeof inSeen["L:103:503"] === "number");
+    assert.ok(inSeen && typeof inSeen["P:601"] === "number");
+    assert.strictEqual(inSeen["L:9999:501"], undefined, "self-like not recorded");
+
+    const people = await storedPart("people");
+    assert.strictEqual(people?.liker_bob?.in?.likes, 1);
+    assert.strictEqual(people?.liker_carol?.in?.likes, 2);
+    assert.strictEqual(people?.replier_frank?.in?.replies, 1);
+    assert.strictEqual(people?.me_test?.in, undefined, "user has no in count");
+  });
+
+  await step("loading the same notifications twice does not change counts", async () => {
+    const beforePeople = await storedPart("people");
+    const bobLikesBefore = beforePeople?.liker_bob?.in?.likes;
+    const carolLikesBefore = beforePeople?.liker_carol?.in?.likes;
+    const frankRepliesBefore = beforePeople?.replier_frank?.in?.replies;
+
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [],
+            f: [],
+            n: [
+              { kind: "like", from: { handle: "liker_bob", id: "102" }, key: "L:102:501", at: Date.now() },
+              { kind: "like", from: { handle: "liker_carol", id: "103" }, key: "L:103:502", at: Date.now() },
+              { kind: "like", from: { handle: "liker_carol", id: "103" }, key: "L:103:503", at: Date.now() },
+              { kind: "reply", from: { handle: "replier_frank", id: "106" }, key: "P:601", at: Date.now() },
+            ],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(2200);
+
+    const afterPeople = await storedPart("people");
+    assert.strictEqual(afterPeople?.liker_bob?.in?.likes, bobLikesBefore);
+    assert.strictEqual(afterPeople?.liker_carol?.in?.likes, carolLikesBefore);
+    assert.strictEqual(afterPeople?.replier_frank?.in?.replies, frankRepliesBefore);
+  });
+
+  await step("two-direction interaction chip shows both sides, author-only, and honors showInbound", async () => {
+    // Bob has 2 replies so far; click like on #old to bring user interactions to 3
+    await page.click("#old [data-testid=like]");
+
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [],
+            f: [],
+            n: [
+              { kind: "like", from: { handle: "carol", id: "3" }, key: "L:3:901", at: Date.now() },
+              { kind: "like", from: { handle: "carol", id: "3" }, key: "L:3:902", at: Date.now() },
+              { kind: "like", from: { handle: "bob", id: "2" }, key: "L:2:910", at: Date.now() },
+              { kind: "like", from: { handle: "bob", id: "2" }, key: "L:2:911", at: Date.now() },
+              { kind: "like", from: { handle: "bob", id: "2" }, key: "L:2:912", at: Date.now() },
+              { kind: "reply", from: { handle: "bob", id: "2" }, key: "P:913", at: Date.now() },
+              { kind: "reply", from: { handle: "bob", id: "2" }, key: "P:914", at: Date.now() },
+            ],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    // Scenario 2: Only author interacted (Carol: 0 user interactions, 2 from Carol)
+    await page.waitForFunction(() => /you 0 · them 2 · today/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#carol .xh-chip.xh-seen"));
+
+    // Scenario 1: Both directions (Bob: 3 user interactions, 5 from Bob)
+    await page.waitForFunction(() => /you 3 · them 5 · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#old .xh-chip.xh-seen"));
+
+    // Scenario 3: Reverse view off
+    await updateSettings({ showInbound: false });
+    await page.waitForFunction(() => /you: 3× · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => !/them|you \d/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+
+    // Restore showInbound setting
+    await updateSettings({ showInbound: true });
+    await page.waitForFunction(() => /you 0 · them 2 · today/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /you 3 · them 5 · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+
+    await page.waitForTimeout(2200);
+    const people = await storedPart("people");
+    assert.strictEqual(people?.carol?.in?.likes, 2);
+    assert.strictEqual(people?.bob?.in?.likes, 3);
+    assert.strictEqual(people?.bob?.in?.replies, 2);
+  });
 } finally {
   await ctx.close();
 }

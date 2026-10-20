@@ -13,6 +13,7 @@
     $("showHeat").checked = s.showHeat;
     $("showReplies").checked = s.showReplies;
     $("showReplied").checked = s.showReplied;
+    $("showInbound").checked = s.showInbound;
     const n = Object.keys(all.rel).length;
     const last = all.relMeta.last;
     const mins = last ? Math.round((Date.now() - last) / 60000) : null;
@@ -37,6 +38,7 @@
       s.settings.showHeat = $("showHeat").checked;
       s.settings.showReplies = $("showReplies").checked;
       s.settings.showReplied = $("showReplied").checked;
+      s.settings.showInbound = $("showInbound").checked;
     });
     $("status").textContent = "Saved / 已保存";
     setTimeout(() => ($("status").textContent = ""), 1500);
