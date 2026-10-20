@@ -20,6 +20,7 @@ That is the point: you get faster without anything that looks like a bot to X.
   followers its author has, and, when the author is at least twice your size, how many times bigger, so you can pick posts where a reply
   gets seen. `✓ replied` marks posts you already replied to, also from another device once X has shown your
   reply in this browser. Both come from data X already sent and each can be turned off in Options.
+  Your own posts only show age, heat and the reply count: no relationship or interaction chip.
 - **Follow relationship**: each post shows whether you and the author follow each other
   (⇄ mutual, → you follow, ← follows you, not following). It is read from the data X already sends
   to your browser while you scroll; Xhandy makes no extra requests. Display only: it never follows or
@@ -128,7 +129,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
   - 帖子已有多少回复、作者有多少粉丝、作者是你的几倍，例如 `💬 23 · 46K · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
 
-  这两项都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。
+  这两项都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。自己的帖子只显示时效、热度和回复数，不显示关注关系和互动次数。
 
   浏览器语言是中文时界面显示中文，否则显示英文。
 

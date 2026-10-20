@@ -92,13 +92,16 @@
     if (rate != null) ageText += " · " + t("per_hour", { n: XH.compact(rate) });
     if (stale) ageText += " · " + t("stale");
     const chips = [[stale ? "stale" : heat, ageText]];
-    const rel = s.showRel && S.rel[info.handle.toLowerCase()];
+    // On the user's own posts, "not following" and interactions with yourself mean nothing.
+    const me = myHandle();
+    const own = !!me && me.toLowerCase() === info.handle.toLowerCase();
+    const rel = !own && s.showRel && S.rel[info.handle.toLowerCase()];
     if (rel) {
       const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : rel.fb ? "follower" : "none";
       const old = now - rel.t > s.relStaleDays * 86400000;
       chips.push(["rel-" + key, t("rel_" + key) + (old ? t("rel_stale") : "")]);
     }
-    if (p && p.likes + p.replies > 0) {
+    if (!own && p && p.likes + p.replies > 0) {
       const days = Math.floor((now - p.last) / 86400000);
       chips.push([
         "seen",
@@ -111,8 +114,8 @@
     if (s.showReplies) {
       const rep = replyCounts.get(info.id);
       if (typeof rep === "number") {
-        const me = S.relMeta && S.relMeta.me && S.relMeta.me.followers;
-        chips.push(["replies", XH.replyChip(rep, authorFollowers.get(info.id), me)]);
+        const mine = S.relMeta && S.relMeta.me && S.relMeta.me.followers;
+        chips.push(["replies", XH.replyChip(rep, own ? undefined : authorFollowers.get(info.id), mine)]);
       }
     }
     if (s.showReplied && S.replied && S.replied[info.id]) {
@@ -169,12 +172,12 @@
 
   function recordSend(t, text, kind, to) {
     if (!text) return;
-    const parts = kind === "reply" && to ? ["days", "people", "sent"] : ["days", "sent"];
+    const parts = kind === "reply" && to && !isMe(to) ? ["days", "people", "sent"] : ["days", "sent"];
     store.update(parts, (s) => {
       const d = store.today(s);
       if (kind === "reply") {
         d.replies++;
-        if (to) {
+        if (to && !isMe(to)) {
           const p = store.person(s, to);
           p.replies++;
           p.last = t;
@@ -230,11 +233,19 @@
     pendingSend = ps;
   }
 
+  // The user's own posts and replies to them are not interactions with an author.
+  function isMe(handle) {
+    const me = myHandle();
+    return !!me && !!handle && me.toLowerCase() === handle.toLowerCase();
+  }
+
   function countLike(info, delta) {
-    store.update(["days", "people"], (s) => {
+    const self = isMe(info.handle);
+    store.update(self ? ["days"] : ["days", "people"], (s) => {
       const d = store.today(s);
-      const p = store.person(s, info.handle);
       d.likes = Math.max(0, d.likes + delta);
+      if (self) return;
+      const p = store.person(s, info.handle);
       p.likes = Math.max(0, p.likes + delta);
       if (delta > 0) p.last = Date.now();
     });

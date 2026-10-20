@@ -69,3 +69,16 @@ account, identified by the handle of the signed-in account.
 #### Scenario: Own account appears in a response
 - **WHEN** a response contains the signed-in user's account with a follower count
 - **THEN** that count is used for the ratio and is kept for later sessions
+
+### Requirement: The user's own posts
+On posts by the signed-in user, the badge SHALL NOT show the relationship chip or the interaction chip, and
+the reply chip SHALL show only the reply count. Likes and replies the user gives their own posts SHALL count
+toward the day's totals but not toward per-author interactions.
+
+#### Scenario: Own post
+- **WHEN** a post on screen is by the signed-in user and has 14 replies
+- **THEN** its badge shows age/heat and "💬 14", and no "not following" or interaction chip
+
+#### Scenario: Liking your own post
+- **WHEN** the user likes their own post
+- **THEN** today's like count goes up by one and no per-author interaction is recorded

@@ -555,6 +555,23 @@ try {
     await updateSettings({ showReplied: true });
     await page.waitForFunction(() => !!document.querySelector("#old .xh-chip.xh-replied"), null, { timeout: 3000 });
   });
+  await step("your own posts show no relationship or interaction chips; liking them only counts for the day", async () => {
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent("xh-relations", { detail: JSON.stringify({
+        u: [{ handle: "me_test", following: false, followedBy: false }],
+        v: [{ id: "777", replies: 14, author: "me_test", authorFollowers: 4600 }],
+        f: [], at: Date.now(),
+      }) }));
+    });
+    await page.waitForFunction(() => /💬 14/.test(document.querySelector("#mine .xh-badge")?.textContent), null, { timeout: 5000 });
+    const before = Number(await page.textContent(".xh-hud [data-k=likes] b"));
+    await page.click("#mine [data-testid=like]");
+    await page.waitForFunction((n) => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === String(n), before + 1);
+    await page.waitForTimeout(400);
+    const badge = await page.textContent("#mine .xh-badge");
+    assert.doesNotMatch(badge, /not following|you:/, "no relationship or interaction chip on your own post");
+    assert.doesNotMatch(badge, /4\.6K/, "no follower count of your own account");
+  });
 } finally {
   await ctx.close();
 }

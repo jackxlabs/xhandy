@@ -77,6 +77,15 @@
         <button type="button" data-testid="caret" aria-label="More">⋯</button>
         <p>carol post</p>
       </article>
+      <article data-testid="tweet" id="mine" tabindex="0">
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-me_test"><a href="/me_test" class="av">M</a></div></div>
+        <div data-testid="User-Name">
+          <a href="/me_test">Me</a>
+          <a href="/me_test/status/777"><time id="t-mine"></time></a>
+        </div>
+        <button type="button" data-testid="like">♡</button>
+        <p>my own post</p>
+      </article>
     </main>
     <div role="dialog" id="composer">
       <div data-testid="tweetTextarea_0_label">
@@ -113,6 +122,7 @@
       xhr.send();
       document.getElementById("t-dan").setAttribute("datetime", new Date(Date.now() - 1800e3).toISOString());
       document.getElementById("t-eve").setAttribute("datetime", new Date(Date.now() - 900e3).toISOString());
+      document.getElementById("t-mine").setAttribute("datetime", new Date(Date.now() - 3600e3).toISOString());
       // Like X: hovering an avatar opens a hover card (no data-testid on the card itself) with the
       // author's Follow button: data-testid "<id>-follow" and aria-label "Follow @handle".
       // eve has no hover card, to exercise the profile fallback.
