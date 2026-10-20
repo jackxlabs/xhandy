@@ -28,9 +28,9 @@
 
 ## 4. Docs
 
-- [ ] 4.1 Update README features (en and zh), README Privacy and PRIVACY.md for the replied post ids and
+- [x] 4.1 Update README features (en and zh), README Privacy and PRIVACY.md for the replied post ids and
   own follower count. Verify: both languages list the new chips and the new stored data.
-- [ ] 4.2 Run `npm test` and the e2e suite; report counts. Verify: all pass and the two "never" e2e steps
+- [x] 4.2 Run `npm test` and the e2e suite; report counts. Verify: all pass and the two "never" e2e steps
   are unchanged.
 
 ## Workflow follow-up

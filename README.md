@@ -16,6 +16,10 @@ That is the point: you get faster without anything that looks like a bot to X.
   from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
   The view count is the one X already sent with the post; posts under 30 minutes old count as 30 minutes
   so a few early views don't look like a spike. Thresholds are in Options.
+- **Reply signals**: `💬 23 · 46K followers · 12×` shows how many replies a post already has, how many
+  followers its author has, and how much bigger the author is than you, so you can pick posts where a reply
+  gets seen. `✓ replied` marks posts you already replied to, also from another device once X has shown your
+  reply in this browser. Both come from data X already sent and each can be turned off in Options.
 - **Follow relationship**: each post shows whether you and the author follow each other
   (⇄ mutual, → you follow, ← follows you, not following). It is read from the data X already sends
   to your browser while you scroll; Xhandy makes no extra requests. Display only: it never follows or
@@ -62,7 +66,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
 - Permissions: `storage` and `unlimitedStorage` (so a long follow list never hits Chrome's 10 MB cap).
   Scripts run on `x.com` and `twitter.com` only.
 - Stored in this browser only: your settings, daily counts, per-author like/reply counts, follow relationships,
-  and the text of your last 300 replies and posts (used for the duplicate-reply warning).
+  the text of your last 300 replies and posts (used for the duplicate-reply warning), the ids of up to 5,000
+  posts you replied to (for the `✓ replied` mark), and your own handle and follower count.
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
   view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
   changes or sends anything. A reply or post is recorded only after X confirms it was created.
@@ -120,6 +125,10 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
   - 发了多久和每小时浏览量，例如 `2小时 · 1.5万/时`。每小时 1000 以上变橙，1 万以上变红并带 🔥，说明这条正在火，值得去回复；超过 48 小时的帖子会变灰，回复了也很少有人看到。
   - 你和作者的关注关系：`⇄ 互关`、`→ 我关注他`、`← 他关注我` 或 `未关注`。
   - 你和这个作者互动过几次、最近一次是什么时候，例如 `互动3次 · 今天`。
+  - 帖子已有多少回复、作者有多少粉丝、作者是你的几倍，例如 `💬 23 · 4.6万粉 · 12×`，方便挑回复了能被看到的帖子。
+  - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
+
+  这两项都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。
 
   浏览器语言是中文时界面显示中文，否则显示英文。
 
@@ -151,6 +160,7 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 - 多少小时算旧帖、多少浏览量算「热」和「火」
 - 每天关注、取关的提醒上限（默认各 20 个，只提醒，不拦截）
 - 防重复回复的灵敏度
+- 是否显示回复数和作者体量、是否标记已回复的帖子
 - 每日回复目标（统计栏会显示进度条）
 - 导出、导入、清空全部数据
 

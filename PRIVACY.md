@@ -20,6 +20,8 @@ It is not synced to other devices and is never sent anywhere.
 - **Interaction counts per account**: how many times you liked or replied to an account, and when you last did.
 - **Follow relationships**: for accounts that X has shown in your browser, their handle, display name, user ID,
   whether you follow them and whether they follow you.
+- **Posts you replied to**: the ids of up to 5,000 posts you replied to, to mark them with `✓ replied`.
+- **Your own account**: your handle, account id and follower count, to show how big an author is compared with you.
 - **Your recent replies and posts**: the text of your last 300, used only to warn you before you send a reply
   that is very similar to one you sent before.
 
@@ -27,7 +29,7 @@ It is not synced to other devices and is never sent anywhere.
 
 - The X pages you open and your own actions on them (likes, replies, posts, follows).
 - The data X's own website already sends to your browser while you use it. Xhandy reads copies of these
-  responses (follow relationships, view counts, and X's answers to your own follows, unfollows, posts and
+  responses (follow relationships, view counts, reply and follower counts, and X's answers to your own follows, unfollows, posts and
   replies; a post or reply is recorded only once X confirms it was created).
   It never changes them, never sends extra requests to X and never sends anything to anyone else.
 
