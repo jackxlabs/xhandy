@@ -59,11 +59,11 @@ the other side shows 0. When the reverse view is off, the chip SHALL look as it 
 
 #### Scenario: Both directions
 - **WHEN** the user gave 3 interactions and the author gave 5, the latest today
-- **THEN** the chip reads "互动 我3 · 他5 · 今天" in Chinese and "you 3 · them 5 · today" in English
+- **THEN** the chip reads "我3 · 他5 · 今天" in Chinese and "you 3 · them 5 · today" in English
 
 #### Scenario: Only the author interacted
 - **WHEN** the user never interacted with the author but the author liked the user's posts twice
-- **THEN** the chip reads "互动 我0 · 他2 · …"
+- **THEN** the chip reads "我0 · 他2 · …" / "you 0 · them 2 · …"
 
 #### Scenario: Reverse view off
 - **WHEN** the user turns the reverse view off in settings
@@ -76,3 +76,7 @@ response names the viewer. If neither is known, nothing SHALL be counted.
 #### Scenario: Signed-in account unknown
 - **WHEN** Xhandy cannot tell which account is signed in
 - **THEN** no reverse interaction is counted
+
+#### Scenario: The user's own posts
+- **WHEN** a post is by the signed-in user
+- **THEN** no interaction chip is shown (as defined in post-badges)

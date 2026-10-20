@@ -34,7 +34,8 @@ Posts carry `legacy.in_reply_to_user_id_str`, `in_reply_to_screen_name`, `entiti
    pages count too. One classification per post, priority reply > quote > mention, key `P:<postId>`.
    Mentions skip the leading auto mentions of a reply (inside `display_text_range`'s cut).
 3. **Identity.** `me` = signed-in handle (`SEL.profileLink`) plus viewer `rest_id` from
-   `viewer_v2` when seen (kept in `relMeta.me.id`, introduced by `post-reply-signals`). Posts match by id
+   `viewer_v2` when seen (kept in `relMeta.me.id`, introduced by `post-reply-signals`). Already present on main: `relMeta.me = { handle, followers, id, t }`, `collectPosts` with author handle,
+   and own-post detection in `annotate` (`own`) and `isMe()` in content.js. Posts match by id
    when known, else by handle. Unknown → `collectInbound` is not called.
 4. **Storage.** `people[h].in = { likes, replies, quotes, mentions, last }` (absent = zeros, so no version
    bump). Counted keys in part `inSeen`: `{ key: timestamp }`, cap 20,000, oldest dropped, batched writes
@@ -42,7 +43,8 @@ Posts carry `legacy.in_reply_to_user_id_str`, `in_reply_to_screen_name`, `entiti
 5. **Event payload.** page-hook emits raw candidates `n: [{ kind, from: {handle,id,name}, key, at }]`;
    the content script drops candidates whose key is in `inSeen` or whose author is the user, then
    counts. Validation in `cleanRelations` (kind enum, handle, key pattern `^[LP]:\d{1,20}(:\d{1,20})?$`).
-6. **Chip text.** `interacted_both` strings in zh/en; latest time = max(own `last`, `in.last`). Setting
+6. **Chip text.** `interacted_both` strings in zh/en ("我{a} · 他{b} · {ago}", "you {a} · them {b} · {ago}"),
+   kept as short as today's chip since X's name row truncates long badges; latest time = max(own `last`, `in.last`). Setting
    `showInbound`, default true.
 
 ## Risks / Trade-offs

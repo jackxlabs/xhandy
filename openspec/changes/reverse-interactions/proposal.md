@@ -16,8 +16,8 @@ the user appear in conversation views (structure confirmed from a real notificat
   the signed-in user.
 - Each interaction is counted once, however often X sends it again (stored ids of what was counted,
   capped).
-- The interaction chip shows both directions, for example "互动 我3 · 他5 · 今天" /
-  "you 3 · them 5 · today"; a setting switches the reverse part off.
+- The interaction chip shows both directions, for example "我3 · 他5 · 今天" /
+  "you 3 · them 5 · today" (no longer than today's chip: Jack found the badge row too long); a setting switches the reverse part off.
 
 Out of scope: reposts and follows from notifications (no sample of a repost notification yet; follows are
 already covered by relationship labels), fetching notifications the user has not scrolled to, opening
