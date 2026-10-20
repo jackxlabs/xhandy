@@ -14,3 +14,6 @@ brand/build/pptx/
 brand/build/fonts/
 brand/build/kit/
 brand/build/patterns/*.png
+
+# macOS Finder metadata
+.DS_Store
