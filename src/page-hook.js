@@ -59,8 +59,50 @@
     return [{ handle: json.screen_name, name: json.name || null, id: json.id_str || null, on: m[1] === "create" }];
   }
 
+  // The user's own post or reply, from X's GraphQL mutation: POST .../(CreateTweet|CreateNoteTweet)
+  const POST_URL = /\/graphql\/[^/]+\/(CreateTweet|CreateNoteTweet)(\?|$)/;
+
+  function decodeEntities(s) {
+    return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  }
+
+  function collectCreated(url, json, ok = true) {
+    if (typeof url !== "string" || !POST_URL.test(url)) return null;
+    if (!ok) return { ok: false };
+    if (!json || typeof json !== "object") return { ok: false };
+
+    let res = json.data?.create_tweet?.tweet_results?.result || json.data?.notetweet_create?.tweet_results?.result;
+    if (res && res.tweet) res = res.tweet;
+
+    if (!res) {
+      return json.errors ? { ok: false } : { shape: "unknown" };
+    }
+
+    const noteText = res.note_tweet?.note_tweet_results?.result?.text;
+    let rawText = "";
+    if (typeof noteText === "string") {
+      rawText = noteText;
+    } else if (res.legacy && typeof res.legacy.full_text === "string") {
+      const chars = Array.from(res.legacy.full_text);
+      const range = res.legacy.display_text_range;
+      if (Array.isArray(range) && range.length === 2 && Number.isInteger(range[0]) && Number.isInteger(range[1])) {
+        rawText = chars.slice(range[0], range[1]).join("");
+      } else {
+        rawText = res.legacy.full_text;
+      }
+    } else {
+      return { shape: "unknown" };
+    }
+
+    const text = decodeEntities(rawText);
+    const isReply = Boolean(res.legacy?.in_reply_to_status_id_str);
+    const kind = isReply ? "reply" : "post";
+    const to = isReply && typeof res.legacy?.in_reply_to_screen_name === "string" ? res.legacy.in_reply_to_screen_name : null;
+    return { ok: true, kind, text, to };
+  }
+
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { collectRelations, collectViews, collectFriendship };
+    module.exports = { collectRelations, collectViews, collectFriendship, collectCreated };
     return;
   }
 
@@ -81,16 +123,28 @@
     buffer.splice(0).forEach(send);
   });
 
-  function emit(json, url) {
+  function dispatch(payload) {
+    const detail = JSON.stringify(payload);
+    if (ready) send(detail);
+    else if (buffer.length < 50) buffer.push(detail);
+  }
+
+  function emitSeen() {
     try {
-      const u = collectRelations(json);
-      const v = collectViews(json);
-      const f = collectFriendship(url, json);
-      if (!u.length && !v.length && !f.length) return;
+      dispatch({ u: [], v: [], f: [], c: [{ seen: true }], at: Date.now() });
+    } catch (_) {}
+  }
+
+  function emit(json, url, ok = true) {
+    try {
+      const u = ok ? collectRelations(json) : [];
+      const v = ok ? collectViews(json) : [];
+      const f = ok ? collectFriendship(url, json) : [];
+      const created = collectCreated(url, json, ok);
+      const c = created ? [created] : [];
+      if (!u.length && !v.length && !f.length && !c.length) return;
       // Strings cross the MAIN/isolated world boundary reliably; objects may not.
-      const detail = JSON.stringify({ u, v, f, at: Date.now() });
-      if (ready) send(detail);
-      else if (buffer.length < 50) buffer.push(detail);
+      dispatch({ u, v, f, c, at: Date.now() });
     } catch (_) {
       // Never let Xhandy break X.
     }
@@ -102,11 +156,33 @@
     try {
       const url = typeof input === "string" ? input : input && input.url;
       if (url && API.test(url)) {
+        const isPost = POST_URL.test(url);
+        if (isPost) emitSeen();
         // Every step is caught: a failure here must never surface as an error, on X or in chrome://extensions.
         p.then((res) => {
           const ct = res.headers.get("content-type") || "";
-          if (res.ok && ct.includes("json")) return res.clone().json().then((json) => emit(json, url));
-        }).catch(() => {});
+          if (res.ok && ct.includes("json")) {
+            return res
+              .clone()
+              .json()
+              .then((json) => emit(json, url, true))
+              .catch(() => {
+                if (isPost) emit(null, url, false);
+              });
+          }
+          if (isPost) {
+            if (ct.includes("json")) {
+              return res
+                .clone()
+                .json()
+                .then((json) => emit(json, url, false))
+                .catch(() => emit(null, url, false));
+            }
+            emit(null, url, false);
+          }
+        }).catch(() => {
+          if (isPost) emit(null, url, false);
+        });
       }
     } catch (_) {}
     return p;
@@ -117,13 +193,28 @@
     try {
       const href = url && String(url);
       if (href && API.test(href)) {
+        const isPost = POST_URL.test(href);
+        if (isPost) emitSeen();
         this.addEventListener("load", function () {
           try {
-            if (this.status < 200 || this.status >= 300) return;
-            if (this.responseType === "json") return emit(this.response, href);
-            if (this.responseType === "" || this.responseType === "text") emit(JSON.parse(this.responseText), href);
+            const ok = this.status >= 200 && this.status < 300;
+            if (!ok && !isPost) return;
+            let json = null;
+            try {
+              if (this.responseType === "json") json = this.response;
+              else if (this.responseType === "" || this.responseType === "text") json = JSON.parse(this.responseText);
+            } catch (_) {}
+            emit(json, href, ok);
           } catch (_) {}
         });
+        if (isPost) {
+          this.addEventListener("error", function () {
+            try { emit(null, href, false); } catch (_) {}
+          });
+          this.addEventListener("abort", function () {
+            try { emit(null, href, false); } catch (_) {}
+          });
+        }
       }
     } catch (_) {}
     return origOpen.apply(this, arguments);

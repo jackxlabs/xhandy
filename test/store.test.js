@@ -173,10 +173,11 @@ test("cleanRelations keeps only well-formed users and view counts", () => {
     ],
     v: [{ id: "10", views: 5 }],
     f: [],
+    c: [],
     at: 7,
   });
   const empty = store.cleanRelations('{"x":1}');
-  assert.deepStrictEqual(empty, { u: [], v: [], f: [], at: empty.at });
+  assert.deepStrictEqual(empty, { u: [], v: [], f: [], c: [], at: empty.at });
   const f = store.cleanRelations(JSON.stringify({ f: [
     { handle: "carol", name: "Carol", id: "3", on: true },
     { handle: "zed", on: false },
@@ -189,6 +190,37 @@ test("cleanRelations keeps only well-formed users and view counts", () => {
   ]);
   assert.strictEqual(store.cleanRelations("not json"), null);
   assert.strictEqual(store.cleanRelations("[1]"), null);
+});
+
+test("cleanRelations validates confirmation entries in c", () => {
+  const store = loadStore(fakeChrome());
+  const maxText = "a".repeat(25000);
+  const tooLong = "a".repeat(25001);
+  const r = store.cleanRelations(JSON.stringify({
+    c: [
+      { seen: true, extraField: "strip" },
+      { ok: false, junk: 123 },
+      { shape: "unknown", foo: "bar" },
+      { ok: true, kind: "reply", text: "nice idea", to: "alice", unknownProp: 42 },
+      { ok: true, kind: "post", text: maxText, to: null },
+      { ok: true, kind: "post", text: tooLong, to: null }, // over 25,000 chars dropped
+      { ok: true, kind: "post", text: 123, to: null }, // non-string text dropped
+      { ok: true, kind: "reply", text: "hi", to: "/invalid handle" }, // invalid handle dropped
+      { ok: true, kind: "reply", text: "hi", to: "has space" }, // invalid handle dropped
+      { ok: true, kind: "invalid_kind", text: "hi", to: null }, // invalid kind dropped
+      { junkEntry: true }, // unknown entry dropped
+      null, // non-object dropped
+      "a string", // non-object dropped
+    ],
+    at: 10,
+  }));
+  assert.deepStrictEqual(r.c, [
+    { seen: true },
+    { ok: false },
+    { shape: "unknown" },
+    { ok: true, kind: "reply", text: "nice idea", to: "alice" },
+    { ok: true, kind: "post", text: maxText, to: null },
+  ]);
 });
 
 test("untriple collapses three identical copies and keeps non-triples", () => {

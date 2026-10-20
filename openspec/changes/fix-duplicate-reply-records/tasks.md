@@ -27,14 +27,14 @@
 
 ## 3. Read X's answer to the user's own posts
 
-- [ ] 3.1 Add the pure `collectCreated(url, json, ok)` to `src/page-hook.js` and export it. Verify with unit
+- [x] 3.1 Add the pure `collectCreated(url, json, ok)` to `src/page-hook.js` and export it. Verify with unit
   tests (new `test/created.test.js` or in `test/relations.test.js`): reply with display range, quote post,
   long post via `CreateNoteTweet`, `TweetWithVisibilityResults` unwrap, HTML entities decoded, error
   response → `{ ok: false }`, 200 without errors or result → `{ shape: "unknown" }`, other URLs → nothing.
-- [ ] 3.2 Make the fetch and XHR wrappers emit `{ seen: true }` when a post request starts and pass `ok`
+- [x] 3.2 Make the fetch and XHR wrappers emit `{ seen: true }` when a post request starts and pass `ok`
   for post URLs on failure; other URLs keep today's behaviour. Verify: existing relation tests still pass
   and a unit or e2e check shows a failed post emits `{ ok: false }`.
-- [ ] 3.3 Extend `store.cleanRelations` to return a validated `c` array. Verify with unit tests: valid
+- [x] 3.3 Extend `store.cleanRelations` to return a validated `c` array. Verify with unit tests: valid
   entries pass; non-string text, text over 25,000 characters, invalid handle and unknown fields are dropped.
 
 ## 4. Pending send in the content script

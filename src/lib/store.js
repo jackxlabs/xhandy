@@ -114,7 +114,7 @@
     return out;
   }
 
-  // The "xh-relations" event from page-hook.js. Returns { u, v, f, at } with only well-formed entries,
+  // The "xh-relations" event from page-hook.js. Returns { u, v, f, c, at } with only well-formed entries,
   // or null. A script on x.com can still send believable data; it just can't send links or selectors.
   function cleanRelations(detail) {
     let p;
@@ -139,7 +139,31 @@
     const f = (Array.isArray(p.f) ? p.f : [])
       .filter((x) => isObj(x) && isHandle(x.handle) && typeof x.on === "boolean")
       .map((x) => ({ handle: x.handle, name: str(x.name, 100), id: isId(x.id) ? x.id : null, on: x.on }));
-    return { u, v, f, at: num(p.at, Date.now()) };
+    const c = [];
+    for (const x of Array.isArray(p.c) ? p.c : []) {
+      if (!isObj(x)) continue;
+      if (x.seen === true) {
+        c.push({ seen: true });
+      } else if (x.ok === false) {
+        c.push({ ok: false });
+      } else if (x.shape === "unknown") {
+        c.push({ shape: "unknown" });
+      } else if (
+        x.ok === true &&
+        (x.kind === "reply" || x.kind === "post") &&
+        typeof x.text === "string" &&
+        x.text.length <= 25000 &&
+        (x.to == null || isHandle(x.to))
+      ) {
+        c.push({
+          ok: true,
+          kind: x.kind,
+          text: x.text,
+          to: isHandle(x.to) ? x.to : null,
+        });
+      }
+    }
+    return { u, v, f, c, at: num(p.at, Date.now()) };
   }
 
   function partWithDefaults(part, v) {
