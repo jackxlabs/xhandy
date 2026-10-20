@@ -151,7 +151,8 @@ test("replaceAll drops what can't be right in an import file", async () => {
   assert.deepStrictEqual(s.people, { dan: { likes: 0, replies: 1, last: 3 } });
   assert.deepStrictEqual(s.sent, [{ t: 1, text: "hi", kind: "reply", to: null }]);
   assert.deepStrictEqual(s.days, { "2026-10-16": { likes: 2, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 0 } });
-  assert.deepStrictEqual(s.relMeta, { last: 5, scan: 0 });
+  assert.deepStrictEqual(s.relMeta, { last: 5, scan: 0, me: { handle: null, followers: 0, id: null, t: 0 } });
+  assert.deepStrictEqual(s.replied, {});
 });
 
 test("cleanRelations keeps only well-formed users and view counts", () => {
@@ -373,4 +374,164 @@ test("replaceAll cleans tripled entries when importing an old export file", asyn
     { t: 3, text: "three\ndifferent\nlines", kind: "post", to: null },
     { t: 4, text: "", kind: "post", to: null },
   ]);
+});
+
+test("replied part caps at 5,000 entries dropping the oldest timestamps", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  // 1. In cleanState / replaceAll:
+  const overflow = {};
+  for (let i = 1; i <= 5005; i++) {
+    overflow[String(i)] = i * 10; // id: "1" has t: 10 (oldest), id: "5005" has t: 50050 (newest)
+  }
+  await store.replaceAll({ replied: overflow });
+  const s1 = await store.get();
+  assert.strictEqual(Object.keys(s1.replied).length, 5000);
+  assert.strictEqual(s1.replied["1"], undefined, "oldest id 1 dropped");
+  assert.strictEqual(s1.replied["5"], undefined, "oldest id 5 dropped");
+  assert.strictEqual(s1.replied["6"], 60, "id 6 kept");
+  assert.strictEqual(s1.replied["5005"], 50050, "newest id 5005 kept");
+
+  // 2. In store.update:
+  await store.update(["replied"], (s) => {
+    s.replied["99999"] = 999990;
+  });
+  const s2 = await store.get();
+  assert.strictEqual(Object.keys(s2.replied).length, 5000);
+  assert.strictEqual(s2.replied["6"], undefined, "oldest id 6 dropped after update overflow");
+  assert.strictEqual(s2.replied["99999"], 999990, "new entry kept");
+});
+
+test("cleanState drops malformed replied ids and old exports import with empty set", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  // 1. Old export without replied field
+  await store.replaceAll({
+    settings: {},
+    sent: [],
+  });
+  const s1 = await store.get();
+  assert.deepStrictEqual(s1.replied, {}, "old export gets empty replied default");
+
+  // 2. Malformed ids dropped
+  await store.replaceAll({
+    replied: {
+      "12345": 100,
+      "67890": 200,
+      "not-an-id": 300,
+      "/evil.com": 400,
+      "123_456": 500,
+      "": 600,
+      "99999999999999999999": 700, // 20 digits valid ID
+      "999999999999999999999": 800, // 21 digits (>20) dropped
+    },
+  });
+  const s2 = await store.get();
+  assert.deepStrictEqual(s2.replied, {
+    "12345": 100,
+    "67890": 200,
+    "99999999999999999999": 700,
+  });
+});
+
+test("relMeta.me defaults safely and cleanState validates its fields", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  // 1. Fresh state has defaults
+  const fresh = await store.get();
+  assert.deepStrictEqual(fresh.relMeta.me, { handle: null, followers: 0, id: null, t: 0 });
+
+  // 2. Valid me data preserved
+  await store.replaceAll({
+    relMeta: {
+      last: 10,
+      scan: 5,
+      me: { handle: "alice_dev", followers: 46000, id: "1001", t: 123456 },
+    },
+  });
+  const s1 = await store.get();
+  assert.deepStrictEqual(s1.relMeta.me, {
+    handle: "alice_dev",
+    followers: 46000,
+    id: "1001",
+    t: 123456,
+  });
+
+  // 3. Malformed me fields fall back to safe defaults
+  await store.replaceAll({
+    relMeta: {
+      me: {
+        handle: "bad handle with spaces",
+        followers: -50,
+        id: "not_an_id",
+        t: "bad_time",
+      },
+    },
+  });
+  const s2 = await store.get();
+  assert.deepStrictEqual(s2.relMeta.me, {
+    handle: null,
+    followers: 0,
+    id: null,
+    t: 0,
+  });
+
+  // 4. Missing me in relMeta gets default me
+  await store.replaceAll({
+    relMeta: { last: 20 },
+  });
+  const s3 = await store.get();
+  assert.strictEqual(s3.relMeta.last, 20);
+  assert.deepStrictEqual(s3.relMeta.me, { handle: null, followers: 0, id: null, t: 0 });
+});
+
+test("reset and replaceAll include replied part", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  await store.update(["replied"], (s) => {
+    s.replied["111"] = 1000;
+  });
+  assert.deepStrictEqual(chrome.data["xh:replied"], { "111": 1000 });
+
+  // reset clears replied
+  await store.reset();
+  assert.strictEqual(chrome.data["xh:replied"], undefined);
+  const fresh = await store.get();
+  assert.deepStrictEqual(fresh.replied, {});
+
+  // replaceAll writes replied
+  await store.replaceAll({ replied: { "222": 2000 } });
+  assert.deepStrictEqual(chrome.data["xh:replied"], { "222": 2000 });
+});
+
+test("settings showReplies and showReplied default to true and can be saved", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  const fresh = await store.get();
+  assert.strictEqual(fresh.settings.showReplies, true);
+  assert.strictEqual(fresh.settings.showReplied, true);
+
+  await store.update(["settings"], (s) => {
+    s.settings.showReplies = false;
+    s.settings.showReplied = false;
+  });
+  const updated = await store.get();
+  assert.strictEqual(updated.settings.showReplies, false);
+  assert.strictEqual(updated.settings.showReplied, false);
+
+  // cleanSettings keeps boolean type, malformed values fall back to defaults
+  await store.replaceAll({
+    settings: {
+      showReplies: "invalid",
+      showReplied: null,
+    },
+  });
+  const cleaned = await store.get();
+  assert.strictEqual(cleaned.settings.showReplies, true);
+  assert.strictEqual(cleaned.settings.showReplied, true);
 });

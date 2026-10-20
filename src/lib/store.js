@@ -24,16 +24,24 @@
       followLimit: 20, // soft daily follow limit: warn above this, never block
       unfollowLimit: 20, // same for unfollows made by hand on X
       relStaleDays: 30,
+      showReplies: true, // show reply count and author follower count in post badges
+      showReplied: true, // mark posts the user already replied to
     },
     people: {}, // handle -> { likes, replies, last }
     sent: [], // { t, text, kind: "reply" | "post", to }
     days: {}, // "YYYY-MM-DD" -> { likes, replies, posts, seconds }
     rel: {}, // handle (lowercase) -> { f: I follow them, fb: they follow me, id, n: display name, t: seen at }
-    relMeta: { last: 0, scan: 0 }, // last: relationships last read; scan: last read on your own Following page
+    relMeta: {
+      last: 0,
+      scan: 0,
+      me: { handle: null, followers: 0, id: null, t: 0 }, // handle, followers, id, t of the signed-in account
+    },
+    replied: {}, // postId -> timestamp
   };
   const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
   const MAX_SENT = 300;
+  const MAX_REPLIED = 5000;
 
   const keyOf = (part) => PREFIX + part;
   const partOf = (key) => (key.startsWith(PREFIX) && PARTS.includes(key.slice(PREFIX.length)) ? key.slice(PREFIX.length) : null);
@@ -68,6 +76,24 @@
     return text === a + "\n" + a + "\n" + a ? a : text;
   }
 
+  // The signed-in account in relMeta.me.
+  function cleanMe(m) {
+    if (!isObj(m)) return { ...DEFAULTS.relMeta.me };
+    return {
+      handle: isHandle(m.handle) ? m.handle : null,
+      followers: isNonNegInt(m.followers) ? m.followers : 0,
+      id: isId(m.id) ? m.id : null,
+      t: num(m.t, 0),
+    };
+  }
+
+  // Keep the newest MAX_REPLIED replied-to post ids.
+  function capReplied(r) {
+    const ids = Object.keys(r);
+    if (ids.length <= MAX_REPLIED) return;
+    ids.sort((a, b) => r[a] - r[b]).slice(0, ids.length - MAX_REPLIED).forEach((id) => delete r[id]);
+  }
+
   // Each setting keeps the type of its default; a wrong type falls back to the default.
   function cleanSettings(v) {
     const def = DEFAULTS.settings;
@@ -93,7 +119,15 @@
   // A whole state object from an import file: drop what can't be right, keep the rest.
   function cleanState(data) {
     const s = isObj(data) ? data : {};
-    const out = { settings: cleanSettings(s.settings), people: {}, sent: [], days: {}, rel: {}, relMeta: { ...DEFAULTS.relMeta } };
+    const out = {
+      settings: cleanSettings(s.settings),
+      people: {},
+      sent: [],
+      days: {},
+      rel: {},
+      relMeta: { ...DEFAULTS.relMeta, me: { ...DEFAULTS.relMeta.me } },
+      replied: {},
+    };
     for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
       if (isHandle(h) && isObj(p)) out.people[h.toLowerCase()] = { likes: num(p.likes), replies: num(p.replies), last: num(p.last) };
     }
@@ -111,7 +145,17 @@
       const e = isHandle(h) && cleanRelEntry(r);
       if (e) out.rel[h.toLowerCase()] = e;
     }
-    if (isObj(s.relMeta)) out.relMeta = { last: num(s.relMeta.last), scan: num(s.relMeta.scan) };
+    if (isObj(s.relMeta)) {
+      out.relMeta = {
+        last: num(s.relMeta.last),
+        scan: num(s.relMeta.scan),
+        me: cleanMe(s.relMeta.me),
+      };
+    }
+    for (const [id, t] of Object.entries(isObj(s.replied) ? s.replied : {})) {
+      if (isId(id)) out.replied[id] = num(t);
+    }
+    capReplied(out.replied);
     return out;
   }
 
@@ -190,7 +234,14 @@
     const def = DEFAULTS[part];
     if (Array.isArray(def)) return Array.isArray(v) ? v : [];
     if (part === "settings") return cleanSettings(v);
-    if (part === "relMeta") return { ...def, ...(v || {}) };
+    if (part === "relMeta") {
+      const r = isObj(v) ? v : {};
+      return {
+        ...def,
+        ...r,
+        me: cleanMe(r.me),
+      };
+    }
     return v || {};
   }
 
@@ -273,6 +324,7 @@
             .forEach((h) => delete s.rel[h]);
         }
       }
+      if (s.replied) capReplied(s.replied);
       const out = {};
       for (const part of parts) out[keyOf(part)] = s[part];
       await chrome.storage.local.set(out);
@@ -317,5 +369,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple };
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple };
 })();

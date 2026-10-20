@@ -11,10 +11,10 @@
 
 ## 2. Storage
 
-- [ ] 2.1 Add part `replied` and `relMeta.me` with defaults, validation in `cleanState`, the 5,000 cap,
+- [x] 2.1 Add part `replied` and `relMeta.me` with defaults, validation in `cleanState`, the 5,000 cap,
   and inclusion in export/import/clear. Verify with unit tests: cap drops oldest, old exports import with an
   empty set, malformed ids are dropped.
-- [ ] 2.2 Add settings `showReplies` and `showReplied` (default true) to `DEFAULTS`, `cleanSettings` and
+- [x] 2.2 Add settings `showReplies` and `showReplied` (default true) to `DEFAULTS`, `cleanSettings` and
   `src/options/` with zh/en labels. Verify: an options e2e or unit check shows both switches saved.
 
 ## 3. Badge chips
