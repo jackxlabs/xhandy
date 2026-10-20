@@ -33,6 +33,7 @@ test("collectCreated parses successful reply with display range and unicode code
     kind: "reply",
     text: "👍 Great job on the release!",
     to: "alice",
+    inReplyTo: "1001",
   });
 });
 
@@ -60,6 +61,7 @@ test("collectCreated parses quote post as kind post without target", () => {
     kind: "post",
     text: "Sharing this thoughtful write-up https://t.co/fake123",
     to: null,
+    inReplyTo: null,
   });
 });
 
@@ -91,6 +93,7 @@ test("collectCreated parses long post via CreateNoteTweet", () => {
     kind: "post",
     text: "This is a detailed long-form note tweet that exceeds the usual length limits.",
     to: null,
+    inReplyTo: null,
   });
 });
 
@@ -119,6 +122,7 @@ test("collectCreated unwraps TweetWithVisibilityResults without requiring __type
     kind: "post",
     text: "Post wrapped inside visibility results",
     to: null,
+    inReplyTo: null,
   });
 });
 
@@ -144,6 +148,7 @@ test("collectCreated decodes HTML entities &amp; &lt; &gt;", () => {
     kind: "post",
     text: "Tips: 1 < 2 && 5 > 3",
     to: null,
+    inReplyTo: null,
   });
 });
 

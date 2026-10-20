@@ -19,10 +19,10 @@
 
 ## 3. Badge chips
 
-- [ ] 3.1 Record replied posts from confirmed sends and from the user's own posts in responses; keep the
+- [x] 3.1 Record replied posts from confirmed sends and from the user's own posts in responses; keep the
   own follower count. Verify with e2e steps "a confirmed reply marks the post as replied" and "a reply from
   another device (in a response) marks the post".
-- [ ] 3.2 Render the replies/size chip and the replied chip in `annotate` with zh/en strings in
+- [x] 3.2 Render the replies/size chip and the replied chip in `annotate` with zh/en strings in
   `src/lib/i18n.js` and styles in `src/content.css` for light, dim and dark. Verify with e2e steps for each
   scenario in `specs/post-badges/spec.md` (all data, no own count, no data, switched off, replied chip).
 

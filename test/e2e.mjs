@@ -40,6 +40,29 @@ async function storedSent() {
   }
 }
 
+async function storedPart(part) {
+  const p = await ctx.newPage();
+  try {
+    await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+    return (await p.evaluate((k) => chrome.storage.local.get("xh:" + k), part))["xh:" + part];
+  } finally {
+    await p.close();
+  }
+}
+
+async function updateSettings(patch) {
+  const p = await ctx.newPage();
+  try {
+    await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+    await p.evaluate(async (patch) => {
+      const cur = (await chrome.storage.local.get("xh:settings"))["xh:settings"] || {};
+      await chrome.storage.local.set({ "xh:settings": { ...cur, ...patch } });
+    }, patch);
+  } finally {
+    await p.close();
+  }
+}
+
 let failed = false;
 const step = async (name, fn) => {
   try {
@@ -85,7 +108,7 @@ try {
                 legacy: {
                   full_text,
                   display_text_range: [toCodePoints, toCodePoints + textCodePoints],
-                  in_reply_to_status_id_str: "12345",
+                  in_reply_to_status_id_str: to === "bob" ? "222" : "111",
                   in_reply_to_screen_name: to,
                   is_quote_status: false,
                 },
@@ -233,6 +256,8 @@ try {
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "5");
 
+    // The same text within 1.5 s counts as one send (click + Ctrl+Enter); a person is never that fast.
+    await page.waitForTimeout(1600);
     await page.click("#fresh [data-testid=reply]");
     await page.fill(box, "谢谢");
     await page.click('[data-testid="tweetButton"]');
@@ -433,6 +458,102 @@ try {
     await page.keyboard.press("Alt+KeyU");
     await page.waitForFunction(() => /Unfollows today: 1\/20/.test(document.querySelector(".xh-panel").textContent), null, { timeout: 3000 });
     assert.doesNotMatch(await page.textContent(".xh-panel-list"), /@zed/);
+  });
+
+  await step("a confirmed reply marks the post as replied", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#old .xh-badge");
+    // #old was replied to in an earlier step and confirmed by X
+    await page.waitForFunction(() => /✓ replied/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#old .xh-chip.xh-replied"));
+
+    // Check storage holds the replied id
+    const replied = await storedPart("replied");
+    assert.ok(replied && typeof replied["222"] === "number");
+
+    // Survives reload
+    await page.reload();
+    await page.waitForSelector("#old .xh-badge");
+    await page.waitForFunction(() => /✓ replied/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#old .xh-chip.xh-replied"));
+  });
+
+  await step("a reply from another device (in a response) marks the post", async () => {
+    assert.strictEqual(await page.$("#carol .xh-chip.xh-replied"), null);
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [{ id: "8888", author: "me_test", inReplyTo: "444" }],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    await page.waitForFunction(() => /✓ replied/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#carol .xh-chip.xh-replied"));
+
+    // Wait for the 2 s batch write and verify it was persisted
+    await page.waitForTimeout(2200);
+    const replied = await storedPart("replied");
+    assert.ok(replied && typeof replied["444"] === "number");
+  });
+
+  await step("post replies and author size badge chip shows all data, no own count, and switches off", async () => {
+    // 1. Scenario: Own follower count unknown (relMeta.me has no followers yet)
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [{ id: "555", replies: 23, author: "dan", authorFollowers: 46000 }],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    await page.waitForFunction(() => /💬 23 · 46K followers(?! ·)/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
+    assert.ok(await page.$("#dan .xh-chip.xh-replies"));
+
+    // 2. Scenario: All data known (own follower count 3800 arrives for me_test)
+    // 46000 / 3800 = 12.105... -> 12x
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "me_test", followers: 3800 }],
+            v: [{ id: "555", replies: 23, author: "dan", authorFollowers: 46000 }],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    await page.waitForFunction(() => /💬 23 · 46K followers · 12×/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
+
+    // Wait for relMeta.me batch write (2 s) and verify persisted
+    await page.waitForTimeout(2200);
+    const relMeta = await storedPart("relMeta");
+    assert.strictEqual(relMeta?.me?.followers, 3800);
+    assert.strictEqual(relMeta?.me?.handle, "me_test");
+
+    // 3. Scenario: No data for the post (#eve has no reply_count)
+    assert.strictEqual(await page.$("#eve .xh-chip.xh-replies"), null);
+
+    // 4. Scenario: Switched off (showReplies false hides reply chips, showReplied false hides replied chips)
+    await updateSettings({ showReplies: false });
+    await page.waitForFunction(() => !document.querySelector(".xh-chip.xh-replies"), null, { timeout: 3000 });
+
+    await updateSettings({ showReplies: true, showReplied: false });
+    await page.waitForFunction(() => !document.querySelector(".xh-chip.xh-replied") && !!document.querySelector(".xh-chip.xh-replies"), null, { timeout: 3000 });
+    assert.ok(await page.$("#dan .xh-chip.xh-replies"));
+
+    // Restore settings
+    await updateSettings({ showReplied: true });
+    await page.waitForFunction(() => !!document.querySelector("#old .xh-chip.xh-replied"), null, { timeout: 3000 });
   });
 } finally {
   await ctx.close();

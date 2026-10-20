@@ -217,13 +217,15 @@
         (x.kind === "reply" || x.kind === "post") &&
         typeof x.text === "string" &&
         x.text.length <= 25000 &&
-        (x.to == null || isHandle(x.to))
+        (x.to == null || isHandle(x.to)) &&
+        (x.inReplyTo == null || isId(x.inReplyTo))
       ) {
         c.push({
           ok: true,
           kind: x.kind,
           text: x.text,
           to: isHandle(x.to) ? x.to : null,
+          inReplyTo: isId(x.inReplyTo) ? x.inReplyTo : null,
         });
       }
     }

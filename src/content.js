@@ -21,9 +21,12 @@
 
   let S = null; // cached state
   const views = new Map(); // post id -> { n: views, at: when X reported it }; memory only
+  const replyCounts = new Map(); // post id -> replies count; memory only
+  const authorFollowers = new Map(); // post id -> author followers count; memory only
   const MAX_VIEWS = 5000;
   let pendingReply = null; // { handle, t } set when the user clicks a reply button
   let lastSendAt = 0;
+  let lastSendText = "";
 
   // ---------- helpers ----------
 
@@ -105,6 +108,25 @@
         }),
       ]);
     }
+    if (s.showReplies) {
+      const rep = replyCounts.get(info.id);
+      if (typeof rep === "number") {
+        const parts = ["💬 " + XH.compact(rep)];
+        const af = authorFollowers.get(info.id);
+        if (typeof af === "number") {
+          parts.push(t("author_followers", { n: XH.compact(af) }));
+          const myFollowers = S.relMeta && S.relMeta.me && S.relMeta.me.followers;
+          if (typeof myFollowers === "number" && myFollowers > 0) {
+            const r = af / myFollowers;
+            parts.push((r >= 2 ? Math.round(r) : Math.round(r * 10) / 10) + "×");
+          }
+        }
+        chips.push(["replies", parts.join(" · ")]);
+      }
+    }
+    if (s.showReplied && S.replied && S.replied[info.id]) {
+      chips.push(["replied", t("replied")]);
+    }
     if (isTarget) chips.push(["star", "★ " + t("target")]);
 
     const key = JSON.stringify(chips);
@@ -175,11 +197,12 @@
 
   function onSend(button) {
     const now = Date.now();
-    if (now - lastSendAt < 1500) return; // click + Ctrl+Enter for the same send
     const dialog = button.closest('[role="dialog"]');
     const text = composerText(dialog || document);
     if (!text) return;
+    if (now - lastSendAt < 1500 && text === lastSendText) return; // click + Ctrl+Enter for the same send
     lastSendAt = now;
+    lastSendText = text;
 
     let fallbackKind = "post";
     let fallbackTo = null;
@@ -201,6 +224,7 @@
       kind: fallbackKind,
       to: fallbackTo,
       seen: false,
+      inflight: 0, // post requests X has started for this send and not yet answered
       fallbackTimer: null,
       expiryTimer: null,
     };
@@ -591,6 +615,54 @@
   let relPending = {};
   let relTimer = null;
 
+  let repliedPending = {};
+  let repliedTimer = null;
+  let lastRepliedWrite = 0;
+
+  function recordReplied(postId, t = Date.now()) {
+    if (!store.isId(postId)) return;
+    if (S) {
+      if (!S.replied) S.replied = {};
+      S.replied[postId] = t;
+    }
+    repliedPending[postId] = t;
+    annotateAll();
+
+    if (repliedTimer) return;
+    const delay = Math.max(0, 2000 - (Date.now() - lastRepliedWrite));
+    repliedTimer = setTimeout(() => {
+      repliedTimer = null;
+      lastRepliedWrite = Date.now();
+      const batch = repliedPending;
+      repliedPending = {};
+      store.update(["replied"], (s) => {
+        Object.assign(s.replied, batch);
+      });
+    }, delay);
+  }
+
+  let pendingMe = null;
+  let meTimer = null;
+  let lastMeWrite = 0;
+
+  function scheduleMe(data) {
+    pendingMe = data;
+    if (S && S.relMeta) S.relMeta.me = { ...data };
+    annotateAll();
+    if (meTimer) return;
+    const delay = Math.max(0, 2000 - (Date.now() - lastMeWrite));
+    meTimer = setTimeout(() => {
+      meTimer = null;
+      lastMeWrite = Date.now();
+      if (!pendingMe) return;
+      const batch = pendingMe;
+      pendingMe = null;
+      store.update(["relMeta"], (s) => {
+        s.relMeta.me = batch;
+      });
+    }, delay);
+  }
+
   window.addEventListener("xh-relations", (e) => {
     // Any script on x.com can send this event, so only well-formed entries get through.
     const payload = store.cleanRelations(e.detail);
@@ -600,42 +672,77 @@
         if (!pendingSend) continue;
         if (entry.seen === true) {
           pendingSend.seen = true;
+          pendingSend.inflight++;
           clearTimeout(pendingSend.fallbackTimer);
           pendingSend.fallbackTimer = null;
         } else if (entry.ok === false) {
-          clearPending();
+          // A thread sends one request per post; close only when none is left.
+          if (--pendingSend.inflight <= 0) clearPending();
         } else if (entry.shape === "unknown") {
           recordSend(pendingSend.t, pendingSend.text, pendingSend.kind, pendingSend.to);
           clearPending();
         } else if (entry.ok === true) {
           recordSend(Date.now(), entry.text, entry.kind, entry.to);
-          clearTimeout(pendingSend.fallbackTimer);
-          pendingSend.fallbackTimer = null;
+          if (entry.inReplyTo) {
+            recordReplied(entry.inReplyTo, Date.now());
+          }
+          // Close as soon as X has answered every request, so a forged confirmation has no window.
+          if (--pendingSend.inflight <= 0) clearPending();
         }
       }
     }
     const users = payload.u;
     payload.f.forEach(onFriendship);
+    const me = myHandle();
+    const meLower = me ? me.toLowerCase() : null;
     if (payload.v.length) {
       for (const p of payload.v) {
         if (typeof p.views === "number") {
           views.delete(p.id); // keep the Map in arrival order so the oldest go first
           views.set(p.id, { n: p.views, at: payload.at });
         }
+        if (typeof p.replies === "number") {
+          replyCounts.delete(p.id);
+          replyCounts.set(p.id, p.replies);
+        }
+        if (typeof p.authorFollowers === "number") {
+          authorFollowers.delete(p.id);
+          authorFollowers.set(p.id, p.authorFollowers);
+        }
+        if (meLower && p.author && p.author.toLowerCase() === meLower && p.inReplyTo) {
+          recordReplied(p.inReplyTo, payload.at || Date.now());
+        }
       }
       for (const id of views.keys()) {
         if (views.size <= MAX_VIEWS) break;
         views.delete(id);
       }
+      for (const id of replyCounts.keys()) {
+        if (replyCounts.size <= MAX_VIEWS) break;
+        replyCounts.delete(id);
+      }
+      for (const id of authorFollowers.keys()) {
+        if (authorFollowers.size <= MAX_VIEWS) break;
+        authorFollowers.delete(id);
+      }
       clearTimeout(annotateTimer);
       annotateTimer = setTimeout(annotateAll, 250);
+    }
+    if (me && users.length) {
+      const meUser = users.find((u) => u.handle.toLowerCase() === meLower);
+      if (meUser) {
+        const followers = typeof meUser.followers === "number"
+          ? meUser.followers
+          : ((S && S.relMeta && S.relMeta.me && S.relMeta.me.followers) || 0);
+        const id = meUser.id || (S && S.relMeta && S.relMeta.me && S.relMeta.me.id) || null;
+        scheduleMe({ handle: meUser.handle, followers, id, t: Date.now() });
+      }
     }
     if (!users.length) return;
     const now = Date.now();
     for (const u of users) {
       relPending[u.handle.toLowerCase()] = { f: u.following, fb: u.followedBy, id: u.id, n: u.name, t: now };
     }
-    const me = myHandle();
     const onFollowingPage = me && location.pathname.toLowerCase() === "/" + me.toLowerCase() + "/following";
     clearTimeout(relTimer);
     relTimer = setTimeout(() => {

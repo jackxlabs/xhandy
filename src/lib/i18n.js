@@ -57,6 +57,8 @@
       mins_ago: "{n} min ago",
       hours_ago: "{n} h ago",
       days_ago: "{n} d ago",
+      replied: "✓ replied",
+      author_followers: "{n} followers",
     },
     zh: {
       age_min: "{n}分钟",
@@ -112,6 +114,8 @@
       mins_ago: "{n}分钟前",
       hours_ago: "{n}小时前",
       days_ago: "{n}天前",
+      replied: "✓ 已回复",
+      author_followers: "{n}粉",
     },
   };
 

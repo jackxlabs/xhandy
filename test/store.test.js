@@ -204,6 +204,8 @@ test("cleanRelations validates confirmation entries in c", () => {
       { shape: "unknown", foo: "bar" },
       { ok: true, kind: "reply", text: "nice idea", to: "alice", unknownProp: 42 },
       { ok: true, kind: "post", text: maxText, to: null },
+      { ok: true, kind: "reply", text: "got id", to: "bob", inReplyTo: "1001" },
+      { ok: true, kind: "reply", text: "bad id", to: "bob", inReplyTo: "not-an-id" }, // malformed inReplyTo dropped
       { ok: true, kind: "post", text: tooLong, to: null }, // over 25,000 chars dropped
       { ok: true, kind: "post", text: 123, to: null }, // non-string text dropped
       { ok: true, kind: "reply", text: "hi", to: "/invalid handle" }, // invalid handle dropped
@@ -219,8 +221,9 @@ test("cleanRelations validates confirmation entries in c", () => {
     { seen: true },
     { ok: false },
     { shape: "unknown" },
-    { ok: true, kind: "reply", text: "nice idea", to: "alice" },
-    { ok: true, kind: "post", text: maxText, to: null },
+    { ok: true, kind: "reply", text: "nice idea", to: "alice", inReplyTo: null },
+    { ok: true, kind: "post", text: maxText, to: null, inReplyTo: null },
+    { ok: true, kind: "reply", text: "got id", to: "bob", inReplyTo: "1001" },
   ]);
 });
 
@@ -534,4 +537,52 @@ test("settings showReplies and showReplied default to true and can be saved", as
   const cleaned = await store.get();
   assert.strictEqual(cleaned.settings.showReplies, true);
   assert.strictEqual(cleaned.settings.showReplied, true);
+});
+
+test("i18n formatting for replies/size chip and replied chip in zh and en", () => {
+  function loadI18n(lang) {
+    // Node has its own read-only navigator, so a plain assignment would be ignored.
+    Object.defineProperty(globalThis, "navigator", { value: { language: lang }, configurable: true });
+    globalThis.XH = {};
+    const path = require.resolve("../src/lib/i18n.js");
+    delete require.cache[path];
+    require(path);
+    return globalThis.XH;
+  }
+
+  // English
+  const en = loadI18n("en-US");
+  assert.strictEqual(en.t("replied"), "✓ replied");
+  assert.strictEqual(en.t("author_followers", { n: en.compact(46000) }), "46K followers");
+  assert.strictEqual(en.compact(23), "23");
+
+  const repEn = 23;
+  const afEn = 46000;
+  const meEn = 3800;
+  const rEn = afEn / meEn;
+  const ratioStrEn = (rEn >= 2 ? Math.round(rEn) : Math.round(rEn * 10) / 10) + "×";
+  const chipEn = ["💬 " + en.compact(repEn), en.t("author_followers", { n: en.compact(afEn) }), ratioStrEn].join(" · ");
+  assert.strictEqual(chipEn, "💬 23 · 46K followers · 12×");
+
+  // Chinese
+  const zh = loadI18n("zh-CN");
+  assert.strictEqual(zh.t("replied"), "✓ 已回复");
+  assert.strictEqual(zh.t("author_followers", { n: zh.compact(46000) }), "4.6万粉");
+  assert.strictEqual(zh.compact(23), "23");
+
+  const chipZh = ["💬 " + zh.compact(repEn), zh.t("author_followers", { n: zh.compact(afEn) }), ratioStrEn].join(" · ");
+  assert.strictEqual(chipZh, "💬 23 · 4.6万粉 · 12×");
+
+  // Ratio rounding edge cases
+  const ratio = (af, me) => {
+    const r = af / me;
+    return (r >= 2 ? Math.round(r) : Math.round(r * 10) / 10) + "×";
+  };
+  assert.strictEqual(ratio(46000, 3800), "12×");
+  assert.strictEqual(ratio(2000, 1000), "2×");
+  assert.strictEqual(ratio(1950, 1000), "2×");
+  assert.strictEqual(ratio(1540, 1000), "1.5×");
+  assert.strictEqual(ratio(1500, 1000), "1.5×");
+  assert.strictEqual(ratio(500, 1000), "0.5×");
+  assert.strictEqual(ratio(0, 1000), "0×");
 });

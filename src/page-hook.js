@@ -126,10 +126,11 @@
     }
 
     const text = decodeEntities(rawText);
-    const isReply = Boolean(res.legacy?.in_reply_to_status_id_str);
+    const inReplyTo = typeof res.legacy?.in_reply_to_status_id_str === "string" ? res.legacy.in_reply_to_status_id_str : null;
+    const isReply = Boolean(inReplyTo);
     const kind = isReply ? "reply" : "post";
     const to = isReply && typeof res.legacy?.in_reply_to_screen_name === "string" ? res.legacy.in_reply_to_screen_name : null;
-    return { ok: true, kind, text, to };
+    return { ok: true, kind, text, to, inReplyTo };
   }
 
   if (typeof module !== "undefined" && module.exports) {
