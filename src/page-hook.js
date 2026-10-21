@@ -135,7 +135,14 @@
 
   // Walk any JSON value and collect inbound interactions (likes, replies, quotes, mentions):
   // [{ kind, from: { handle, id, name }, key, at }]
-  function collectInbound(json, me) {
+  // X sends notification times as epoch milliseconds in a string, or as an ISO date.
+function parseTime(x) {
+  if (x == null || x === "") return 0;
+  const n = /^\d+$/.test(String(x)) ? Number(x) : Date.parse(x);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function collectInbound(json, me) {
     if (!json || typeof json !== "object") return [];
     if (!me || (!me.handle && !me.id)) return [];
 
@@ -190,7 +197,7 @@
         if (template && template.__typename === "TimelineNotificationAggregateUserActions") {
           const element = v.clientEventInfo && v.clientEventInfo.element;
           if (!element || element.includes("liked")) {
-            const at = Number(v.timestamp_ms) || Date.now();
+            const at = parseTime(v.timestamp_ms) || Date.now();
             const fromUsers = Array.isArray(template.from_users) ? template.from_users : [];
             const targetObjects = Array.isArray(template.target_objects) ? template.target_objects : [];
 

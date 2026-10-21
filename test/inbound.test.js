@@ -132,6 +132,20 @@ test("collectInbound: like pairs and keys", () => {
   assert.deepStrictEqual(collectInbound(otherPostLike, ME), []);
 });
 
+test("collectInbound: ISO notification time is parsed, not replaced with now", () => {
+  const json = {
+    notification_icon: "heart_icon",
+    timestamp_ms: "2026-10-01T08:00:00.000Z",
+    template: {
+      __typename: "TimelineNotificationAggregateUserActions",
+      from_users: [{ user_results: { result: { __typename: "User", rest_id: "102", core: { screen_name: "liker_bob" } } } }],
+      target_objects: [{ tweet_results: { result: { __typename: "Tweet", rest_id: "501", core: { user_results: { result: { __typename: "User", rest_id: "9999", core: { screen_name: "viewer_jack" } } } } } } }],
+    },
+  };
+  const [c] = collectInbound(json, ME);
+  assert.strictEqual(c.at, Date.parse("2026-10-01T08:00:00.000Z"));
+});
+
 test("collectInbound: multi-post like lower bound", () => {
   const json = {
     notification_icon: "heart_icon",
