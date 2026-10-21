@@ -7,14 +7,15 @@ only the hints they want, with every feature on by default.
 ## Requirements
 
 ### Requirement: One place for feature switches
-The settings page SHALL show a "Features / 功能开关" section before all other sections that holds every
-on/off switch, each labelled in Chinese and English. Number fields SHALL stay in their feature's section.
+The settings page SHALL show a "Features / 功能开关" section right after the language setting and before
+all other sections, holding every on/off switch, each labelled in the interface language. Number fields
+SHALL stay in their feature's section.
 
 #### Scenario: Opening the settings page
 - **WHEN** the user opens the settings page
-- **THEN** the first section lists switches for the post age chip, heat colour, interaction chip,
+- **THEN** the features section lists switches for the post age chip, heat colour, interaction chip,
   interactions from others, reply count and author size, already-replied mark, follow relationship,
-  duplicate-reply warning, follow and unfollow reminders, and the stats bar
+  key accounts, duplicate-reply warning, follow and unfollow reminders, and the stats bar
 
 #### Scenario: Dependent switches
 - **WHEN** the post age chip or the interaction chip is unchecked
