@@ -86,6 +86,16 @@
         <button type="button" data-testid="like">♡</button>
         <p>my own post</p>
       </article>
+      <article data-testid="tweet" id="fresh2" tabindex="0">
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-alice"><a href="/alice" class="av">A</a></div></div>
+        <div data-testid="User-Name">
+          <a href="/alice">Alice</a>
+          <a href="/alice/status/112"><time id="t-fresh2"></time></a>
+        </div>
+        <p>second fresh post</p>
+        <button data-testid="reply">reply</button>
+        <button data-testid="like">like</button>
+      </article>
     </main>
     <div role="dialog" id="composer">
       <div data-testid="tweetTextarea_0_label">
@@ -153,6 +163,7 @@
       if (location.search.includes("theme=dark")) document.body.classList.add("dark");
       document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());
       document.getElementById("t-fresh").setAttribute("datetime", new Date(Date.now() - 2 * 3600e3).toISOString());
+      document.getElementById("t-fresh2").setAttribute("datetime", new Date(Date.now() - 3600e3).toISOString());
       document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
       // Like X: "l" on a focused post toggles like <-> unlike.
       document.addEventListener("keydown", (e) => {

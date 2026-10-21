@@ -56,8 +56,9 @@ test("migrates the v1 single key into one key per part and removes it", async ()
   assert.deepStrictEqual(s.rel.alice, { f: true, fb: true, t: 1 });
   assert.strictEqual(s.days["2026-10-15"].likes, 3);
   assert.ok(!("xh" in chrome.data), "legacy key removed");
-  assert.strictEqual(chrome.data["xh:v"], 3);
+  assert.strictEqual(chrome.data["xh:v"], 4);
   assert.deepStrictEqual(chrome.data["xh:rel"], { alice: { f: true, fb: true, t: 1 } });
+  assert.deepStrictEqual(chrome.data["xh:keys"], {});
 });
 
 test("a fresh install starts from defaults", async () => {
@@ -65,12 +66,15 @@ test("a fresh install starts from defaults", async () => {
   const s = await store.get();
   assert.deepStrictEqual(s.rel, {});
   assert.deepStrictEqual(s.sent, []);
+  assert.deepStrictEqual(s.keys, {});
   assert.strictEqual(s.settings.followLimit, 20);
   assert.strictEqual(s.settings.lang, "auto");
+  assert.strictEqual(s.settings.keyAccounts, true);
+  assert.strictEqual(s.settings.quietDays, 14);
 });
 
 test("update writes only the parts it declares", async () => {
-  const chrome = fakeChrome({ "xh:v": 3, "xh:rel": { bob: { f: true, fb: false, t: 1 } } });
+  const chrome = fakeChrome({ "xh:v": 4, "xh:rel": { bob: { f: true, fb: false, t: 1 } } });
   const store = loadStore(chrome);
   await store.update(["days"], (s) => (store.today(s).seconds += 15));
   assert.deepStrictEqual(chrome.writes.at(-1), ["xh:days"]);
@@ -79,7 +83,7 @@ test("update writes only the parts it declares", async () => {
 });
 
 test("touching an undeclared part rejects and writes nothing", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
   await assert.rejects(store.update(["days"], (s) => (s.rel.x = {})), /"rel" not in/);
   assert.strictEqual(chrome.writes.length, 0);
@@ -88,7 +92,7 @@ test("touching an undeclared part rejects and writes nothing", async () => {
 });
 
 test("sent is capped at the last 300 entries", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
   await store.update(["sent"], (s) => { for (let i = 0; i < 305; i++) s.sent.push({ t: i, text: "x" + i }); });
   assert.strictEqual(chrome.data["xh:sent"].length, 300);
@@ -96,7 +100,7 @@ test("sent is capped at the last 300 entries", async () => {
 });
 
 test("onChange delivers the full state with the changed part merged in", async () => {
-  const chrome = fakeChrome({ "xh:v": 3, "xh:settings": { hud: false } });
+  const chrome = fakeChrome({ "xh:v": 4, "xh:settings": { hud: false } });
   const store = loadStore(chrome);
   const seen = [];
   store.onChange((s) => seen.push(s));
@@ -111,27 +115,29 @@ test("onChange delivers the full state with the changed part merged in", async (
 });
 
 test("export format round-trips through replaceAll, and reset clears everything", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
-  await store.replaceAll({ settings: { targets: ["alice"] }, people: { alice: { likes: 2, replies: 0, last: 1 } } });
+  await store.replaceAll({ keys: { alice: { h: "Alice", t: 100 } }, people: { alice: { likes: 2, replies: 0, last: 1 } } });
   const s = await store.get();
-  assert.deepStrictEqual(s.settings.targets, ["alice"]);
+  assert.deepStrictEqual(s.keys, { alice: { h: "Alice", t: 100 } });
   assert.strictEqual(s.people.alice.likes, 2);
   await store.reset();
   assert.deepStrictEqual(Object.keys(chrome.data), []);
 });
 
 test("settings of the wrong type fall back to defaults", async () => {
-  const chrome = fakeChrome({ "xh:v": 3, "xh:settings": { targets: "alice", staleHours: "12", hud: 0, heatHot: 5 } });
+  const chrome = fakeChrome({ "xh:v": 4, "xh:settings": { keyAccounts: "alice", quietDays: "12", staleHours: "12", hud: 0, heatHot: 5 } });
   const s = await loadStore(chrome).get();
-  assert.deepStrictEqual(s.settings.targets, []);
+  assert.strictEqual(s.settings.keyAccounts, true);
+  assert.strictEqual(s.settings.quietDays, 14);
+  assert.strictEqual(s.settings.targets, undefined);
   assert.strictEqual(s.settings.staleHours, 48);
   assert.strictEqual(s.settings.hud, true);
   assert.strictEqual(s.settings.heatHot, 5, "valid values kept");
 });
 
 test("replaceAll drops what can't be right in an import file", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
   await store.replaceAll({
     settings: { targets: ["alice", "/evil.com", 3], followLimit: null },
@@ -146,7 +152,9 @@ test("replaceAll drops what can't be right in an import file", async () => {
     relMeta: { last: 5, scan: "x" },
   });
   const s = await store.get();
-  assert.deepStrictEqual(s.settings.targets, ["alice"]);
+  assert.strictEqual(s.settings.targets, undefined);
+  assert.strictEqual(s.keys.alice.h, "alice");
+  assert.ok(typeof s.keys.alice.t === "number");
   assert.strictEqual(s.settings.followLimit, 20);
   assert.strictEqual(s.settings.lang, "auto");
   assert.deepStrictEqual(s.rel, { bob: { f: true, fb: false, id: null, n: null, t: 2 } });
@@ -431,7 +439,7 @@ test("migrates v2 store with tripled entries to v3 with one copy each", async ()
   });
   const store = loadStore(chrome);
   const s = await store.get();
-  assert.strictEqual(chrome.data["xh:v"], 3);
+  assert.strictEqual(chrome.data["xh:v"], 4);
   assert.strictEqual(s.sent.length, 4, "entry count is unchanged");
   assert.deepStrictEqual(s.sent[0], { t: 100, text: "Great idea!", kind: "reply", to: "alice" });
   assert.deepStrictEqual(s.sent[1], { t: 200, text: "two copies\ntwo copies", kind: "reply", to: "bob" });
@@ -440,7 +448,7 @@ test("migrates v2 store with tripled entries to v3 with one copy each", async ()
   assert.deepStrictEqual(chrome.data["xh:sent"], s.sent);
 });
 
-test("a v1 store migrates through both steps (v1 -> v2 -> v3)", async () => {
+test("a v1 store migrates through all steps (v1 -> v2 -> v3 -> v4)", async () => {
   const chrome = fakeChrome({
     xh: {
       settings: { hud: false },
@@ -455,7 +463,7 @@ test("a v1 store migrates through both steps (v1 -> v2 -> v3)", async () => {
   const store = loadStore(chrome);
   const s = await store.get();
   assert.ok(!("xh" in chrome.data), "legacy key removed");
-  assert.strictEqual(chrome.data["xh:v"], 3);
+  assert.strictEqual(chrome.data["xh:v"], 4);
   assert.deepStrictEqual(s.sent, [
     { t: 1, text: "tripled", kind: "reply", to: "alice" },
     { t: 2, text: "two\ntwo", kind: "post", to: null },
@@ -464,10 +472,11 @@ test("a v1 store migrates through both steps (v1 -> v2 -> v3)", async () => {
   assert.deepStrictEqual(s.rel.alice, { f: true, fb: true, t: 1 });
   assert.strictEqual(s.settings.hud, false);
   assert.strictEqual(s.days["2026-10-15"].likes, 3);
+  assert.deepStrictEqual(s.keys, {});
 });
 
 test("replaceAll cleans tripled entries when importing an old export file", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
   await store.replaceAll({
     sent: [
@@ -487,7 +496,7 @@ test("replaceAll cleans tripled entries when importing an old export file", asyn
 });
 
 test("replied part caps at 5,000 entries dropping the oldest timestamps", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   // 1. In cleanState / replaceAll:
@@ -514,7 +523,7 @@ test("replied part caps at 5,000 entries dropping the oldest timestamps", async 
 });
 
 test("cleanState drops malformed replied ids and old exports import with empty set", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   // 1. Old export without replied field
@@ -547,7 +556,7 @@ test("cleanState drops malformed replied ids and old exports import with empty s
 });
 
 test("relMeta.me defaults safely and cleanState validates its fields", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   // 1. Fresh state has defaults
@@ -599,7 +608,7 @@ test("relMeta.me defaults safely and cleanState validates its fields", async () 
 });
 
 test("reset and replaceAll include replied part", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   await store.update(["replied"], (s) => {
@@ -619,7 +628,7 @@ test("reset and replaceAll include replied part", async () => {
 });
 
 test("settings showReplies and showReplied default to true and can be saved", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   const fresh = await store.get();
@@ -647,7 +656,7 @@ test("settings showReplies and showReplied default to true and can be saved", as
 });
 
 test("capInSeen keeps at most 20,000 entries, dropping the oldest", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   // 1. Through cleanState / replaceAll:
@@ -673,7 +682,7 @@ test("capInSeen keeps at most 20,000 entries, dropping the oldest", async () => 
 });
 
 test("cleanState handles people[h].in, drops malformed, and imports old exports", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   // 1. Old export without inSeen and without in field
@@ -764,7 +773,7 @@ test("cleanState handles people[h].in, drops malformed, and imports old exports"
 });
 
 test("reset and replaceAll include inSeen part", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   await store.update(["inSeen"], (s) => {
@@ -784,7 +793,7 @@ test("reset and replaceAll include inSeen part", async () => {
 });
 
 test("setting showInbound defaults to true and can be saved", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   const fresh = await store.get();
@@ -803,21 +812,23 @@ test("setting showInbound defaults to true and can be saved", async () => {
   assert.strictEqual(cleaned.settings.showInbound, true);
 });
 
-test("old v3 settings without new feature switches and pace limits load with defaults", async () => {
+test("old v3 settings without new feature switches and pace limits load with defaults and migrate targets", async () => {
   const chrome = fakeChrome({
     "xh:v": 3,
     "xh:settings": {
       targets: ["bob"],
       hud: false,
       followLimit: 25,
-      // showAge, showSeen, dupWarn, followWarn, followPace, unfollowPace, paceMinutes omitted
+      // showAge, showSeen, dupWarn, followWarn, followPace, unfollowPace, paceMinutes, keyAccounts, quietDays omitted
     },
   });
   const store = loadStore(chrome);
   const s = await store.get();
 
-  // Preserves existing settings
-  assert.deepStrictEqual(s.settings.targets, ["bob"]);
+  // Preserves existing settings and migrates targets to keys
+  assert.strictEqual(s.settings.targets, undefined);
+  assert.strictEqual(s.keys.bob.h, "bob");
+  assert.ok(typeof s.keys.bob.t === "number");
   assert.strictEqual(s.settings.hud, false);
   assert.strictEqual(s.settings.followLimit, 25);
 
@@ -829,6 +840,8 @@ test("old v3 settings without new feature switches and pace limits load with def
   assert.strictEqual(s.settings.followPace, 10);
   assert.strictEqual(s.settings.unfollowPace, 10);
   assert.strictEqual(s.settings.paceMinutes, 60);
+  assert.strictEqual(s.settings.keyAccounts, true);
+  assert.strictEqual(s.settings.quietDays, 14);
 
   // Can be updated and saved
   await store.update(["settings"], (st) => {
@@ -839,6 +852,8 @@ test("old v3 settings without new feature switches and pace limits load with def
     st.settings.followPace = 15;
     st.settings.unfollowPace = 20;
     st.settings.paceMinutes = 30;
+    st.settings.keyAccounts = false;
+    st.settings.quietDays = 7;
   });
   const updated = await store.get();
   assert.strictEqual(updated.settings.showAge, false);
@@ -848,6 +863,8 @@ test("old v3 settings without new feature switches and pace limits load with def
   assert.strictEqual(updated.settings.followPace, 15);
   assert.strictEqual(updated.settings.unfollowPace, 20);
   assert.strictEqual(updated.settings.paceMinutes, 30);
+  assert.strictEqual(updated.settings.keyAccounts, false);
+  assert.strictEqual(updated.settings.quietDays, 7);
 
   // cleanSettings / replaceAll validates types and falls back to defaults for bad values
   await store.replaceAll({
@@ -859,6 +876,8 @@ test("old v3 settings without new feature switches and pace limits load with def
       followPace: "fast",
       unfollowPace: NaN,
       paceMinutes: -Infinity,
+      keyAccounts: "invalid",
+      quietDays: null,
     },
   });
   const cleaned = await store.get();
@@ -869,10 +888,12 @@ test("old v3 settings without new feature switches and pace limits load with def
   assert.strictEqual(cleaned.settings.followPace, 10);
   assert.strictEqual(cleaned.settings.unfollowPace, 10);
   assert.strictEqual(cleaned.settings.paceMinutes, 60);
+  assert.strictEqual(cleaned.settings.keyAccounts, true);
+  assert.strictEqual(cleaned.settings.quietDays, 14);
 });
 
 test("cleanState validates pace part, drops malformed data, and caps at newest 100", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   // 1. Old export without pace field imports with empty lists
@@ -970,7 +991,7 @@ test("prunePace drops times older than 24h, keeps newest 100, and filters invali
 });
 
 test("reset and replaceAll include pace part", async () => {
-  const chrome = fakeChrome({ "xh:v": 3 });
+  const chrome = fakeChrome({ "xh:v": 4 });
   const store = loadStore(chrome);
 
   await store.update(["pace"], (s) => {
@@ -988,4 +1009,117 @@ test("reset and replaceAll include pace part", async () => {
   // replaceAll writes pace
   await store.replaceAll({ pace: { follows: [3000], unfollows: [4000] } });
   assert.deepStrictEqual(chrome.data["xh:pace"], { follows: [3000], unfollows: [4000] });
+});
+
+test("VERSION 4 migrate moves settings.targets into keys and deletes settings.targets", async () => {
+  const chrome = fakeChrome({
+    "xh:v": 3,
+    "xh:settings": { targets: ["Alice", "Bob"], hud: true },
+  });
+  const store = loadStore(chrome);
+  const before = Date.now();
+  const s = await store.get();
+  const after = Date.now();
+
+  assert.strictEqual(chrome.data["xh:v"], 4);
+  assert.strictEqual(s.settings.targets, undefined);
+  assert.strictEqual(chrome.data["xh:settings"].targets, undefined);
+  assert.deepStrictEqual(s.keys, {
+    alice: { h: "Alice", t: s.keys.alice.t },
+    bob: { h: "Bob", t: s.keys.bob.t },
+  });
+  assert.ok(s.keys.alice.t >= before && s.keys.alice.t <= after);
+  assert.ok(s.keys.bob.t >= before && s.keys.bob.t <= after);
+  assert.deepStrictEqual(chrome.data["xh:keys"], s.keys);
+});
+
+test("cleanState converts settings.targets from old exports into keys", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+  const before = Date.now();
+  await store.replaceAll({
+    settings: { targets: ["Carol", "Dan", "/invalid", 123] },
+  });
+  const after = Date.now();
+  const s = await store.get();
+
+  assert.strictEqual(s.settings.targets, undefined);
+  assert.strictEqual(Object.keys(s.keys).length, 2);
+  assert.deepStrictEqual(s.keys.carol, { h: "Carol", t: s.keys.carol.t });
+  assert.deepStrictEqual(s.keys.dan, { h: "Dan", t: s.keys.dan.t });
+  assert.ok(s.keys.carol.t >= before && s.keys.carol.t <= after);
+  assert.ok(s.keys.dan.t >= before && s.keys.dan.t <= after);
+});
+
+test("cleanState validates keys, dropping invalid handles and invalid timestamps", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+  await store.replaceAll({
+    keys: {
+      Alice: { h: "Alice", t: 100 },
+      bob: { h: "/bad_handle", t: 200 }, // invalid display handle falls back to key
+      carol: { h: "Carol", t: -1 }, // negative t dropped
+      dan: { h: "Dan", t: "not_a_num" }, // non-number t dropped
+      eve: { h: "Eve", t: NaN }, // NaN t dropped
+      frank: { h: "Frank", t: Infinity }, // Infinity t dropped
+      "/evil.com": { h: "evil", t: 300 }, // invalid handle key dropped
+      "a b": { h: "ab", t: 400 }, // handle with space dropped
+      grace: "not_an_obj", // non-object dropped
+      heidi: null, // null dropped
+      judy: { h: "Judy", t: 0 }, // 0 is valid non-negative timestamp
+    },
+  });
+  const s = await store.get();
+  assert.deepStrictEqual(s.keys, {
+    alice: { h: "Alice", t: 100 },
+    bob: { h: "bob", t: 200 },
+    judy: { h: "Judy", t: 0 },
+  });
+});
+
+test("keys are capped at 1,000 dropping the oldest by timestamp", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+
+  // 1. In cleanState / replaceAll:
+  const overflow = {};
+  for (let i = 1; i <= 1005; i++) {
+    overflow[`u_${i}`] = { h: `U_${i}`, t: i * 10 }; // u_1 has t: 10 (oldest), u_1005 has t: 10050 (newest)
+  }
+  await store.replaceAll({ keys: overflow });
+  const s1 = await store.get();
+  assert.strictEqual(Object.keys(s1.keys).length, 1000);
+  assert.strictEqual(s1.keys["u_1"], undefined, "oldest u_1 dropped");
+  assert.strictEqual(s1.keys["u_5"], undefined, "oldest u_5 dropped");
+  assert.deepStrictEqual(s1.keys["u_6"], { h: "U_6", t: 60 });
+  assert.deepStrictEqual(s1.keys["u_1005"], { h: "U_1005", t: 10050 });
+
+  // 2. In store.update:
+  await store.update(["keys"], (s) => {
+    s.keys["newest"] = { h: "Newest", t: 999990 };
+  });
+  const s2 = await store.get();
+  assert.strictEqual(Object.keys(s2.keys).length, 1000);
+  assert.strictEqual(s2.keys["u_6"], undefined, "oldest u_6 dropped after update overflow");
+  assert.deepStrictEqual(s2.keys["newest"], { h: "Newest", t: 999990 });
+});
+
+test("reset and replaceAll include keys part", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+
+  await store.update(["keys"], (s) => {
+    s.keys["alice"] = { h: "Alice", t: 1000 };
+  });
+  assert.deepStrictEqual(chrome.data["xh:keys"], { alice: { h: "Alice", t: 1000 } });
+
+  // reset clears keys
+  await store.reset();
+  assert.strictEqual(chrome.data["xh:keys"], undefined);
+  const fresh = await store.get();
+  assert.deepStrictEqual(fresh.keys, {});
+
+  // replaceAll writes keys
+  await store.replaceAll({ keys: { bob: { h: "Bob", t: 2000 } } });
+  assert.deepStrictEqual(chrome.data["xh:keys"], { bob: { h: "Bob", t: 2000 } });
 });

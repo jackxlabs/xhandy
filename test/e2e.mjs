@@ -723,17 +723,17 @@ try {
     assert.doesNotMatch(await page.textContent("#fresh .xh-badge"), /2h/);
 
     // 3. Scenario: Nothing left to show - empty badges are removed
-    await updateSettings({ showAge: false, showReplies: false });
+    await updateSettings({ showAge: false, showReplies: false, keyAccounts: false });
     await page.waitForFunction(() => document.querySelector("#dan .xh-badge") === null, null, { timeout: 3000 });
     assert.strictEqual(await page.$("#dan .xh-badge"), null);
 
     // With all chips off, all badges are removed
-    await updateSettings({ showAge: false, showRel: false, showReplies: false, showSeen: false, showReplied: false });
+    await updateSettings({ showAge: false, showRel: false, showReplies: false, showSeen: false, showReplied: false, keyAccounts: false });
     await page.waitForFunction(() => document.querySelectorAll(".xh-badge").length === 0, null, { timeout: 3000 });
     assert.strictEqual(await page.$(".xh-badge"), null);
 
     // 4. Restore settings to defaults
-    await updateSettings({ showAge: true, showRel: true, showReplies: true, showSeen: true, showReplied: true });
+    await updateSettings({ showAge: true, showRel: true, showReplies: true, showSeen: true, showReplied: true, keyAccounts: true });
     await page.waitForFunction(() => !!document.querySelector("#fresh .xh-badge") && !!document.querySelector("#dan .xh-badge"), null, { timeout: 3000 });
     assert.match(await page.textContent("#fresh .xh-badge"), /2h/);
   });
@@ -1009,6 +1009,196 @@ try {
     await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
   });
 
+  await step("star adds and removes a key account on all of its posts", async () => {
+    await setStoredPart("keys", {});
+    await page.waitForSelector("#fresh .xh-star");
+    await page.waitForSelector("#fresh2 .xh-star");
+
+    // Both posts initially have unpressed star, no key chip, no target highlight
+    assert.strictEqual(await page.getAttribute("#fresh .xh-star", "aria-pressed"), "false");
+    assert.strictEqual(await page.getAttribute("#fresh2 .xh-star", "aria-pressed"), "false");
+    assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
+    assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
+    assert.strictEqual(await page.$("#fresh.xh-target"), null);
+    assert.strictEqual(await page.$("#fresh2.xh-target"), null);
+
+    // Click star on fresh (alice)
+    await page.click("#fresh .xh-star");
+    await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 3000 });
+    await page.waitForSelector('#fresh2 .xh-star[aria-pressed="true"]', { timeout: 3000 });
+
+    // Both posts now show key chip and highlight
+    assert.ok(await page.$("#fresh .xh-chip.xh-key"));
+    assert.ok(await page.$("#fresh2 .xh-chip.xh-key"));
+    assert.ok(await page.$("#fresh.xh-target"));
+    assert.ok(await page.$("#fresh2.xh-target"));
+
+    // Storage updated
+    const k = await storedPart("keys");
+    assert.ok(k && k.alice);
+    assert.strictEqual(k.alice.h, "alice");
+
+    // Click star on fresh2 to remove
+    await page.click("#fresh2 .xh-star");
+    await page.waitForSelector('#fresh .xh-star[aria-pressed="false"]', { timeout: 3000 });
+    await page.waitForSelector('#fresh2 .xh-star[aria-pressed="false"]', { timeout: 3000 });
+
+    assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
+    assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
+    assert.strictEqual(await page.$("#fresh.xh-target"), null);
+    assert.strictEqual(await page.$("#fresh2.xh-target"), null);
+
+    const kAfter = await storedPart("keys");
+    assert.strictEqual(kAfter.alice, undefined);
+
+    await setStoredPart("keys", {});
+  });
+
+  await step("clicking the star does not open the post or click anything on X", async () => {
+    const urlBefore = page.url();
+    assert.strictEqual(urlBefore, "https://x.com/home");
+
+    // Track clicks that reach article
+    await page.evaluate(() => {
+      window.__articleClicks = 0;
+      document.getElementById("old")?.addEventListener("click", () => {
+        window.__articleClicks++;
+      });
+    });
+
+    await page.click("#old .xh-star");
+    await page.waitForSelector('#old .xh-star[aria-pressed="true"]', { timeout: 3000 });
+
+    const articleClicks = await page.evaluate(() => window.__articleClicks);
+    assert.strictEqual(articleClicks, 0, "star click must not reach X article click handler");
+    assert.strictEqual(page.url(), urlBefore);
+
+    // Unstar
+    await page.click("#old .xh-star");
+    await page.waitForSelector('#old .xh-star[aria-pressed="false"]', { timeout: 3000 });
+    assert.strictEqual(page.url(), urlBefore);
+
+    await setStoredPart("keys", {});
+  });
+
+  await step("own posts have no star", async () => {
+    assert.strictEqual(await page.$("#mine .xh-star"), null);
+  });
+
+  await step("key accounts switch hides star and highlight", async () => {
+    await setStoredPart("keys", { alice: { h: "alice", t: Date.now() } });
+    await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 3000 });
+    assert.ok(await page.$("#fresh .xh-chip.xh-key"));
+    assert.ok(await page.$("#fresh.xh-target"));
+
+    // Turn feature off
+    await updateSettings({ keyAccounts: false });
+    await page.waitForFunction(
+      () => !document.querySelector("#fresh .xh-star") && !document.querySelector("#fresh .xh-chip.xh-key") && !document.querySelector("#fresh.xh-target"),
+      null,
+      { timeout: 5000 }
+    );
+    assert.strictEqual(await page.$("#old .xh-star"), null);
+
+    // Turn feature back on
+    await updateSettings({ keyAccounts: true });
+    await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 5000 });
+    assert.ok(await page.$("#fresh .xh-chip.xh-key"));
+    assert.ok(await page.$("#fresh.xh-target"));
+
+    await setStoredPart("keys", {});
+  });
+
+  await step("Alt+S toggles the selected post's author", async () => {
+    await setStoredPart("keys", {});
+    await page.focus("#old");
+    await page.keyboard.press("Alt+KeyS");
+    await page.waitForFunction(
+      () => /Added @bob to key accounts|已将 @bob 设为重点账号/.test(document.querySelector(".xh-toast")?.textContent || ""),
+      null,
+      { timeout: 3000 }
+    );
+
+    let k = await storedPart("keys");
+    assert.ok(k && k.bob);
+    await page.waitForSelector('#old .xh-star[aria-pressed="true"]', { timeout: 3000 });
+
+    // Press Alt+S again to remove
+    await page.keyboard.press("Alt+KeyS");
+    await page.waitForFunction(
+      () => /Removed @bob from key accounts|已将 @bob 移出重点账号/.test(document.querySelector(".xh-toast")?.textContent || ""),
+      null,
+      { timeout: 3000 }
+    );
+
+    k = await storedPart("keys");
+    assert.strictEqual(k.bob, undefined);
+    await page.waitForSelector('#old .xh-star[aria-pressed="false"]', { timeout: 3000 });
+
+    // Alt+S does nothing while typing in composer
+    const boxSel = '[data-testid="tweetTextarea_0"]';
+    await page.click(boxSel);
+    await page.keyboard.press("Alt+KeyS");
+    await page.waitForTimeout(500);
+    k = await storedPart("keys");
+    assert.strictEqual(k.bob, undefined);
+
+    await setStoredPart("keys", {});
+  });
+
+  await step("key accounts panel sorts by silence and marks quiet accounts", async () => {
+    const now = Date.now();
+    const dayMs = 86400000;
+    // Seed people and keys data with storage helpers. Test handles at most 15 chars.
+    await setStoredPart("people", {
+      carol: { likes: 1, replies: 0, last: now - 20 * dayMs, in: { likes: 1, replies: 0, quotes: 0, mentions: 0, last: now - 16 * dayMs } },
+      dan: { likes: 0, replies: 0, last: 0 },
+      dave: { likes: 0, replies: 0, last: 0, in: { likes: 0, replies: 1, quotes: 0, mentions: 0, last: now - 1 * dayMs } },
+    });
+    await setStoredPart("keys", {
+      carol: { h: "carol", t: now - 50 * dayMs },
+      dan: { h: "dan", t: now - 40 * dayMs },
+      dave: { h: "dave", t: now - 30 * dayMs },
+    });
+
+    await page.keyboard.press("Alt+KeyK");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+
+    // Header shows quiet count (2 of 3 are quiet: dan never, carol 16d ago)
+    assert.match(await page.textContent(".xh-panel-head"), /2 quiet|2 个沉寂/);
+
+    // Sorted by silence ascending: dan (never), carol (16d), dave (1d)
+    const handles = await page.$$eval(".xh-panel-list .xh-panel-handle", (els) => els.map((el) => el.textContent.trim()));
+    assert.deepStrictEqual(handles, ["@dan", "@carol", "@dave"]);
+
+    // Quiet marks on dan and carol, not on dave
+    assert.ok(await page.$('.xh-panel-list a[href="/dan"] .xh-quiet-mark'));
+    assert.ok(await page.$('.xh-panel-list a[href="/carol"] .xh-quiet-mark'));
+    assert.strictEqual(await page.$('.xh-panel-list a[href="/dave"] .xh-quiet-mark'), null);
+
+    // Both directions' last interaction via XH.ago
+    const carolMeta = await page.$eval('.xh-panel-list a[href="/carol"] .xh-panel-meta', (el) => el.textContent);
+    assert.match(carolMeta, /you:.*20 d ago.*them:.*16 d ago|我：.*20天前.*他：.*16天前/);
+    const danMeta = await page.$eval('.xh-panel-list a[href="/dan"] .xh-panel-meta', (el) => el.textContent);
+    assert.match(danMeta, /you:.*never.*them:.*never|我：.*无.*他：.*无/);
+
+    // Empty hint
+    await setStoredPart("keys", {});
+    await page.waitForFunction(
+      () => /No key accounts yet|还没有重点账号/.test(document.querySelector(".xh-panel-list")?.textContent || ""),
+      null,
+      { timeout: 3000 }
+    );
+
+    // Press Alt+K again to close
+    await page.keyboard.press("Alt+KeyK");
+    await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 2000 });
+
+    // Clean up
+    await setStoredPart("keys", {});
+    await setStoredPart("people", {});
+  });
+
   await step("settings page shows switches and saves them", async () => {
     const p = await ctx.newPage();
     try {
@@ -1020,7 +1210,7 @@ try {
       assert.match(featuresTitle, /Features/);
 
       // 2. Verify all switches are present in the features section
-      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud"]) {
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts"]) {
         assert.ok(await p.$(`section:nth-of-type(2) #${id}`), `switch #${id} should be in features section`);
       }
 
@@ -1044,6 +1234,7 @@ try {
       await p.uncheck("#showSeen");
       await p.uncheck("#dupWarn");
       await p.uncheck("#followWarn");
+      await p.uncheck("#keyAccounts");
       await p.fill("#followPace", "15");
       await p.fill("#unfollowPace", "25");
       await p.fill("#paceMinutes", "45");
@@ -1057,6 +1248,7 @@ try {
       assert.strictEqual(s.showSeen, false);
       assert.strictEqual(s.dupWarn, false);
       assert.strictEqual(s.followWarn, false);
+      assert.strictEqual(s.keyAccounts, false);
       assert.strictEqual(s.followPace, 15);
       assert.strictEqual(s.unfollowPace, 25);
       assert.strictEqual(s.paceMinutes, 45);
@@ -1067,6 +1259,7 @@ try {
         showSeen: true,
         dupWarn: true,
         followWarn: true,
+        keyAccounts: true,
         followPace: 10,
         unfollowPace: 10,
         paceMinutes: 60,
@@ -1162,7 +1355,7 @@ try {
       await p.waitForSelector("#lang");
 
       // Type unsaved inputs
-      await p.fill("#targets", "test_unsaved_handle");
+      await p.fill("#keyPaste", "test_unsaved_handle");
       await p.fill("#dailyReplyGoal", "42");
 
       // Pick Chinese in language select
@@ -1182,7 +1375,7 @@ try {
       assert.strictEqual(await p.textContent("section:nth-of-type(2) h2"), "功能开关");
 
       // Verify that the unsaved form fields are still kept
-      assert.strictEqual(await p.inputValue("#targets"), "test_unsaved_handle");
+      assert.strictEqual(await p.inputValue("#keyPaste"), "test_unsaved_handle");
       assert.strictEqual(await p.inputValue("#dailyReplyGoal"), "42");
     } finally {
       await updateSettings({ lang: "auto" });
@@ -1200,6 +1393,7 @@ try {
 
       const thTextsZh = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
       assert.deepStrictEqual(thTextsZh, ["日期", "赞", "回复", "发帖", "关注", "取关", "在线"]);
+      assert.strictEqual(await p.textContent("#keys"), "重点账号 (Alt+K)");
       assert.strictEqual(await p.textContent("#nfb"), "我关注了、没回关我的 (Alt+U)");
       assert.match(await p.textContent("[data-i18n=pop_data]"), /数据只存在本浏览器/);
 
@@ -1210,10 +1404,77 @@ try {
 
       const thTextsEn = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
       assert.deepStrictEqual(thTextsEn, ["Day", "likes", "replies", "posts", "follows", "unfollows", "on X"]);
+      assert.strictEqual(await p.textContent("#keys"), "Key accounts (Alt+K)");
       assert.strictEqual(await p.textContent("#nfb"), "Not following you back (Alt+U)");
       assert.match(await p.textContent("[data-i18n=pop_data]"), /Data stays in this browser/);
     } finally {
       await updateSettings({ lang: "auto" });
+      await p.close();
+    }
+  });
+
+  await step("settings page adds pasted key accounts and reports skipped lines", async () => {
+    await setStoredPart("keys", {});
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("#keyPaste");
+
+      // Paste handles: @alice, bob, not a handle!
+      await p.fill("#keyPaste", "@alice\nbob\nnot a handle!");
+      await p.click("#keyAddBtn");
+
+      // Report says one line was skipped
+      await p.waitForFunction(
+        () => /1 line skipped|已跳过 1 行/.test(document.getElementById("keyAddReport")?.textContent || ""),
+        null,
+        { timeout: 3000 }
+      );
+      assert.match(await p.textContent("#keyAddReport"), /1.*skip|跳过.*1/i);
+
+      // Verify keys in storage
+      const keys = await storedPart("keys");
+      assert.ok(keys && keys.alice);
+      assert.ok(keys && keys.bob);
+      assert.strictEqual(keys["not a handle!"], undefined);
+
+      // Verify list on page shows rows for @alice and @bob
+      await p.waitForSelector('.key-row[data-handle="alice"]');
+      await p.waitForSelector('.key-row[data-handle="bob"]');
+    } finally {
+      await setStoredPart("keys", {});
+      await p.close();
+    }
+  });
+
+  await step("removing a key account from settings takes effect at once", async () => {
+    await setStoredPart("keys", {
+      alice: { h: "alice", t: Date.now() },
+      bob: { h: "bob", t: Date.now() },
+    });
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector('.key-row[data-handle="alice"] button.remove');
+
+      // Click remove on alice's row without clicking Save
+      await p.click('.key-row[data-handle="alice"] button.remove');
+
+      // Verify alice is removed from storage at once
+      await p.waitForFunction(async () => {
+        const k = (await chrome.storage.local.get("xh:keys"))["xh:keys"] || {};
+        return !k.alice;
+      }, null, { timeout: 3000 });
+
+      const keys = await storedPart("keys");
+      assert.strictEqual(keys.alice, undefined);
+      assert.ok(keys.bob);
+
+      // Verify alice row is removed from DOM while bob remains
+      assert.strictEqual(await p.$('.key-row[data-handle="alice"]'), null);
+      assert.ok(await p.$('.key-row[data-handle="bob"]'));
+    } finally {
+      await setStoredPart("keys", {});
       await p.close();
     }
   });

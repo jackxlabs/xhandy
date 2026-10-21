@@ -15,6 +15,7 @@
       label { display: block; margin: 10px 0 4px; }
       input[type="number"], select, textarea { box-sizing: border-box; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; }
       input[type="number"] { width: 110px; }
+      input[type="search"] { width: 100%; box-sizing: border-box; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; margin-bottom: 6px; }
       select { min-width: 200px; }
       input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       textarea { width: 100%; height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
@@ -24,6 +25,18 @@
       button.primary { color: #fff; background: var(--accent); border-color: transparent; }
       button.danger { color: #f4212e; }
       #status { color: var(--ok); margin-left: 8px; }
+      .key-list { max-height: 240px; overflow-y: auto; margin: 6px 0 12px; border: 1px solid var(--line); border-radius: 10px; }
+      .key-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+      .key-row:last-child { border-bottom: none; }
+      .key-row-info { display: flex; flex-direction: column; min-width: 0; }
+      .key-row-info a { color: var(--accent); text-decoration: none; font-weight: 600; }
+      .key-row-info a:hover { text-decoration: underline; }
+      .key-row-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+      .key-row button.remove { padding: 3px 10px; font-size: 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+      .key-row button.remove:hover { color: #f4212e; border-color: #f4212e; }
+      .key-empty { padding: 16px; color: var(--muted); text-align: center; font-size: 13px; }
+      #keyPaste { height: 80px; margin-top: 4px; }
+      .key-add-actions { display: flex; align-items: center; margin-top: 6px; margin-bottom: 12px; }
     </style>
   </head>
   <body>
@@ -51,12 +64,23 @@
     <label><input id="dupWarn" type="checkbox" /> <span data-i18n="opt_dupWarn">Duplicate-reply warning</span></label>
     <label><input id="followWarn" type="checkbox" /> <span data-i18n="opt_followWarn">Follow and unfollow reminders</span></label>
     <label><input id="hud" type="checkbox" /> <span data-i18n="opt_hud">Show the stats bar on X (Alt+H)</span></label>
+    <label><input id="keyAccounts" type="checkbox" /> <span data-i18n="opt_keyAccounts">Key accounts (star on posts, highlight, quiet list)</span></label>
     </section>
 
     <section>
-    <h2 data-i18n="opt_sec_targets">Target accounts</h2>
-    <label for="targets" data-i18n="opt_targets_hint">One handle per line, without @</label>
-    <textarea id="targets"></textarea>
+    <h2 data-i18n="opt_sec_keys">Key accounts</h2>
+    <input id="keySearch" type="search" data-i18n-ph="opt_keys_search" placeholder="Search @handle" />
+    <div id="keyList" class="key-list"></div>
+    <div class="key-add-box">
+      <label for="keyPaste" data-i18n="opt_keys_paste_hint">Paste handles to add, one per line (with or without @)</label>
+      <textarea id="keyPaste" data-i18n-ph="opt_keys_paste_ph" placeholder="@alice&#10;bob"></textarea>
+      <div class="key-add-actions">
+        <button id="keyAddBtn" type="button" data-i18n="opt_keys_add">Add</button>
+        <span id="keyAddReport" class="hint"></span>
+      </div>
+    </div>
+    <label for="quietDays" data-i18n="opt_quietDays">Mark accounts quiet after no interaction for (days)</label>
+    <input id="quietDays" type="number" min="1" max="365" />
     </section>
 
     <section>

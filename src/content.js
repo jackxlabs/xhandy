@@ -76,13 +76,38 @@
 
   // ---------- 3. post badges: age, heat, past interactions, target accounts ----------
 
+  function toggleKeyAccount(handle, showToast = false) {
+    if (!handle || !store.isHandle(handle)) return;
+    const h = handle.toLowerCase();
+    store.update(["keys"], (s) => {
+      if (!s.keys) s.keys = {};
+      const exists = !!s.keys[h];
+      if (exists) {
+        delete s.keys[h];
+      } else {
+        s.keys[h] = { h: handle, t: Date.now() };
+      }
+      if (showToast) {
+        toast(t(exists ? "key_done_remove" : "key_done_add", { h: handle }), exists ? "warn" : "ok");
+      }
+    });
+  }
+
+  function handleAltS() {
+    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const info = article && tweetInfo(article);
+    if (!info) return toast(t("key_pick"), "warn");
+    if (isMe(info.handle)) return;
+    toggleKeyAccount(info.handle, true);
+  }
+
   function annotate(article) {
     const info = tweetInfo(article);
     if (!info) return;
     const now = Date.now();
     const s = S.settings;
     const p = S.people[info.handle.toLowerCase()];
-    const isTarget = s.targets.some((h) => h.toLowerCase() === info.handle.toLowerCase());
+    const isKey = !!(s.keyAccounts && S.keys && S.keys[info.handle.toLowerCase()]);
     const stale = now - info.time > s.staleHours * 3600 * 1000;
 
     // Each chip: [kind, text]. Kind picks the colour in content.css.
@@ -136,34 +161,53 @@
     if (s.showReplied && S.replied && S.replied[info.id]) {
       chips.push(["replied", t("replied")]);
     }
-    if (isTarget) chips.push(["star", "★ " + t("target")]);
+    if (isKey) chips.push(["key", "★ " + t("key")]);
 
+    const showStar = !!(s.keyAccounts && !own);
     let badge = article.querySelector(":scope .xh-badge");
-    if (!chips.length) {
+    if (!chips.length && !showStar) {
       if (badge) badge.remove();
-      article.classList.toggle("xh-target", isTarget);
+      article.classList.toggle("xh-target", false);
+      article.classList.toggle("xh-key", false);
       return;
     }
-    const key = JSON.stringify(chips);
+    const key = JSON.stringify([chips, isKey, showStar]);
     if (!badge) {
       badge = document.createElement("span");
       badge.className = "xh-badge";
-      badge.setAttribute("aria-hidden", "true");
       const host = article.querySelector(SEL.userName) || info.anchor.parentElement;
       host.appendChild(badge);
     }
     if (badge.dataset.key !== key) {
       badge.dataset.key = key;
-      badge.replaceChildren(
-        ...chips.map(([kind, text]) => {
-          const c = document.createElement("span");
-          c.className = "xh-chip xh-" + kind;
-          c.textContent = text;
-          return c;
-        })
-      );
+      const nodes = chips.map(([kind, text]) => {
+        const c = document.createElement("span");
+        c.className = "xh-chip xh-" + kind;
+        c.textContent = text;
+        return c;
+      });
+      if (showStar) {
+        const star = document.createElement("button");
+        star.type = "button";
+        star.className = "xh-star";
+        star.setAttribute("aria-pressed", isKey ? "true" : "false");
+        star.setAttribute("aria-label", t(isKey ? "key_remove" : "key_add"));
+        star.textContent = isKey ? "★" : "☆";
+        star.addEventListener(
+          "click",
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleKeyAccount(info.handle);
+          },
+          true
+        );
+        nodes.push(star);
+      }
+      badge.replaceChildren(...nodes);
     }
-    article.classList.toggle("xh-target", isTarget);
+    article.classList.toggle("xh-target", isKey);
+    article.classList.toggle("xh-key", isKey);
   }
 
   function annotateAll() {
@@ -610,7 +654,17 @@
         startFollow();
       } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyU") {
         e.preventDefault();
-        togglePanel();
+        togglePanel(null, "nfb");
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyK") {
+        e.preventDefault();
+        if (S && S.settings && S.settings.keyAccounts) {
+          togglePanel(null, "keys");
+        }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyS" && !isTyping(e.target)) {
+        e.preventDefault();
+        if (S && S.settings && S.settings.keyAccounts) {
+          handleAltS();
+        }
       } else if (e.key === "Escape" && panelEl && !panelEl.hidden && !followTarget) {
         togglePanel(false);
       } else if (e.key === "Escape" && followTarget) {
@@ -896,6 +950,7 @@
   const PANEL_MAX = 300;
   let panelEl = null;
   let panelQuery = "";
+  let panelMode = "nfb"; // "nfb" or "keys"
 
   function myHandle() {
     const a = document.querySelector(SEL.profileLink);
@@ -930,12 +985,23 @@
     });
     panelEl.append(head, el("div", "xh-panel-info"), search, el("ol", "xh-panel-list"), el("footer", "xh-panel-foot"));
     // Keep X's single-key shortcuts (j, k, l, r…) from firing while typing in the search box.
-    panelEl.addEventListener("keydown", (e) => e.key !== "Escape" && e.stopPropagation());
+    // Alt shortcuts (Alt+K, Alt+U, Alt+H) and Escape are allowed through.
+    panelEl.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" || e.altKey) return;
+      e.stopPropagation();
+    });
     document.body.appendChild(panelEl);
   }
 
-  function togglePanel(open) {
+  function togglePanel(open, mode) {
     if (!panelEl) buildPanel();
+    if (mode && mode !== panelMode) {
+      panelMode = mode;
+      panelQuery = "";
+      const search = panelEl.querySelector(".xh-panel-search");
+      if (search) search.value = "";
+      if (open == null) open = true;
+    }
     const show = open == null ? panelEl.hidden : open;
     panelEl.hidden = !show;
     if (show) {
@@ -946,6 +1012,15 @@
 
   function renderPanel(force) {
     if (!S || !panelEl || panelEl.hidden) return;
+    if (panelMode === "keys") {
+      renderKeysPanel(force);
+    } else {
+      renderNfbPanel(force);
+    }
+  }
+
+  function renderNfbPanel(force) {
+    panelEl.setAttribute("aria-label", t("nfb_title"));
     const now = Date.now();
     const me = (myHandle() || "").toLowerCase();
     // isHandle: each row links to "/" + handle, so a stored "/evil.com" must never become "//evil.com".
@@ -958,7 +1033,7 @@
     );
     const shown = matching.slice(0, PANEL_MAX);
     const today = S.days[store.dayKey()] || {};
-    const key = JSON.stringify([shown.map(([h, r]) => [h, r.n, r.t]), rows.length, S.relMeta.scan, today.unfollows, me]);
+    const key = JSON.stringify(["nfb", shown.map(([h, r]) => [h, r.n, r.t]), rows.length, S.relMeta.scan, today.unfollows, me, panelQuery]);
     if (!force && panelEl.dataset.key === key) return;
     panelEl.dataset.key = key;
 
@@ -1004,9 +1079,94 @@
     });
   }
 
+  function renderKeysPanel(force) {
+    panelEl.setAttribute("aria-label", t("key_panel_title"));
+    const now = Date.now();
+    const quietDays = (S.settings && S.settings.quietDays) || 14;
+    const quietThresholdMs = quietDays * 86400000;
+
+    const all = Object.entries(S.keys || {})
+      .filter(([h]) => store.isHandle(h))
+      .map(([h, entry]) => {
+        const p = S.people[h];
+        const youLast = (p && p.last) || 0;
+        const themLast = (p && p.in && p.in.last) || 0;
+        const latest = Math.max(youLast, themLast);
+        const isQuiet = !latest || now - latest >= quietThresholdMs;
+        return { h, entry, youLast, themLast, latest, isQuiet };
+      });
+
+    all.sort((a, b) => {
+      if (a.latest !== b.latest) return a.latest - b.latest;
+      return a.h.localeCompare(b.h);
+    });
+
+    const quietCount = all.filter((item) => item.isQuiet).length;
+
+    const matching = all.filter(
+      (item) => !panelQuery || item.h.includes(panelQuery) || (item.entry.h || "").toLowerCase().includes(panelQuery)
+    );
+    const shown = matching.slice(0, PANEL_MAX);
+
+    const key = JSON.stringify([
+      "keys",
+      shown.map((x) => [x.h, x.entry.h, x.latest, x.isQuiet]),
+      all.length,
+      quietCount,
+      quietDays,
+      panelQuery,
+    ]);
+    if (!force && panelEl.dataset.key === key) return;
+    panelEl.dataset.key = key;
+
+    const countText = all.length + (quietCount > 0 ? " · " + t("key_quiet_count", { n: quietCount }) : "");
+    panelEl.querySelector(".xh-panel-title").replaceChildren(t("key_panel_title"), el("span", "xh-panel-count", countText));
+
+    const info = panelEl.querySelector(".xh-panel-info");
+    info.replaceChildren(el("p", "xh-panel-muted", t("key_panel_hint")));
+
+    const list = panelEl.querySelector(".xh-panel-list");
+    list.replaceChildren(
+      ...shown.map((item) => {
+        const li = el("li");
+        const a = el("a", "xh-panel-row");
+        a.href = "/" + item.h;
+        const displayH = item.entry.h || item.h;
+        const nameText = (S.rel && S.rel[item.h] && S.rel[item.h].n) || displayH;
+        const name = el("span", "xh-panel-name", nameText);
+        if (item.isQuiet) {
+          name.append(el("span", "xh-quiet-mark", t("key_quiet")));
+        }
+        const handle = el("span", "xh-panel-handle", "@" + displayH);
+
+        const youStr = item.youLast ? XH.ago(item.youLast, now) : t("key_never");
+        const themStr = item.themLast ? XH.ago(item.themLast, now) : t("key_never");
+        const meta = el("span", "xh-panel-meta", t("key_both_last", { you: youStr, them: themStr }));
+
+        a.append(name, handle, meta);
+        li.append(a);
+        return li;
+      })
+    );
+
+    if (!all.length) {
+      list.append(el("li", "xh-panel-muted xh-panel-empty", t("key_empty_hint")));
+    } else if (!shown.length) {
+      list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_empty")));
+    } else if (matching.length > PANEL_MAX) {
+      list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_more", { n: PANEL_MAX, total: matching.length })));
+    }
+
+    panelEl.querySelector(".xh-panel-foot").textContent = t("key_panel_footer", { days: quietDays });
+  }
+
   // The toolbar popup's button opens the panel in this tab.
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg && msg.type === "xh-panel") togglePanel(true);
+    if (msg && msg.type === "xh-panel") {
+      const mode = msg.mode || "nfb";
+      if (mode === "keys" && (!S || !S.settings || !S.settings.keyAccounts)) return;
+      togglePanel(true, mode);
+    }
   });
 
   // ---------- wiring ----------
@@ -1021,6 +1181,7 @@
     S = s;
     if (s && s.settings) XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
     if (!s.settings.dupWarn) hideDup();
+    if (panelMode === "keys" && s.settings && !s.settings.keyAccounts) togglePanel(false);
     annotateAll();
     renderHud();
     renderPanel();

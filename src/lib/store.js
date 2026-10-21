@@ -5,13 +5,12 @@
   const XH = (globalThis.XH = globalThis.XH || {});
   const PREFIX = "xh:";
   const VERSION_KEY = "xh:v";
-  const VERSION = 3;
+  const VERSION = 4;
   const LEGACY_KEY = "xh"; // v1 kept everything under this one key
 
   const DEFAULTS = {
     settings: {
       lang: "auto", // interface language: "auto" (follow browser), "en", "zh"
-      targets: [], // handles to highlight, without "@"
       staleHours: 48,
       showHeat: true, // colour the age chip by views per hour
       heatWarm: 1000, // views/hour from which a post counts as warm
@@ -35,6 +34,8 @@
       followPace: 10, // warn when follows in paceMinutes exceed this
       unfollowPace: 10, // warn when unfollows in paceMinutes exceed this
       paceMinutes: 60, // pace reminder window in minutes
+      keyAccounts: true, // key accounts feature switch (star, highlight, panel)
+      quietDays: 14, // days of inactivity before a key account is marked quiet
     },
     people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
@@ -48,6 +49,7 @@
     replied: {}, // postId -> timestamp
     inSeen: {}, // key -> timestamp
     pace: { follows: [], unfollows: [] },
+    keys: {}, // handle (lowercase) -> { h: displayHandle, t: addedAt }
   };
   const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
@@ -55,6 +57,7 @@
   const MAX_REPLIED = 5000;
   const MAX_IN_SEEN = 20000;
   const MAX_PACE = 100;
+  const MAX_KEYS = 1000;
   const PACE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
   const keyOf = (part) => PREFIX + part;
@@ -116,6 +119,17 @@
     keys.sort((a, b) => seen[a] - seen[b]).slice(0, keys.length - MAX_IN_SEEN).forEach((k) => delete seen[k]);
   }
 
+  // Keep the newest MAX_KEYS key accounts, dropping the oldest by added timestamp.
+  function capKeys(k) {
+    if (!isObj(k)) return;
+    const handles = Object.keys(k);
+    if (handles.length <= MAX_KEYS) return;
+    handles
+      .sort((a, b) => ((k[a] && k[a].t) || 0) - ((k[b] && k[b].t) || 0))
+      .slice(0, handles.length - MAX_KEYS)
+      .forEach((h) => delete k[h]);
+  }
+
   function cleanInbound(v) {
     if (!isObj(v)) return null;
     return {
@@ -133,9 +147,7 @@
     const out = { ...def };
     if (!isObj(v)) return out;
     for (const k of Object.keys(def)) {
-      if (k === "targets") {
-        if (Array.isArray(v.targets)) out.targets = v.targets.filter(isHandle);
-      } else if (typeof def[k] === "number") {
+      if (typeof def[k] === "number") {
         out[k] = num(v[k], def[k]);
       } else if (typeof v[k] === typeof def[k]) {
         out[k] = v[k];
@@ -189,6 +201,7 @@
       replied: {},
       inSeen: {},
       pace: cleanPace(s.pace),
+      keys: {},
     };
     for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
       if (isHandle(h) && isObj(p)) {
@@ -229,6 +242,24 @@
       if (typeof k === "string" && INBOUND_KEY.test(k)) out.inSeen[k] = num(t);
     }
     capInSeen(out.inSeen);
+    if (s.keys != null) {
+      for (const [h, entry] of Object.entries(isObj(s.keys) ? s.keys : {})) {
+        if (isHandle(h) && isObj(entry) && typeof entry.t === "number" && Number.isFinite(entry.t) && entry.t >= 0) {
+          out.keys[h.toLowerCase()] = {
+            h: isHandle(entry.h) ? entry.h : h,
+            t: entry.t,
+          };
+        }
+      }
+    } else if (s.settings && Array.isArray(s.settings.targets)) {
+      const now = Date.now();
+      for (const h of s.settings.targets) {
+        if (isHandle(h)) {
+          out.keys[h.toLowerCase()] = { h, t: now };
+        }
+      }
+    }
+    capKeys(out.keys);
     return out;
   }
 
@@ -335,6 +366,7 @@
       };
     }
     if (part === "pace") return cleanPace(v);
+    if (part === "keys") return isObj(v) ? v : {};
     return v || {};
   }
 
@@ -348,6 +380,7 @@
   // Runs once per page, before any read or write.
   // v1 -> v2: split the single "xh" object into one key per part.
   // v2 -> v3: collapse tripled sent history entries.
+  // v3 -> v4: move settings.targets into keys.
   let migrated = null;
   function migrate() {
     return (migrated =
@@ -357,9 +390,14 @@
         let v = r[VERSION_KEY] || 0;
         if (v >= VERSION) return;
         if (r[LEGACY_KEY]) {
-          const old = withDefaults(r[LEGACY_KEY]);
+          const legacy = r[LEGACY_KEY];
+          const old = withDefaults(legacy);
+          if (legacy.settings && Array.isArray(legacy.settings.targets)) {
+            old.settings.targets = legacy.settings.targets;
+          }
           const out = { [VERSION_KEY]: 2 };
           for (const part of PARTS) out[keyOf(part)] = old[part];
+          if (old.settings.targets) out[keyOf("settings")].targets = old.settings.targets;
           await chrome.storage.local.set(out);
           await chrome.storage.local.remove(LEGACY_KEY);
           v = 2;
@@ -373,6 +411,30 @@
             );
           }
           await chrome.storage.local.set(out);
+          v = 3;
+        }
+        if (v < 4) {
+          const sr = await chrome.storage.local.get([keyOf("settings"), keyOf("keys")]);
+          const settings = isObj(sr[keyOf("settings")]) ? sr[keyOf("settings")] : {};
+          const keys = isObj(sr[keyOf("keys")]) ? sr[keyOf("keys")] : {};
+          const now = Date.now();
+          if (Array.isArray(settings.targets)) {
+            for (const h of settings.targets) {
+              if (isHandle(h)) {
+                const lower = h.toLowerCase();
+                if (!keys[lower]) {
+                  keys[lower] = { h, t: now };
+                }
+              }
+            }
+            delete settings.targets;
+          }
+          capKeys(keys);
+          await chrome.storage.local.set({
+            [VERSION_KEY]: 4,
+            [keyOf("settings")]: settings,
+            [keyOf("keys")]: keys,
+          });
         }
       })());
   }
@@ -427,6 +489,7 @@
           s.pace.unfollows = s.pace.unfollows.slice(-MAX_PACE);
         }
       }
+      if (s.keys) capKeys(s.keys);
       const out = {};
       for (const part of parts) out[keyOf(part)] = s[part];
       await chrome.storage.local.set(out);
@@ -471,5 +534,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple, prunePace };
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple, prunePace };
 })();

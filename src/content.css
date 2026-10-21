@@ -136,12 +136,47 @@
   color: var(--xh-green);
   background: var(--xh-green-bg);
 }
+.xh-key,
 .xh-star {
   color: var(--xh-amber);
   background: var(--xh-amber-bg);
 }
-article.xh-target {
+article.xh-target,
+article.xh-key {
   box-shadow: inset 3px 0 0 var(--xh-blue);
+}
+button.xh-star {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 2px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--xh-muted);
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+button.xh-star:hover {
+  color: var(--xh-fg);
+  background: var(--xh-chip);
+}
+button.xh-star[aria-pressed="true"] {
+  color: var(--xh-amber);
+}
+button.xh-star[aria-pressed="true"]:hover {
+  color: var(--xh-amber);
+  background: var(--xh-amber-bg);
+}
+button.xh-star:focus-visible {
+  outline: 1.5px solid var(--xh-amber);
+  outline-offset: 1px;
 }
 
 /* ---- floating panels ---- */
@@ -442,6 +477,18 @@ article.xh-target {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.xh-quiet-mark {
+  display: inline-block;
+  padding: 0 4px;
+  margin-left: 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  color: var(--xh-amber);
+  background: var(--xh-amber-bg);
+  vertical-align: middle;
 }
 .xh-panel-handle {
   overflow: hidden;

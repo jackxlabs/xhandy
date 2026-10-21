@@ -38,18 +38,40 @@
 
   // Opens the "not following you back" panel in the current x.com tab (same as Alt+U there).
   const nfb = document.getElementById("nfb");
-  nfb.textContent = XH.t("nfb_title") + " (Alt+U)";
-  nfb.addEventListener("click", async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    try {
-      await chrome.tabs.sendMessage(tab.id, { type: "xh-panel" });
-      window.close();
-    } catch (_) {
-      const msg = document.getElementById("nfb-msg");
-      msg.textContent = XH.t("pop_open_x");
-      msg.hidden = false;
-    }
-  });
+  if (nfb) {
+    nfb.textContent = XH.t("nfb_title") + " (Alt+U)";
+    nfb.addEventListener("click", async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      try {
+        await chrome.tabs.sendMessage(tab.id, { type: "xh-panel", mode: "nfb" });
+        window.close();
+      } catch (_) {
+        const msg = document.getElementById("nfb-msg");
+        if (msg) {
+          msg.textContent = XH.t("pop_open_x");
+          msg.hidden = false;
+        }
+      }
+    });
+  }
+
+  const keysBtn = document.getElementById("keys");
+  if (keysBtn) {
+    keysBtn.textContent = XH.t("key_panel_title") + " (Alt+K)";
+    keysBtn.addEventListener("click", async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      try {
+        await chrome.tabs.sendMessage(tab.id, { type: "xh-panel", mode: "keys" });
+        window.close();
+      } catch (_) {
+        const msg = document.getElementById("nfb-msg");
+        if (msg) {
+          msg.textContent = XH.t("pop_open_x");
+          msg.hidden = false;
+        }
+      }
+    });
+  }
 
   document.getElementById("opts").addEventListener("click", (e) => {
     e.preventDefault();

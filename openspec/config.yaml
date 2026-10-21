@@ -66,5 +66,7 @@ operations:
       - Keep badge chips short, since X's name row truncates long badges. Follower counts use XH.kNum.
       - Never edit or weaken the e2e steps "extension never clicks anything by itself" and
         "extension never fakes mouse or pointer events".
+      - Test handles must be valid X handles (letters, digits and underscore, at most 15 characters),
+        or validation drops them and the step times out.
       - Do not commit or push; leave changes in the working tree for review.
       - When finished, write a short report of what changed, which files, and test results.

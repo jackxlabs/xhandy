@@ -2,11 +2,14 @@
   const { store, LANGS } = globalThis.XH;
   const XH = globalThis.XH;
   const $ = (id) => document.getElementById(id);
-  const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit", "followPace", "unfollowPace", "paceMinutes"];
-  const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud"];
+  const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit", "followPace", "unfollowPace", "paceMinutes", "quietDays"];
+  const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts"];
 
   let lastRelMeta = null;
   let lastRelCount = 0;
+  let allKeys = {};
+  let allPeople = {};
+  let keyQuery = "";
 
   function applyI18n() {
     document.documentElement.lang = XH.lang === "zh" ? "zh-CN" : "en";
@@ -54,6 +57,70 @@
     $("showInbound").disabled = !$("showSeen").checked;
   }
 
+  function renderKeyAccountsList() {
+    const listEl = $("keyList");
+    if (!listEl) return;
+    const now = Date.now();
+    const rows = Object.entries(allKeys)
+      .filter(([h]) => store.isHandle(h))
+      .filter(([h, entry]) => !keyQuery || h.includes(keyQuery) || (entry.h || "").toLowerCase().includes(keyQuery))
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    listEl.replaceChildren();
+    if (!rows.length) {
+      const empty = document.createElement("div");
+      empty.className = "key-empty";
+      empty.textContent = XH.t("opt_keys_empty");
+      listEl.appendChild(empty);
+      return;
+    }
+
+    for (const [h, entry] of rows) {
+      const row = document.createElement("div");
+      row.className = "key-row";
+      row.dataset.handle = h;
+
+      const info = document.createElement("div");
+      info.className = "key-row-info";
+
+      const link = document.createElement("a");
+      const displayH = entry.h || h;
+      link.href = "https://x.com/" + displayH;
+      link.target = "_blank";
+      link.textContent = "@" + displayH;
+
+      const p = allPeople[h];
+      const youStr = p && p.last ? XH.ago(p.last, now) : XH.t("key_never");
+      const themStr = p && p.in && p.in.last ? XH.ago(p.in.last, now) : XH.t("key_never");
+      const inter = XH.t("key_both_last", { you: youStr, them: themStr });
+
+      const meta = document.createElement("span");
+      meta.className = "key-row-meta";
+      const addedDate = entry.t ? new Date(entry.t).toLocaleDateString() : "";
+      meta.textContent = addedDate
+        ? `${XH.t("opt_keys_added_date", { date: addedDate })} · ${inter}`
+        : inter;
+
+      info.append(link, meta);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "remove";
+      removeBtn.dataset.handle = h;
+      removeBtn.textContent = XH.t("opt_key_remove");
+      removeBtn.addEventListener("click", async () => {
+        await store.update(["keys"], (s) => {
+          delete s.keys[h];
+        });
+        delete allKeys[h];
+        renderKeyAccountsList();
+      });
+
+      row.append(info, removeBtn);
+      listEl.appendChild(row);
+    }
+  }
+
   async function load() {
     const all = await store.get();
     const s = all.settings;
@@ -62,9 +129,16 @@
     applyI18n();
     renderLangSelect(s.lang);
 
-    $("targets").value = s.targets.join("\n");
-    for (const k of NUMS) $(k).value = s[k];
-    for (const k of CHECKS) $(k).checked = s[k];
+    allKeys = all.keys || {};
+    allPeople = all.people || {};
+    renderKeyAccountsList();
+
+    for (const k of NUMS) {
+      if ($(k)) $(k).value = s[k];
+    }
+    for (const k of CHECKS) {
+      if ($(k)) $(k).checked = s[k];
+    }
     syncDisabled();
 
     lastRelCount = Object.keys(all.rel || {}).length;
@@ -80,26 +154,77 @@
     XH.setLang(XH.resolveLang(lang, navigator.language));
     applyI18n();
     renderLangSelect(lang);
+    renderKeyAccountsList();
     renderRelStatus();
   });
 
   $("showAge").addEventListener("change", syncDisabled);
   $("showSeen").addEventListener("change", syncDisabled);
 
+  $("keySearch").addEventListener("input", (e) => {
+    keyQuery = e.target.value.trim().replace(/^@/, "").toLowerCase();
+    renderKeyAccountsList();
+  });
+
+  $("keyAddBtn").addEventListener("click", async () => {
+    const rawVal = $("keyPaste").value;
+    const lines = rawVal.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+    let added = 0;
+    let skipped = 0;
+    const toAdd = [];
+    for (const line of lines) {
+      const h = line.replace(/^@/, "").trim();
+      if (store.isHandle(h)) {
+        toAdd.push(h);
+      } else {
+        skipped++;
+      }
+    }
+    if (toAdd.length > 0) {
+      const now = Date.now();
+      await store.update(["keys"], (s) => {
+        if (!s.keys) s.keys = {};
+        for (const h of toAdd) {
+          const lower = h.toLowerCase();
+          if (!s.keys[lower]) {
+            s.keys[lower] = { h, t: now };
+            added++;
+          }
+        }
+      });
+      const data = await store.get();
+      allKeys = data.keys || {};
+      renderKeyAccountsList();
+    }
+    $("keyPaste").value = "";
+    if (skipped > 0) {
+      const key = skipped === 1 ? "opt_keys_skipped" : "opt_keys_skipped_plural";
+      $("keyAddReport").textContent = XH.t(key, { n: skipped });
+    } else if (added > 0) {
+      $("keyAddReport").textContent = XH.t("opt_keys_added", { n: added });
+    } else {
+      $("keyAddReport").textContent = "";
+    }
+  });
+
   $("save").addEventListener("click", async () => {
     await store.update(["settings"], (s) => {
-      s.settings.targets = $("targets")
-        .value.split("\n")
-        .map((h) => h.trim().replace(/^@/, ""))
-        .filter(Boolean);
       for (const k of NUMS) {
+        if (!$(k)) continue;
         const v = Number($(k).value);
         if (Number.isFinite(v)) {
-          s.settings[k] = k === "paceMinutes" ? Math.max(5, Math.min(1440, Math.round(v))) : v;
+          if (k === "paceMinutes") {
+            s.settings[k] = Math.max(5, Math.min(1440, Math.round(v)));
+          } else if (k === "quietDays") {
+            s.settings[k] = Math.max(1, Math.min(365, Math.round(v)));
+          } else {
+            s.settings[k] = v;
+          }
         }
       }
       for (const k of CHECKS) {
-        s.settings[k] = $(k).checked;
+        if ($(k)) s.settings[k] = $(k).checked;
       }
     });
     $("status").textContent = XH.t("opt_saved");
