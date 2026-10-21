@@ -1,6 +1,6 @@
 # Xhandy privacy policy
 
-Last updated: 2026-10-17
+Last updated: 2026-10-21
 
 Xhandy is a browser extension that shows hints while you use X (x.com). It is built so that your data never
 leaves your browser.
@@ -15,8 +15,10 @@ and it makes no network requests of its own.
 Everything below is kept in your browser's extension storage (`chrome.storage.local`) on your own device.
 It is not synced to other devices and is never sent anywhere.
 
-- **Settings** you choose on the Options page (limits, thresholds, accounts to highlight).
+- **Settings** you choose on the Options page (feature switches, limits, thresholds, accounts to highlight).
 - **Daily counts**: likes, replies, posts, follows, unfollows and time spent on X, per day.
+- **Recent follow and unfollow times**: timestamps of up to 100 recent follows and 100 recent unfollows,
+  dropped after 24 hours, used only to remind you when you follow or unfollow too fast within a short window.
 - **Interaction counts per account**: how many times you liked or replied to an account, and when you last did;
   and how many times that account liked, replied to, quoted or mentioned you, and when it last did.
 - **Counted interactions**: up to 20,000 short ids of the interactions above that were already counted, so

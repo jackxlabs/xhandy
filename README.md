@@ -10,6 +10,7 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 ## Features (v0.4)
 
+- **Feature switches**: every feature (post age chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
 - **Post badges**: how old each post is (posts older than 48 h are greyed out, since replying there rarely helps),
   how many times you have interacted with the author and when, and a highlight for accounts you choose.
   Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
@@ -31,14 +32,15 @@ That is the point: you get faster without anything that looks like a bot to X.
 - **Not following you back** (`Alt+U`, or the button in the toolbar popup): a panel on the right listing
   accounts you follow that don't follow you, with search. Built from the same data; for the full list, open your
   own Following page and scroll to the bottom once. Read-only on purpose: each row only links to the profile,
-  there is no unfollow button and no bulk action. Unfollows you make by hand on X are counted, with a reminder
-  above a soft daily limit (default 20). If none of the accounts you follow shows as following you back,
+  there is no unfollow button and no bulk action. Unfollows you make by hand on X are counted, with reminders
+  above a soft daily limit (default 20) or when you unfollow too quickly within a window (default over 10 in 60 minutes). If none of the accounts you follow shows as following you back,
   the panel warns that X may have changed its data instead of showing a misleading list.
 - **Follow assistant** (`Shift+F` on a post selected with `j`/`k`): finds the author's own Follow button
   (already on the page, e.g. in a hover card you opened by pointing at the author, or else on the author's
   profile) and focuses it. You press `Enter` to follow or `Esc` to cancel (`Alt+←` returns from the profile);
   Xhandy never clicks it and never fakes mouse events.
-  Counts follows per day and reminds you above a soft daily limit (default 20), because following fast is
+  Counts follows per day and reminds you above a soft daily limit (default 20) or when you follow too quickly
+  within a window (default over 10 in 60 minutes), because following fast is
   what gets accounts limited. Follows and unfollows are counted when X confirms them, so every way of
   following counts (Follow buttons, a post's ⋯ menu, ...) and failed ones don't.
 - **Duplicate-reply warning**: while you type, warns if the reply is very similar to one you sent recently,
@@ -70,6 +72,7 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
 - Permissions: `storage` and `unlimitedStorage` (so a long follow list never hits Chrome's 10 MB cap).
   Scripts run on `x.com` and `twitter.com` only.
 - Stored in this browser only: your settings, daily counts, per-author like/reply counts, follow relationships,
+  timestamps of up to 100 recent follows and 100 recent unfollows (dropped after 24 hours, used for pace reminders),
   the text of your last 300 replies and posts (used for the duplicate-reply warning), the ids of up to 5,000
   posts you replied to (for the `✓ replied` mark), your own handle and follower count, how often each account
   liked, replied to, quoted or mentioned you, and up to 20,000 ids of those interactions so each is counted once.
@@ -105,7 +108,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限会提醒），打字时提醒“这条回复和你刚发过的很像”，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 
@@ -155,17 +158,17 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 
 Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` 回复、`t` 转发、`?` 查看全部）照常可用，Xhandy 不会占用它们。
 
-**「没回关我」列表**用的是你刷 X 时已经加载过的数据。想要完整名单，先打开自己主页的「正在关注」页面，一直滚到底，再按 `Alt+U`。列表只能看，没有取关按钮：要取关的话点进对方主页自己操作，每天取关超过 20 个会提醒你。
+**「没回关我」列表**用的是你刷 X 时已经加载过的数据。想要完整名单，先打开自己主页的「正在关注」页面，一直滚到底，再按 `Alt+U`。列表只能看，没有取关按钮：要取关的话点进对方主页自己操作，每天取关超过 20 个或短时间内取关过快会提醒你。
 
 ### 设置
 
 在 `chrome://extensions` 里点 Xhandy 的「详细信息 → 扩展程序选项」，或者右键工具栏图标 →「选项」。可以调：
 
+- 功能开关：所有开关集中在最上方的「功能开关」区域，可独立开启或关闭发帖时间、热度颜色、互动次数、他人互动、回复数与作者体量、已回复标记、互关状态、防重复提醒、关注取关限流提醒、底部统计栏（默认全开）
 - 要高亮的账号（每行一个用户名）
 - 多少小时算旧帖、多少浏览量算「热」和「火」
-- 每天关注、取关的提醒上限（默认各 20 个，只提醒，不拦截）
+- 关注和取关的每日提醒上限（默认各 20 个）以及节奏提醒（默认 60 分钟内超过 10 个时提醒，窗口和数量均可调，只提醒，不拦截）
 - 防重复回复的灵敏度
-- 是否显示回复数和作者体量、是否标记已回复的帖子、是否显示对方和你的互动
 - 每日回复目标（统计栏会显示进度条）
 - 导出、导入、清空全部数据
 

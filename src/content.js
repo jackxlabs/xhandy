@@ -86,12 +86,15 @@
     const stale = now - info.time > s.staleHours * 3600 * 1000;
 
     // Each chip: [kind, text]. Kind picks the colour in content.css.
-    const rate = s.showHeat ? viewsPerHour(info) : null;
-    const heat = rate == null ? "age" : rate >= s.heatHot ? "hot" : rate >= s.heatWarm ? "warm" : "age";
-    let ageText = (heat === "hot" && !stale ? "🔥 " : "") + fmtAge(now - info.time);
-    if (rate != null) ageText += " · " + t("per_hour", { n: XH.compact(rate) });
-    if (stale) ageText += " · " + t("stale");
-    const chips = [[stale ? "stale" : heat, ageText]];
+    const chips = [];
+    if (s.showAge) {
+      const rate = s.showHeat ? viewsPerHour(info) : null;
+      const heat = rate == null ? "age" : rate >= s.heatHot ? "hot" : rate >= s.heatWarm ? "warm" : "age";
+      let ageText = (heat === "hot" && !stale ? "🔥 " : "") + fmtAge(now - info.time);
+      if (rate != null) ageText += " · " + t("per_hour", { n: XH.compact(rate) });
+      if (stale) ageText += " · " + t("stale");
+      chips.push([stale ? "stale" : heat, ageText]);
+    }
     // On the user's own posts, "not following" and interactions with yourself mean nothing.
     const me = myHandle();
     const own = !!me && me.toLowerCase() === info.handle.toLowerCase();
@@ -101,7 +104,7 @@
       const old = now - rel.t > s.relStaleDays * 86400000;
       chips.push(["rel-" + key, t("rel_" + key) + (old ? t("rel_stale") : "")]);
     }
-    if (!own) {
+    if (!own && s.showSeen) {
       const ownCount = p ? p.likes + p.replies : 0;
       const inCount = p && p.in ? p.in.likes + p.in.replies + p.in.quotes + p.in.mentions : 0;
       if (s.showInbound && inCount > 0) {
@@ -135,8 +138,13 @@
     }
     if (isTarget) chips.push(["star", "★ " + t("target")]);
 
-    const key = JSON.stringify(chips);
     let badge = article.querySelector(":scope .xh-badge");
+    if (!chips.length) {
+      if (badge) badge.remove();
+      article.classList.toggle("xh-target", isTarget);
+      return;
+    }
+    const key = JSON.stringify(chips);
     if (!badge) {
       badge = document.createElement("span");
       badge.className = "xh-badge";
@@ -352,6 +360,7 @@
   function checkDup(text) {
     if (!S) return;
     const s = S.settings;
+    if (!s.dupWarn) return hideDup();
     const recent = S.sent.slice(-s.dupWindow);
     const len = sim.normalize(text).length;
     if (len === 0) return hideDup();
@@ -407,12 +416,18 @@
     const goal = S.settings.dailyReplyGoal;
     const replies = goal ? `${d.replies}/${goal}` : String(d.replies);
     const follows = d.follows || 0;
+    const now = Date.now();
+    const paceMinutes = S.settings.paceMinutes || 60;
+    const followPace = S.settings.followPace;
+    const followTimes = (S.pace && S.pace.follows) || [];
+    const followPaceCount = followTimes.filter((t) => now - t <= paceMinutes * 60000).length;
+    const followWarnState = S.settings.followWarn && (follows > S.settings.followLimit || followPaceCount > followPace) ? "warn" : "";
     // [key, value, label, state]; state colours the number (ok / warn).
     const items = [
       ["likes", d.likes, t("hud_likes")],
       ["replies", replies, t("hud_replies"), goal && d.replies >= goal ? "ok" : ""],
       ["posts", d.posts, t("hud_posts")],
-      ["follows", follows, t("hud_follows"), follows > S.settings.followLimit ? "warn" : ""],
+      ["follows", follows, t("hud_follows"), followWarnState],
       ["time", fmtDuration(d.seconds), t("hud_time")],
     ];
     const key = JSON.stringify([items, goal]);
@@ -843,18 +858,32 @@
 
   function onFriendship({ handle, id, name, on }) {
     const k = handle.toLowerCase();
-    store.update(["days", "rel"], (s) => {
+    const now = Date.now();
+    store.update(["days", "rel", "pace"], (s) => {
       const d = store.today(s);
       if (on) d.follows = (d.follows || 0) + 1;
       else d.unfollows = (d.unfollows || 0) + 1;
       const old = s.rel[k] || { fb: false, id: null, n: null };
-      s.rel[k] = { ...old, id: id || old.id, n: name || old.n, f: on, t: Date.now() };
+      s.rel[k] = { ...old, id: id || old.id, n: name || old.n, f: on, t: now };
+      const list = (on ? s.pace.follows : s.pace.unfollows) || [];
+      const updated = store.prunePace(list.concat(now), now);
+      if (on) s.pace.follows = updated;
+      else s.pace.unfollows = updated;
     });
     if (!S) return;
     const field = on ? "follows" : "unfollows";
     const limit = on ? S.settings.followLimit : S.settings.unfollowLimit;
-    const over = ((S.days[store.dayKey()] || {})[field] || 0) + 1 > limit;
-    if (over) return toast(t(on ? "follow_limit" : "unfollow_limit", { n: limit }), "warn", 5000);
+    const pace = on ? S.settings.followPace : S.settings.unfollowPace;
+    const paceMinutes = S.settings.paceMinutes || 60;
+    const dailyOver = ((S.days[store.dayKey()] || {})[field] || 0) + 1 > limit;
+    const paceTimes = ((S.pace && (on ? S.pace.follows : S.pace.unfollows)) || []).concat(now);
+    const paceCount = paceTimes.filter((t) => now - t <= paceMinutes * 60000).length;
+    const paceOver = paceCount > pace;
+
+    if (S.settings.followWarn) {
+      if (dailyOver) return toast(t(on ? "follow_limit" : "unfollow_limit", { n: limit }), "warn", 5000);
+      if (paceOver) return toast(t(on ? "follow_pace" : "unfollow_pace", { n: pace, m: paceMinutes === 60 ? t("pace_hour") : t("pace_minutes", { n: paceMinutes }) }), "warn", 5000);
+    }
     if (!on) return toast(t("unfollow_done", { h: handle }), "ok");
     const onProfile = location.pathname.split("/")[1].toLowerCase() === k;
     toast(t(onProfile ? "follow_done_profile" : "follow_done", { h: handle }), "ok", onProfile ? 5000 : 2500);
@@ -990,6 +1019,7 @@
 
   store.onChange((s) => {
     S = s;
+    if (!s.settings.dupWarn) hideDup();
     annotateAll();
     renderHud();
     renderPanel();

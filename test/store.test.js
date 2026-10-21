@@ -153,6 +153,7 @@ test("replaceAll drops what can't be right in an import file", async () => {
   assert.deepStrictEqual(s.days, { "2026-10-16": { likes: 2, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 0 } });
   assert.deepStrictEqual(s.relMeta, { last: 5, scan: 0, me: { handle: null, followers: 0, id: null, t: 0 } });
   assert.deepStrictEqual(s.replied, {});
+  assert.deepStrictEqual(s.pace, { follows: [], unfollows: [] });
 });
 
 test("cleanRelations keeps only well-formed users and view counts", () => {
@@ -668,6 +669,14 @@ test("reply chip: short follower counts, ratio only when the author is at least 
   assert.strictEqual(loadI18n("zh-CN").t("replied"), "✓ 已回复");
   assert.strictEqual(loadI18n("en-US").t("interacted_both", { a: 3, b: 5, ago: "today" }), "you 3 · them 5 · today");
   assert.strictEqual(loadI18n("zh-CN").t("interacted_both", { a: 3, b: 5, ago: "今天" }), "我3 · 他5 · 今天");
+  for (const [lang, hour, mins] of [["en-US", "an hour", "30 minutes"], ["zh-CN", "1 小时内", "30 分钟内"]]) {
+    const { t } = loadI18n(lang);
+    assert.strictEqual(t("pace_hour"), hour);
+    assert.strictEqual(t("pace_minutes", { n: 30 }), mins);
+  }
+  assert.strictEqual(loadI18n("en-US").t("follow_pace", { n: 10, m: "an hour" }), "Over 10 follows in an hour. Following fast can get the account limited.");
+  assert.strictEqual(loadI18n("zh-CN").t("follow_pace", { n: 10, m: "1 小时内" }), "1 小时内已关注超过 10 个，关注太快可能被限流");
+  assert.strictEqual(loadI18n("zh-CN").t("unfollow_pace", { n: 10, m: "15 分钟内" }), "15 分钟内已取关超过 10 个，取关太快可能被限流");
 });
 
 test("capInSeen keeps at most 20,000 entries, dropping the oldest", async () => {
@@ -825,4 +834,191 @@ test("setting showInbound defaults to true and can be saved", async () => {
   });
   const cleaned = await store.get();
   assert.strictEqual(cleaned.settings.showInbound, true);
+});
+
+test("old v3 settings without new feature switches and pace limits load with defaults", async () => {
+  const chrome = fakeChrome({
+    "xh:v": 3,
+    "xh:settings": {
+      targets: ["bob"],
+      hud: false,
+      followLimit: 25,
+      // showAge, showSeen, dupWarn, followWarn, followPace, unfollowPace, paceMinutes omitted
+    },
+  });
+  const store = loadStore(chrome);
+  const s = await store.get();
+
+  // Preserves existing settings
+  assert.deepStrictEqual(s.settings.targets, ["bob"]);
+  assert.strictEqual(s.settings.hud, false);
+  assert.strictEqual(s.settings.followLimit, 25);
+
+  // Missing keys get defaults
+  assert.strictEqual(s.settings.showAge, true);
+  assert.strictEqual(s.settings.showSeen, true);
+  assert.strictEqual(s.settings.dupWarn, true);
+  assert.strictEqual(s.settings.followWarn, true);
+  assert.strictEqual(s.settings.followPace, 10);
+  assert.strictEqual(s.settings.unfollowPace, 10);
+  assert.strictEqual(s.settings.paceMinutes, 60);
+
+  // Can be updated and saved
+  await store.update(["settings"], (st) => {
+    st.settings.showAge = false;
+    st.settings.showSeen = false;
+    st.settings.dupWarn = false;
+    st.settings.followWarn = false;
+    st.settings.followPace = 15;
+    st.settings.unfollowPace = 20;
+    st.settings.paceMinutes = 30;
+  });
+  const updated = await store.get();
+  assert.strictEqual(updated.settings.showAge, false);
+  assert.strictEqual(updated.settings.showSeen, false);
+  assert.strictEqual(updated.settings.dupWarn, false);
+  assert.strictEqual(updated.settings.followWarn, false);
+  assert.strictEqual(updated.settings.followPace, 15);
+  assert.strictEqual(updated.settings.unfollowPace, 20);
+  assert.strictEqual(updated.settings.paceMinutes, 30);
+
+  // cleanSettings / replaceAll validates types and falls back to defaults for bad values
+  await store.replaceAll({
+    settings: {
+      showAge: "no",
+      showSeen: 123,
+      dupWarn: null,
+      followWarn: {},
+      followPace: "fast",
+      unfollowPace: NaN,
+      paceMinutes: -Infinity,
+    },
+  });
+  const cleaned = await store.get();
+  assert.strictEqual(cleaned.settings.showAge, true);
+  assert.strictEqual(cleaned.settings.showSeen, true);
+  assert.strictEqual(cleaned.settings.dupWarn, true);
+  assert.strictEqual(cleaned.settings.followWarn, true);
+  assert.strictEqual(cleaned.settings.followPace, 10);
+  assert.strictEqual(cleaned.settings.unfollowPace, 10);
+  assert.strictEqual(cleaned.settings.paceMinutes, 60);
+});
+
+test("cleanState validates pace part, drops malformed data, and caps at newest 100", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  // 1. Old export without pace field imports with empty lists
+  await store.replaceAll({
+    settings: {},
+    sent: [],
+  });
+  const s1 = await store.get();
+  assert.deepStrictEqual(s1.pace, { follows: [], unfollows: [] });
+
+  // 2. Non-object pace or non-array fields fall back to empty lists
+  await store.replaceAll({ pace: "not an object" });
+  assert.deepStrictEqual((await store.get()).pace, { follows: [], unfollows: [] });
+
+  await store.replaceAll({ pace: { follows: "not an array", unfollows: 123 } });
+  assert.deepStrictEqual((await store.get()).pace, { follows: [], unfollows: [] });
+
+  // 3. Drops negative numbers, non-numbers, NaN, Infinity, and sorts/preserves valid numbers
+  await store.replaceAll({
+    pace: {
+      follows: [200, -1, "bad", null, NaN, Infinity, -Infinity, {}, 100, 300],
+      unfollows: [-50, 500, undefined, 400],
+      extraJunk: true,
+    },
+  });
+  const s2 = await store.get();
+  assert.deepStrictEqual(s2.pace, {
+    follows: [100, 200, 300],
+    unfollows: [400, 500],
+  });
+
+  // 4. Caps at newest 100 entries when > 100 items are provided
+  const overflow = [];
+  for (let i = 1; i <= 110; i++) overflow.push(i * 10); // 10, 20, ..., 1100
+  await store.replaceAll({
+    pace: {
+      follows: overflow,
+      unfollows: [],
+    },
+  });
+  const s3 = await store.get();
+  assert.strictEqual(s3.pace.follows.length, 100);
+  assert.strictEqual(s3.pace.follows[0], 110, "oldest 10 dropped");
+  assert.strictEqual(s3.pace.follows[99], 1100, "newest kept");
+});
+
+test("prunePace drops times older than 24h, keeps newest 100, and filters invalid elements", () => {
+  const store = loadStore(fakeChrome());
+  const now = 100_000_000;
+  const H24 = 24 * 60 * 60 * 1000; // 86,400,000
+
+  // 1. Drops times older than 24 hours, keeps times within 24 hours
+  const input = [
+    now - H24 - 1000, // older than 24h -> drop
+    now - H24,        // exactly 24h -> keep
+    now - 3600_000,   // 1h ago -> keep
+    now - 60_000,     // 1m ago -> keep
+    now,              // current -> keep
+  ];
+  const pruned = store.prunePace(input, now);
+  assert.deepStrictEqual(pruned, [
+    now - H24,
+    now - 3600_000,
+    now - 60_000,
+    now,
+  ]);
+
+  // Input array is not mutated
+  assert.strictEqual(input.length, 5);
+
+  // 2. Drops non-numbers, negative numbers, NaN, and Infinity
+  const messy = [now - 1000, -5, "string", null, NaN, Infinity, now - 500];
+  assert.deepStrictEqual(store.prunePace(messy, now), [now - 1000, now - 500]);
+
+  // 3. Keeps at most newest 100
+  const many = [];
+  for (let i = 1; i <= 105; i++) {
+    many.push(now - 1000 + i);
+  }
+  const capped = store.prunePace(many, now);
+  assert.strictEqual(capped.length, 100);
+  assert.strictEqual(capped[0], now - 1000 + 6, "oldest 5 dropped");
+  assert.strictEqual(capped[99], now - 1000 + 105, "newest kept");
+
+  // 4. Non-array returns empty array
+  assert.deepStrictEqual(store.prunePace(null, now), []);
+  assert.deepStrictEqual(store.prunePace("not an array", now), []);
+
+  // 5. Default now parameter uses Date.now()
+  const realNow = Date.now();
+  const recent = [realNow - 1000];
+  const old = [realNow - H24 - 10000];
+  assert.deepStrictEqual(store.prunePace(recent), recent);
+  assert.deepStrictEqual(store.prunePace(old), []);
+});
+
+test("reset and replaceAll include pace part", async () => {
+  const chrome = fakeChrome({ "xh:v": 3 });
+  const store = loadStore(chrome);
+
+  await store.update(["pace"], (s) => {
+    s.pace.follows.push(1000);
+    s.pace.unfollows.push(2000);
+  });
+  assert.deepStrictEqual(chrome.data["xh:pace"], { follows: [1000], unfollows: [2000] });
+
+  // reset clears pace
+  await store.reset();
+  assert.strictEqual(chrome.data["xh:pace"], undefined);
+  const fresh = await store.get();
+  assert.deepStrictEqual(fresh.pace, { follows: [], unfollows: [] });
+
+  // replaceAll writes pace
+  await store.replaceAll({ pace: { follows: [3000], unfollows: [4000] } });
+  assert.deepStrictEqual(chrome.data["xh:pace"], { follows: [3000], unfollows: [4000] });
 });

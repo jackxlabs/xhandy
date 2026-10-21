@@ -1,19 +1,21 @@
 (async function () {
   const { store } = globalThis.XH;
   const $ = (id) => document.getElementById(id);
-  const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit"];
+  const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit", "followPace", "unfollowPace", "paceMinutes"];
+  const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud"];
+
+  function syncDisabled() {
+    $("showHeat").disabled = !$("showAge").checked;
+    $("showInbound").disabled = !$("showSeen").checked;
+  }
 
   async function load() {
     const all = await store.get();
     const s = all.settings;
     $("targets").value = s.targets.join("\n");
     for (const k of NUMS) $(k).value = s[k];
-    $("hud").checked = s.hud;
-    $("showRel").checked = s.showRel;
-    $("showHeat").checked = s.showHeat;
-    $("showReplies").checked = s.showReplies;
-    $("showReplied").checked = s.showReplied;
-    $("showInbound").checked = s.showInbound;
+    for (const k of CHECKS) $(k).checked = s[k];
+    syncDisabled();
     const n = Object.keys(all.rel).length;
     const last = all.relMeta.last;
     const mins = last ? Math.round((Date.now() - last) / 60000) : null;
@@ -23,6 +25,9 @@
       : "No relationship data yet. Open x.com and scroll a bit. / 还没有数据，打开 x.com 刷一会儿。";
   }
 
+  $("showAge").addEventListener("change", syncDisabled);
+  $("showSeen").addEventListener("change", syncDisabled);
+
   $("save").addEventListener("click", async () => {
     await store.update(["settings"], (s) => {
       s.settings.targets = $("targets")
@@ -31,14 +36,13 @@
         .filter(Boolean);
       for (const k of NUMS) {
         const v = Number($(k).value);
-        if (Number.isFinite(v)) s.settings[k] = v;
+        if (Number.isFinite(v)) {
+          s.settings[k] = k === "paceMinutes" ? Math.max(5, Math.min(1440, Math.round(v))) : v;
+        }
       }
-      s.settings.hud = $("hud").checked;
-      s.settings.showRel = $("showRel").checked;
-      s.settings.showHeat = $("showHeat").checked;
-      s.settings.showReplies = $("showReplies").checked;
-      s.settings.showReplied = $("showReplied").checked;
-      s.settings.showInbound = $("showInbound").checked;
+      for (const k of CHECKS) {
+        s.settings[k] = $(k).checked;
+      }
     });
     $("status").textContent = "Saved / 已保存";
     setTimeout(() => ($("status").textContent = ""), 1500);

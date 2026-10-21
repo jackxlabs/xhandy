@@ -27,6 +27,13 @@
       showReplies: true, // show reply count and author follower count in post badges
       showReplied: true, // mark posts the user already replied to
       showInbound: true, // show interactions from others in post badges
+      showAge: true, // post age chip (incl. heat and old post)
+      showSeen: true, // interaction count chip
+      dupWarn: true, // duplicate-reply warning
+      followWarn: true, // follow and unfollow limit and pace reminders
+      followPace: 10, // warn when follows in paceMinutes exceed this
+      unfollowPace: 10, // warn when unfollows in paceMinutes exceed this
+      paceMinutes: 60, // pace reminder window in minutes
     },
     people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
@@ -39,12 +46,15 @@
     },
     replied: {}, // postId -> timestamp
     inSeen: {}, // key -> timestamp
+    pace: { follows: [], unfollows: [] },
   };
   const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
   const MAX_SENT = 300;
   const MAX_REPLIED = 5000;
   const MAX_IN_SEEN = 20000;
+  const MAX_PACE = 100;
+  const PACE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
   const keyOf = (part) => PREFIX + part;
   const partOf = (key) => (key.startsWith(PREFIX) && PARTS.includes(key.slice(PREFIX.length)) ? key.slice(PREFIX.length) : null);
@@ -138,6 +148,33 @@
     return { f: r.f === true, fb: r.fb === true, id: isId(r.id) ? r.id : null, n: str(r.n, 100), t: num(r.t) };
   }
 
+  function cleanPaceList(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((t) => typeof t === "number" && Number.isFinite(t) && t >= 0)
+      .sort((a, b) => a - b)
+      .slice(-MAX_PACE);
+  }
+
+  function cleanPace(p) {
+    if (!isObj(p)) return { follows: [], unfollows: [] };
+    return {
+      follows: cleanPaceList(p.follows),
+      unfollows: cleanPaceList(p.unfollows),
+    };
+  }
+
+  // Drops times older than 24 hours and keeps the newest MAX_PACE.
+  function prunePace(list, now = Date.now()) {
+    if (!Array.isArray(list)) return [];
+    const n = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+    const cutoff = n - PACE_WINDOW_MS;
+    return list
+      .filter((t) => typeof t === "number" && Number.isFinite(t) && t >= 0 && t >= cutoff)
+      .sort((a, b) => a - b)
+      .slice(-MAX_PACE);
+  }
+
   // A whole state object from an import file: drop what can't be right, keep the rest.
   function cleanState(data) {
     const s = isObj(data) ? data : {};
@@ -150,6 +187,7 @@
       relMeta: { ...DEFAULTS.relMeta, me: { ...DEFAULTS.relMeta.me } },
       replied: {},
       inSeen: {},
+      pace: cleanPace(s.pace),
     };
     for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
       if (isHandle(h) && isObj(p)) {
@@ -295,6 +333,7 @@
         me: cleanMe(r.me),
       };
     }
+    if (part === "pace") return cleanPace(v);
     return v || {};
   }
 
@@ -379,6 +418,14 @@
       }
       if (s.replied) capReplied(s.replied);
       if (s.inSeen) capInSeen(s.inSeen);
+      if (s.pace) {
+        if (Array.isArray(s.pace.follows) && s.pace.follows.length > MAX_PACE) {
+          s.pace.follows = s.pace.follows.slice(-MAX_PACE);
+        }
+        if (Array.isArray(s.pace.unfollows) && s.pace.unfollows.length > MAX_PACE) {
+          s.pace.unfollows = s.pace.unfollows.slice(-MAX_PACE);
+        }
+      }
       const out = {};
       for (const part of parts) out[keyOf(part)] = s[part];
       await chrome.storage.local.set(out);
@@ -423,5 +470,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple };
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple, prunePace };
 })();

@@ -63,6 +63,22 @@ async function updateSettings(patch) {
   }
 }
 
+async function setStoredPart(part, value) {
+  const p = await ctx.newPage();
+  try {
+    await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+    await p.evaluate(async ({ part, value }) => {
+      await chrome.storage.local.set({ ["xh:" + part]: value });
+    }, { part, value });
+  } finally {
+    await p.close();
+  }
+}
+
+async function clearPace() {
+  await setStoredPart("pace", { follows: [], unfollows: [] });
+}
+
 let failed = false;
 const step = async (name, fn) => {
   try {
@@ -692,6 +708,370 @@ try {
     assert.strictEqual(people?.carol?.in?.likes, 2);
     assert.strictEqual(people?.bob?.in?.likes, 3);
     assert.strictEqual(people?.bob?.in?.replies, 2);
+  });
+
+  await step("age chip switch hides the age chip and empty badges are removed", async () => {
+    // 1. Initial state: #fresh and #dan have badges and age chips
+    await page.waitForSelector("#fresh .xh-badge");
+    assert.ok(await page.$("#fresh .xh-chip.xh-hot, #fresh .xh-chip.xh-age"));
+
+    // 2. Scenario: Age chip off - hides age chip, posts with other chips keep badge
+    await updateSettings({ showAge: false });
+    await page.waitForFunction(() => !document.querySelector(".xh-chip.xh-age, .xh-chip.xh-hot, .xh-chip.xh-warm, .xh-chip.xh-stale"), null, { timeout: 3000 });
+    assert.ok(await page.$("#fresh .xh-badge"));
+    assert.match(await page.textContent("#fresh .xh-badge"), /⇄ mutual/);
+    assert.doesNotMatch(await page.textContent("#fresh .xh-badge"), /2h/);
+
+    // 3. Scenario: Nothing left to show - empty badges are removed
+    await updateSettings({ showAge: false, showReplies: false });
+    await page.waitForFunction(() => document.querySelector("#dan .xh-badge") === null, null, { timeout: 3000 });
+    assert.strictEqual(await page.$("#dan .xh-badge"), null);
+
+    // With all chips off, all badges are removed
+    await updateSettings({ showAge: false, showRel: false, showReplies: false, showSeen: false, showReplied: false });
+    await page.waitForFunction(() => document.querySelectorAll(".xh-badge").length === 0, null, { timeout: 3000 });
+    assert.strictEqual(await page.$(".xh-badge"), null);
+
+    // 4. Restore settings to defaults
+    await updateSettings({ showAge: true, showRel: true, showReplies: true, showSeen: true, showReplied: true });
+    await page.waitForFunction(() => !!document.querySelector("#fresh .xh-badge") && !!document.querySelector("#dan .xh-badge"), null, { timeout: 3000 });
+    assert.match(await page.textContent("#fresh .xh-badge"), /2h/);
+  });
+
+  await step("interaction chip switch hides both forms", async () => {
+    // 1. Initial state: #old shows two-direction interaction chip ("you 3 · them 5 · today")
+    await page.waitForFunction(() => /you 3 · them 5 · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 3000 });
+    assert.ok(await page.$("#old .xh-chip.xh-seen"));
+
+    // 2. Scenario: showSeen off hides the two-direction form (even with showInbound true)
+    await updateSettings({ showSeen: false });
+    await page.waitForFunction(() => !document.querySelector(".xh-chip.xh-seen"), null, { timeout: 3000 });
+    assert.strictEqual(await page.$("#old .xh-chip.xh-seen"), null);
+    assert.strictEqual(await page.$("#carol .xh-chip.xh-seen"), null);
+
+    // 3. Scenario: showSeen off also hides the single-direction form (when showInbound false)
+    await updateSettings({ showSeen: false, showInbound: false });
+    await page.waitForTimeout(400);
+    assert.strictEqual(await page.$(".xh-chip.xh-seen"), null);
+
+    // 4. Turning showSeen on restores single-direction form when showInbound is false
+    await updateSettings({ showSeen: true, showInbound: false });
+    await page.waitForFunction(() => /you: 3× · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 3000 });
+    assert.ok(await page.$("#old .xh-chip.xh-seen"));
+
+    // 5. Turning showInbound on restores two-direction form
+    await updateSettings({ showSeen: true, showInbound: true });
+    await page.waitForFunction(() => /you 3 · them 5 · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 3000 });
+    assert.ok(await page.$("#old .xh-chip.xh-seen"));
+
+    // 6. Restore settings to defaults
+    await updateSettings({ showSeen: true, showInbound: true });
+  });
+
+  await step("duplicate warning switch turns the warning off", async () => {
+    const dupText = "Identical reply for duplicate warning switch test";
+
+    // 1. Turn dupWarn off
+    await updateSettings({ dupWarn: false });
+
+    // 2. Open reply composer and send the first copy
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, dupText);
+    const repliesBefore = Number(await page.textContent(".xh-hud [data-k=replies] b"));
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction((n) => Number(document.querySelector(".xh-hud [data-k=replies] b")?.textContent) === n, repliesBefore + 1, { timeout: 5000 });
+
+    // 3. Pause 1.6 s between identical sends (guard against < 1.5 s de-dupe)
+    await page.waitForTimeout(1600);
+
+    // 4. Open reply again and type the identical text
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, dupText);
+    await page.waitForTimeout(600); // debounce timer is 400ms
+
+    // 5. Warning does NOT appear because dupWarn is off
+    assert.strictEqual(await page.$(".xh-dup:not([hidden])"), null);
+
+    // 6. Send the duplicate anyway
+    await page.click('[data-testid="tweetButton"]');
+    await page.waitForFunction((n) => Number(document.querySelector(".xh-hud [data-k=replies] b")?.textContent) === n, repliesBefore + 2, { timeout: 5000 });
+
+    // 7. Verify both sends are recorded in storage even with dupWarn off
+    const sent = await storedSent();
+    const count = sent.filter((x) => x.text === dupText).length;
+    assert.strictEqual(count, 2, "both sends are recorded in storage");
+
+    // 8. Pause 1.6 s before typing the next duplicate
+    await page.waitForTimeout(1600);
+
+    // 9. Turn dupWarn back on and verify the warning now appears for identical text
+    await updateSettings({ dupWarn: true });
+    await page.click("#fresh [data-testid=reply]");
+    await page.fill(box, dupText);
+    await page.waitForSelector(".xh-dup:not([hidden])", { timeout: 3000 });
+    assert.match(await page.textContent(".xh-dup"), /similar to what you sent|sent/i);
+
+    // 10. Clean up composer and restore settings
+    await page.fill(box, "");
+    await page.waitForSelector(".xh-dup[hidden]", { state: "attached", timeout: 2000 });
+    await updateSettings({ dupWarn: true });
+  });
+
+  await step("follow times are stored and bounded", async () => {
+    await clearPace();
+
+    // 1. Confirmed follow stores timestamp in follows
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "bounded_f", user_id: "601" }),
+      });
+    });
+    await page.waitForFunction(() => /Followed @bounded_f/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
+
+    // 2. Confirmed unfollow stores timestamp in unfollows
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/destroy.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "bounded_f", user_id: "601" }),
+      });
+    });
+    await page.waitForFunction(() => /Unfollowed @bounded_f/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
+
+    const pace1 = await storedPart("pace");
+    assert.strictEqual(pace1?.follows?.length, 1);
+    assert.strictEqual(pace1?.unfollows?.length, 1);
+    assert.ok(typeof pace1.follows[0] === "number");
+    assert.ok(typeof pace1.unfollows[0] === "number");
+
+    // 3. Stored times are bounded at 100 entries max
+    const now = Date.now();
+    const overflowTimes = [];
+    for (let i = 1; i <= 105; i++) overflowTimes.push(now - 1000 + i);
+    await setStoredPart("pace", { follows: overflowTimes, unfollows: [] });
+
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "bounded_overflow", user_id: "602" }),
+      });
+    });
+    await page.waitForFunction(() => /Followed @bounded_overflow/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
+
+    const pace2 = await storedPart("pace");
+    assert.strictEqual(pace2?.follows?.length, 100);
+
+    // Restore defaults and clear pace
+    await clearPace();
+    await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
+  });
+
+  await step("11th follow within the window shows the pace toast", async () => {
+    await clearPace();
+    // Daily followLimit high (50) so only pace triggers
+    await updateSettings({ followLimit: 50, followPace: 10, paceMinutes: 60, followWarn: true });
+
+    const followsBefore = Number(await page.textContent(".xh-hud [data-k=follows] b"));
+
+    // Follow 10 accounts
+    for (let i = 1; i <= 10; i++) {
+      await page.evaluate((i) => {
+        fetch("/i/api/1.1/friendships/create.json", {
+          method: "POST",
+          body: new URLSearchParams({ screen_name: `puser_${i}`, user_id: String(200 + i) }),
+        });
+      }, i);
+    }
+    await page.waitForFunction(
+      (target) => Number(document.querySelector(".xh-hud [data-k=follows] b")?.textContent) === target,
+      followsBefore + 10,
+      { timeout: 5000 }
+    );
+
+    // 11th follow within 60 minutes triggers pace toast
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "puser_11", user_id: "211" }),
+      });
+    });
+    await page.waitForFunction(
+      () => /Over 10 follows in an hour/i.test(document.querySelector(".xh-toast")?.textContent),
+      null,
+      { timeout: 5000 }
+    );
+    assert.match(await page.textContent(".xh-toast"), /Over 10 follows in an hour\. Following fast can get the account limited\./);
+
+    // Restore defaults and clear pace
+    await clearPace();
+    await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
+  });
+
+  await step("daily limit toast wins over pace", async () => {
+    await clearPace();
+    const followsBefore = Number(await page.textContent(".xh-hud [data-k=follows] b"));
+
+    // Set daily followLimit to followsBefore + 2, and followPace to 2
+    await updateSettings({ followLimit: followsBefore + 2, followPace: 2, paceMinutes: 60, followWarn: true });
+
+    // Follow 1
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "win_1", user_id: "301" }),
+      });
+    });
+    await page.waitForFunction((n) => Number(document.querySelector(".xh-hud [data-k=follows] b")?.textContent) === n, followsBefore + 1, { timeout: 5000 });
+
+    // Follow 2
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "win_2", user_id: "302" }),
+      });
+    });
+    await page.waitForFunction((n) => Number(document.querySelector(".xh-hud [data-k=follows] b")?.textContent) === n, followsBefore + 2, { timeout: 5000 });
+
+    // Follow 3 passes BOTH daily limit (followsBefore + 3 > followsBefore + 2) and pace (3 > 2)
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "win_3", user_id: "303" }),
+      });
+    });
+    await page.waitForFunction((n) => Number(document.querySelector(".xh-hud [data-k=follows] b")?.textContent) === n, followsBefore + 3, { timeout: 5000 });
+
+    // Toast priority: daily limit wins over pace
+    await page.waitForFunction(() => /Over \d+ follows today/i.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
+    assert.match(await page.textContent(".xh-toast"), /Over \d+ follows today\. Following fast can get the account limited\./);
+    assert.doesNotMatch(await page.textContent(".xh-toast"), /hour|minutes/i);
+
+    // Restore defaults and clear pace
+    await clearPace();
+    await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
+  });
+
+  await step("reminders off shows only the ordinary toast", async () => {
+    await clearPace();
+    // followWarn false: both daily limit and pace exceeded but reminders disabled
+    await updateSettings({ followWarn: false, followLimit: 0, followPace: 0 });
+
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "nowarn_user", user_id: "401" }),
+      });
+    });
+    await page.waitForFunction(() => /Followed @nowarn_user/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
+    assert.doesNotMatch(await page.textContent(".xh-toast"), /today|hour|minutes|limited/i);
+
+    // Restore defaults and clear pace
+    await clearPace();
+    await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
+  });
+
+  await step("HUD follow count is warn when followWarn is on and the daily limit or the pace is passed", async () => {
+    await clearPace();
+    // Daily followLimit high so only pace determines warn
+    await updateSettings({ followLimit: 99999, followPace: 1, paceMinutes: 60, followWarn: true });
+
+    assert.notStrictEqual(await page.getAttribute(".xh-hud [data-k=follows]", "data-state"), "warn");
+
+    // Follow 1: pace is 1 (<= 1), not warn
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "hud_u1", user_id: "501" }),
+      });
+    });
+    await page.waitForFunction(() => /Followed @hud_u1/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
+    assert.notStrictEqual(await page.getAttribute(".xh-hud [data-k=follows]", "data-state"), "warn");
+
+    // Follow 2: pace is 2 (> 1), HUD turns orange (state="warn")
+    await page.evaluate(() => {
+      fetch("/i/api/1.1/friendships/create.json", {
+        method: "POST",
+        body: new URLSearchParams({ screen_name: "hud_u2", user_id: "502" }),
+      });
+    });
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows]")?.dataset.state === "warn", null, { timeout: 5000 });
+    assert.strictEqual(await page.getAttribute(".xh-hud [data-k=follows]", "data-state"), "warn");
+
+    // With followWarn off, orange state disappears
+    await updateSettings({ followWarn: false });
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows]")?.dataset.state !== "warn", null, { timeout: 5000 });
+    assert.strictEqual(await page.getAttribute(".xh-hud [data-k=follows]", "data-state"), null);
+
+    // Restore defaults and clear pace
+    await clearPace();
+    await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
+  });
+
+  await step("settings page shows the switches section first and saves new switches", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("section");
+
+      // 1. Verify the first section is "Features / 功能开关"
+      const firstSectionTitle = await p.textContent("section:first-of-type h2");
+      assert.match(firstSectionTitle, /Features \/ 功能开关/);
+
+      // 2. Verify all switches are present in the first section
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud"]) {
+        assert.ok(await p.$(`section:first-of-type #${id}`), `switch #${id} should be in first section`);
+      }
+
+      // 3. Verify dependent switches disable/enable based on parent
+      assert.strictEqual(await p.isChecked("#showAge"), true);
+      assert.strictEqual(await p.isDisabled("#showHeat"), false);
+      await p.uncheck("#showAge");
+      assert.strictEqual(await p.isDisabled("#showHeat"), true);
+      await p.check("#showAge");
+      assert.strictEqual(await p.isDisabled("#showHeat"), false);
+
+      assert.strictEqual(await p.isChecked("#showSeen"), true);
+      assert.strictEqual(await p.isDisabled("#showInbound"), false);
+      await p.uncheck("#showSeen");
+      assert.strictEqual(await p.isDisabled("#showInbound"), true);
+      await p.check("#showSeen");
+      assert.strictEqual(await p.isDisabled("#showInbound"), false);
+
+      // 4. Change switches and pace numbers, then save
+      await p.uncheck("#showAge");
+      await p.uncheck("#showSeen");
+      await p.uncheck("#dupWarn");
+      await p.uncheck("#followWarn");
+      await p.fill("#followPace", "15");
+      await p.fill("#unfollowPace", "25");
+      await p.fill("#paceMinutes", "45");
+
+      await p.click("#save");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      // 5. Verify saved settings in storage via storedPart
+      const s = await storedPart("settings");
+      assert.strictEqual(s.showAge, false);
+      assert.strictEqual(s.showSeen, false);
+      assert.strictEqual(s.dupWarn, false);
+      assert.strictEqual(s.followWarn, false);
+      assert.strictEqual(s.followPace, 15);
+      assert.strictEqual(s.unfollowPace, 25);
+      assert.strictEqual(s.paceMinutes, 45);
+
+      // 6. Restore default settings
+      await updateSettings({
+        showAge: true,
+        showSeen: true,
+        dupWarn: true,
+        followWarn: true,
+        followPace: 10,
+        unfollowPace: 10,
+        paceMinutes: 60,
+      });
+    } finally {
+      await p.close();
+    }
   });
 } finally {
   await ctx.close();

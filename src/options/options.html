@@ -18,6 +18,7 @@
       input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       textarea { width: 100%; height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
       .hint { color: var(--muted); font-size: 12.5px; }
+      .sub { margin-left: 24px; }
       button { margin-right: 8px; padding: 7px 16px; border-radius: 999px; border: 1px solid var(--line); color: var(--fg); background: var(--card); font: inherit; font-weight: 600; cursor: pointer; }
       button.primary { color: #fff; background: var(--accent); border-color: transparent; }
       button.danger { color: #f4212e; }
@@ -32,6 +33,20 @@
     </p>
 
     <section>
+    <h2>Features / 功能开关</h2>
+    <label><input id="showAge" type="checkbox" /> Post age chip (age, heat, old post) / 帖子发帖时间（含热度、旧帖）</label>
+    <label class="sub"><input id="showHeat" type="checkbox" /> Colour posts by views per hour / 按每小时浏览量给帖子标颜色</label>
+    <label><input id="showSeen" type="checkbox" /> Interaction chip / 显示与作者的互动次数</label>
+    <label class="sub"><input id="showInbound" type="checkbox" /> Show interactions from others / 显示他人对我的互动</label>
+    <label><input id="showReplies" type="checkbox" /> Show replies and author size / 显示回复数与作者粉丝数</label>
+    <label><input id="showReplied" type="checkbox" /> Mark posts I replied to / 标记我回复过的帖子</label>
+    <label><input id="showRel" type="checkbox" /> Show mutual / you follow / follows you on posts / 在帖子上显示互关状态</label>
+    <label><input id="dupWarn" type="checkbox" /> Duplicate-reply warning / 防重复回复提醒</label>
+    <label><input id="followWarn" type="checkbox" /> Follow and unfollow reminders / 关注与取关限流提醒</label>
+    <label><input id="hud" type="checkbox" /> Show the stats bar on X (Alt+H) / 在 X 页面显示统计条</label>
+    </section>
+
+    <section>
     <h2>Target accounts / 关注对象</h2>
     <label for="targets">One handle per line, without @ / 每行一个用户名，不带 @</label>
     <textarea id="targets"></textarea>
@@ -41,14 +56,10 @@
     <h2>Post badges / 帖子标记</h2>
     <label for="staleHours">Mark posts older than (hours) / 超过多少小时算旧帖</label>
     <input id="staleHours" type="number" min="1" />
-    <label><input id="showHeat" type="checkbox" /> Colour posts by views per hour / 按每小时浏览量给帖子标颜色</label>
     <label for="heatWarm">Warm from (views/hour) / 每小时多少浏览算「有热度」（橙）</label>
     <input id="heatWarm" type="number" min="1" />
     <label for="heatHot">Hot from (views/hour) / 每小时多少浏览算「火」（红 🔥）</label>
     <input id="heatHot" type="number" min="1" />
-    <label><input id="showReplies" type="checkbox" /> Show replies and author size / 显示回复数与作者粉丝数</label>
-    <label><input id="showReplied" type="checkbox" /> Mark posts I replied to / 标记我回复过的帖子</label>
-    <label><input id="showInbound" type="checkbox" /> Show interactions from others / 显示他人对我的互动</label>
     <p class="hint">
       Views ÷ hours since posting, from the count X already sent with the post. Old posts keep the "old post" colour.
       / 浏览数 ÷ 发布至今的小时数，浏览数取自 X 本来就发给浏览器的数据。旧帖仍显示旧帖颜色。
@@ -57,13 +68,18 @@
     </section>
     <section>
     <h2>Follow relationship / 关注关系</h2>
-    <label><input id="showRel" type="checkbox" /> Show mutual / you follow / follows you on posts / 在帖子上显示互关状态</label>
     <label for="relStaleDays">Mark as possibly outdated after (days) / 超过多少天标为可能过时</label>
     <input id="relStaleDays" type="number" min="1" />
     <label for="followLimit">Daily follow reminder above / 每天关注超过多少个时提醒</label>
     <input id="followLimit" type="number" min="1" />
     <label for="unfollowLimit">Daily unfollow reminder above / 每天取关超过多少个时提醒</label>
     <input id="unfollowLimit" type="number" min="1" />
+    <label for="followPace">Follow pace reminder above (within window) / 窗口时间内关注超过多少个时提醒</label>
+    <input id="followPace" type="number" min="1" />
+    <label for="unfollowPace">Unfollow pace reminder above (within window) / 窗口时间内取关超过多少个时提醒</label>
+    <input id="unfollowPace" type="number" min="1" />
+    <label for="paceMinutes">Pace window (minutes) / 节奏统计窗口（分钟）</label>
+    <input id="paceMinutes" type="number" min="5" max="1440" />
     <p class="hint" id="relStatus"></p>
     <p class="hint">
       Read from data X already sends to your browser while you browse. No extra requests. It is display only:
@@ -83,7 +99,6 @@
     </section>
     <section>
     <h2>Daily stats / 今日统计</h2>
-    <label><input id="hud" type="checkbox" /> Show the stats bar on X (Alt+H) / 在 X 页面显示统计条</label>
     <label for="dailyReplyGoal">Daily reply goal, 0 = none / 每日回复目标，0 为不设</label>
     <input id="dailyReplyGoal" type="number" min="0" />
 
