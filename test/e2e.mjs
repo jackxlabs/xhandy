@@ -844,7 +844,9 @@ try {
     assert.ok(typeof pace1.follows[0] === "number");
     assert.ok(typeof pace1.unfollows[0] === "number");
 
-    // 3. Stored times are bounded at 100 entries max
+    // 3. Stored times are bounded at 100 entries max. 105 recent times pass the pace, so turn
+    // reminders off to get the ordinary toast; this step checks storage, not the reminder.
+    await updateSettings({ followWarn: false });
     const now = Date.now();
     const overflowTimes = [];
     for (let i = 1; i <= 105; i++) overflowTimes.push(now - 1000 + i);
@@ -853,10 +855,10 @@ try {
     await page.evaluate(() => {
       fetch("/i/api/1.1/friendships/create.json", {
         method: "POST",
-        body: new URLSearchParams({ screen_name: "bounded_overflow", user_id: "602" }),
+        body: new URLSearchParams({ screen_name: "bounded_over", user_id: "602" }),
       });
     });
-    await page.waitForFunction(() => /Followed @bounded_overflow/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /Followed @bounded_over/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 5000 });
 
     const pace2 = await storedPart("pace");
     assert.strictEqual(pace2?.follows?.length, 100);
@@ -1007,19 +1009,19 @@ try {
     await updateSettings({ followLimit: 20, unfollowLimit: 20, followPace: 10, unfollowPace: 10, paceMinutes: 60, followWarn: true });
   });
 
-  await step("settings page shows the switches section first and saves new switches", async () => {
+  await step("settings page shows switches and saves them", async () => {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
       await p.waitForSelector("section");
 
-      // 1. Verify the first section is "Features / 功能开关"
-      const firstSectionTitle = await p.textContent("section:first-of-type h2");
-      assert.match(firstSectionTitle, /Features \/ 功能开关/);
+      // 1. Verify the features section heading
+      const featuresTitle = await p.textContent("section:nth-of-type(2) h2");
+      assert.match(featuresTitle, /Features/);
 
-      // 2. Verify all switches are present in the first section
+      // 2. Verify all switches are present in the features section
       for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud"]) {
-        assert.ok(await p.$(`section:first-of-type #${id}`), `switch #${id} should be in first section`);
+        assert.ok(await p.$(`section:nth-of-type(2) #${id}`), `switch #${id} should be in features section`);
       }
 
       // 3. Verify dependent switches disable/enable based on parent
@@ -1070,6 +1072,148 @@ try {
         paceMinutes: 60,
       });
     } finally {
+      await p.close();
+    }
+  });
+
+  await step("switching language in storage turns x.com badges and stats bar to the other language without reload", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto("https://x.com/home");
+      await p.waitForSelector(".xh-hud");
+      await p.waitForSelector(".xh-chip");
+
+      // Initially browser is en-US and lang is auto -> English HUD and badges
+      const initialHudText = await p.textContent(".xh-hud [data-k=time] .xh-hud-label");
+      assert.strictEqual(initialHudText, "on X");
+
+      // Switch language to zh in storage via updateSettings
+      await updateSettings({ lang: "zh" });
+
+      // Verify stats bar and badge switched to Chinese without reloading the page
+      await p.waitForFunction(
+        () => document.querySelector(".xh-hud [data-k=time] .xh-hud-label")?.textContent === "在线",
+        null,
+        { timeout: 5000 }
+      );
+      assert.strictEqual(await p.textContent(".xh-hud [data-k=likes] .xh-hud-label"), "赞");
+
+      // Switch language back to en
+      await updateSettings({ lang: "en" });
+      await p.waitForFunction(
+        () => document.querySelector(".xh-hud [data-k=time] .xh-hud-label")?.textContent === "on X",
+        null,
+        { timeout: 5000 }
+      );
+      assert.strictEqual(await p.textContent(".xh-hud [data-k=likes] .xh-hud-label"), "likes");
+    } finally {
+      await updateSettings({ lang: "auto" });
+      await p.close();
+    }
+  });
+
+  await step("settings page in English shows no Chinese apart from the 中文 option", async () => {
+    const p = await ctx.newPage();
+    try {
+      await updateSettings({ lang: "en" });
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("section");
+
+      const htmlLang = await p.getAttribute("html", "lang");
+      assert.strictEqual(htmlLang, "en");
+
+      const textWithoutZhOption = await p.evaluate(() => {
+        const clone = document.body.cloneNode(true);
+        const zhOpt = clone.querySelector('#lang option[value="zh"]');
+        if (zhOpt) zhOpt.remove();
+        return clone.innerText;
+      });
+
+      const cjkMatch = textWithoutZhOption.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g);
+      assert.strictEqual(cjkMatch, null, `Expected no Chinese characters but found: ${cjkMatch?.join(", ")}`);
+    } finally {
+      await updateSettings({ lang: "auto" });
+      await p.close();
+    }
+  });
+
+  await step("settings page in Chinese shows no 'English / 中文' pairs", async () => {
+    const p = await ctx.newPage();
+    try {
+      await updateSettings({ lang: "zh" });
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("section");
+
+      const htmlLang = await p.getAttribute("html", "lang");
+      assert.strictEqual(htmlLang, "zh-CN");
+
+      const text = await p.evaluate(() => document.body.innerText);
+      assert.ok(!/ \/ /.test(text), `Expected no 'English / 中文' pairs in Chinese settings page`);
+    } finally {
+      await updateSettings({ lang: "auto" });
+      await p.close();
+    }
+  });
+
+  await step("picking a language saves at once and keeps unsaved fields", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("#lang");
+
+      // Type unsaved inputs
+      await p.fill("#targets", "test_unsaved_handle");
+      await p.fill("#dailyReplyGoal", "42");
+
+      // Pick Chinese in language select
+      await p.selectOption("#lang", "zh");
+
+      // Verify that lang was saved immediately to storage via storedPart
+      await p.waitForFunction(async () => {
+        const s = (await chrome.storage.local.get("xh:settings"))["xh:settings"];
+        return s && s.lang === "zh";
+      }, null, { timeout: 3000 });
+
+      const savedSettings = await storedPart("settings");
+      assert.strictEqual(savedSettings.lang, "zh");
+      assert.notStrictEqual(savedSettings.dailyReplyGoal, 42);
+
+      // Verify that the page re-rendered into Chinese
+      assert.strictEqual(await p.textContent("section:nth-of-type(2) h2"), "功能开关");
+
+      // Verify that the unsaved form fields are still kept
+      assert.strictEqual(await p.inputValue("#targets"), "test_unsaved_handle");
+      assert.strictEqual(await p.inputValue("#dailyReplyGoal"), "42");
+    } finally {
+      await updateSettings({ lang: "auto" });
+      await p.close();
+    }
+  });
+
+  await step("popup follows the chosen language", async () => {
+    const p = await ctx.newPage();
+    try {
+      // 1. In Chinese
+      await updateSettings({ lang: "zh" });
+      await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+      await p.waitForSelector("#head th");
+
+      const thTextsZh = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
+      assert.deepStrictEqual(thTextsZh, ["日期", "赞", "回复", "发帖", "关注", "取关", "在线"]);
+      assert.strictEqual(await p.textContent("#nfb"), "我关注了、没回关我的 (Alt+U)");
+      assert.match(await p.textContent("[data-i18n=pop_data]"), /数据只存在本浏览器/);
+
+      // 2. In English
+      await updateSettings({ lang: "en" });
+      await p.reload();
+      await p.waitForSelector("#head th");
+
+      const thTextsEn = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
+      assert.deepStrictEqual(thTextsEn, ["Day", "likes", "replies", "posts", "follows", "unfollows", "on X"]);
+      assert.strictEqual(await p.textContent("#nfb"), "Not following you back (Alt+U)");
+      assert.match(await p.textContent("[data-i18n=pop_data]"), /Data stays in this browser/);
+    } finally {
+      await updateSettings({ lang: "auto" });
       await p.close();
     }
   });

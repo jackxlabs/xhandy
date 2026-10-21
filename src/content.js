@@ -409,9 +409,9 @@
     if (!hudEl) {
       hudEl = document.createElement("div");
       hudEl.className = "xh-hud";
-      hudEl.title = t("hud_hint");
       document.body.appendChild(hudEl);
     }
+    hudEl.title = t("hud_hint");
     const d = { likes: 0, replies: 0, posts: 0, follows: 0, seconds: 0, ...(S.days[store.dayKey()] || {}) };
     const goal = S.settings.dailyReplyGoal;
     const replies = goal ? `${d.replies}/${goal}` : String(d.replies);
@@ -1019,6 +1019,7 @@
 
   store.onChange((s) => {
     S = s;
+    if (s && s.settings) XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
     if (!s.settings.dupWarn) hideDup();
     annotateAll();
     renderHud();
@@ -1027,6 +1028,7 @@
 
   store.get().then((s) => {
     S = s;
+    if (s && s.settings) XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
     annotateAll();
     renderHud();
     // Arrived here from Shift+F's profile fallback? Arm the Follow button.

@@ -11,6 +11,7 @@ That is the point: you get faster without anything that looks like a bot to X.
 ## Features (v0.4)
 
 - **Feature switches**: every feature (post age chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
+- **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
 - **Post badges**: how old each post is (posts older than 48 h are greyed out, since replying there rarely helps),
   how many times you have interacted with the author and when, and a highlight for accounts you choose.
   Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
@@ -164,6 +165,7 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 
 在 `chrome://extensions` 里点 Xhandy 的「详细信息 → 扩展程序选项」，或者右键工具栏图标 →「选项」。可以调：
 
+- 界面语言：中文或英文，默认跟随浏览器语言。设置页、工具栏弹窗和 X 页面上的提示都会一起切换，不用刷新 X
 - 功能开关：所有开关集中在最上方的「功能开关」区域，可独立开启或关闭发帖时间、热度颜色、互动次数、他人互动、回复数与作者体量、已回复标记、互关状态、防重复提醒、关注取关限流提醒、底部统计栏（默认全开）
 - 要高亮的账号（每行一个用户名）
 - 多少小时算旧帖、多少浏览量算「热」和「火」

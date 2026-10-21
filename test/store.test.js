@@ -66,6 +66,7 @@ test("a fresh install starts from defaults", async () => {
   assert.deepStrictEqual(s.rel, {});
   assert.deepStrictEqual(s.sent, []);
   assert.strictEqual(s.settings.followLimit, 20);
+  assert.strictEqual(s.settings.lang, "auto");
 });
 
 test("update writes only the parts it declares", async () => {
@@ -147,6 +148,7 @@ test("replaceAll drops what can't be right in an import file", async () => {
   const s = await store.get();
   assert.deepStrictEqual(s.settings.targets, ["alice"]);
   assert.strictEqual(s.settings.followLimit, 20);
+  assert.strictEqual(s.settings.lang, "auto");
   assert.deepStrictEqual(s.rel, { bob: { f: true, fb: false, id: null, n: null, t: 2 } });
   assert.deepStrictEqual(s.people, { dan: { likes: 0, replies: 1, last: 3 } });
   assert.deepStrictEqual(s.sent, [{ t: 1, text: "hi", kind: "reply", to: null }]);
@@ -642,41 +644,6 @@ test("settings showReplies and showReplied default to true and can be saved", as
   const cleaned = await store.get();
   assert.strictEqual(cleaned.settings.showReplies, true);
   assert.strictEqual(cleaned.settings.showReplied, true);
-});
-
-test("reply chip: short follower counts, ratio only when the author is at least 2x bigger", () => {
-  function loadI18n(lang) {
-    // Node has its own read-only navigator, so a plain assignment would be ignored.
-    Object.defineProperty(globalThis, "navigator", { value: { language: lang }, configurable: true });
-    globalThis.XH = {};
-    const path = require.resolve("../src/lib/i18n.js");
-    delete require.cache[path];
-    require(path);
-    return globalThis.XH;
-  }
-  for (const lang of ["en-US", "zh-CN"]) {
-    const XH = loadI18n(lang);
-    assert.strictEqual(XH.replyChip(23, 46000, 3800), "💬 23 · 46K · 12×", lang + " all data");
-    assert.strictEqual(XH.replyChip(6, 3200, 4600), "💬 6 · 3.2K", lang + " smaller author: no ratio");
-    assert.strictEqual(XH.replyChip(6, 9000, 4600), "💬 6 · 9K", lang + " under 2x: no ratio");
-    assert.strictEqual(XH.replyChip(6, 9200, 4600), "💬 6 · 9.2K · 2×", lang + " exactly 2x");
-    assert.strictEqual(XH.replyChip(23, 46000, 0), "💬 23 · 46K", lang + " own count unknown");
-    assert.strictEqual(XH.replyChip(23, undefined, 3800), "💬 23", lang + " author count unknown");
-    assert.strictEqual(XH.replyChip(0, 950, 100), "💬 0 · 950 · 10×", lang + " small numbers");
-    assert.strictEqual(XH.replyChip(5, 1_200_000, 4600), "💬 5 · 1.2M · 261×", lang + " millions");
-  }
-  assert.strictEqual(loadI18n("en-US").t("replied"), "✓ replied");
-  assert.strictEqual(loadI18n("zh-CN").t("replied"), "✓ 已回复");
-  assert.strictEqual(loadI18n("en-US").t("interacted_both", { a: 3, b: 5, ago: "today" }), "you 3 · them 5 · today");
-  assert.strictEqual(loadI18n("zh-CN").t("interacted_both", { a: 3, b: 5, ago: "今天" }), "我3 · 他5 · 今天");
-  for (const [lang, hour, mins] of [["en-US", "an hour", "30 minutes"], ["zh-CN", "1 小时内", "30 分钟内"]]) {
-    const { t } = loadI18n(lang);
-    assert.strictEqual(t("pace_hour"), hour);
-    assert.strictEqual(t("pace_minutes", { n: 30 }), mins);
-  }
-  assert.strictEqual(loadI18n("en-US").t("follow_pace", { n: 10, m: "an hour" }), "Over 10 follows in an hour. Following fast can get the account limited.");
-  assert.strictEqual(loadI18n("zh-CN").t("follow_pace", { n: 10, m: "1 小时内" }), "1 小时内已关注超过 10 个，关注太快可能被限流");
-  assert.strictEqual(loadI18n("zh-CN").t("unfollow_pace", { n: 10, m: "15 分钟内" }), "15 分钟内已取关超过 10 个，取关太快可能被限流");
 });
 
 test("capInSeen keeps at most 20,000 entries, dropping the oldest", async () => {

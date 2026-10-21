@@ -1,8 +1,53 @@
 (async function () {
-  const { store } = globalThis.XH;
+  const { store, LANGS } = globalThis.XH;
+  const XH = globalThis.XH;
   const $ = (id) => document.getElementById(id);
   const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit", "followPace", "unfollowPace", "paceMinutes"];
   const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud"];
+
+  let lastRelMeta = null;
+  let lastRelCount = 0;
+
+  function applyI18n() {
+    document.documentElement.lang = XH.lang === "zh" ? "zh-CN" : "en";
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      el.textContent = XH.t(el.getAttribute("data-i18n"));
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+      el.placeholder = XH.t(el.getAttribute("data-i18n-ph"));
+    });
+    const titleEl = document.querySelector("title[data-i18n]");
+    if (titleEl) {
+      document.title = XH.t(titleEl.getAttribute("data-i18n"));
+    }
+  }
+
+  function renderLangSelect(chosen) {
+    const sel = $("lang");
+    const currentVal = chosen !== undefined ? chosen : sel.value || "auto";
+    sel.replaceChildren();
+
+    const autoOpt = document.createElement("option");
+    autoOpt.value = "auto";
+    autoOpt.textContent = XH.t("opt_lang_auto");
+    sel.appendChild(autoOpt);
+
+    for (const lang of XH.LANGS) {
+      const opt = document.createElement("option");
+      opt.value = lang.code;
+      opt.textContent = lang.name;
+      sel.appendChild(opt);
+    }
+    sel.value = currentVal;
+  }
+
+  function renderRelStatus() {
+    const last = lastRelMeta && lastRelMeta.last;
+    const mins = last ? Math.round((Date.now() - last) / 60000) : null;
+    $("relStatus").textContent = last
+      ? XH.t("opt_rel_known", { n: lastRelCount, mins })
+      : XH.t("opt_rel_none");
+  }
 
   function syncDisabled() {
     $("showHeat").disabled = !$("showAge").checked;
@@ -12,18 +57,31 @@
   async function load() {
     const all = await store.get();
     const s = all.settings;
+
+    XH.setLang(XH.resolveLang(s.lang, navigator.language));
+    applyI18n();
+    renderLangSelect(s.lang);
+
     $("targets").value = s.targets.join("\n");
     for (const k of NUMS) $(k).value = s[k];
     for (const k of CHECKS) $(k).checked = s[k];
     syncDisabled();
-    const n = Object.keys(all.rel).length;
-    const last = all.relMeta.last;
-    const mins = last ? Math.round((Date.now() - last) / 60000) : null;
-    // If X renames its fields, this stops updating: that is the signal to update Xhandy.
-    $("relStatus").textContent = last
-      ? `${n} accounts known · last update ${mins} min ago / 已记录 ${n} 个账号 · 最近更新 ${mins} 分钟前`
-      : "No relationship data yet. Open x.com and scroll a bit. / 还没有数据，打开 x.com 刷一会儿。";
+
+    lastRelCount = Object.keys(all.rel || {}).length;
+    lastRelMeta = all.relMeta;
+    renderRelStatus();
   }
+
+  $("lang").addEventListener("change", async (e) => {
+    const lang = e.target.value;
+    await store.update(["settings"], (s) => {
+      s.settings.lang = lang;
+    });
+    XH.setLang(XH.resolveLang(lang, navigator.language));
+    applyI18n();
+    renderLangSelect(lang);
+    renderRelStatus();
+  });
 
   $("showAge").addEventListener("change", syncDisabled);
   $("showSeen").addEventListener("change", syncDisabled);
@@ -44,7 +102,7 @@
         s.settings[k] = $(k).checked;
       }
     });
-    $("status").textContent = "Saved / 已保存";
+    $("status").textContent = XH.t("opt_saved");
     setTimeout(() => ($("status").textContent = ""), 1500);
   });
 
@@ -64,14 +122,14 @@
     try {
       await store.replaceAll(JSON.parse(await file.text()));
       await load();
-      $("status").textContent = "Imported / 已导入";
+      $("status").textContent = XH.t("opt_imported");
     } catch (err) {
-      alert("Invalid file / 文件无效: " + err.message);
+      alert(XH.t("opt_invalid_file", { msg: err.message }));
     }
   });
 
   $("reset").addEventListener("click", async () => {
-    if (!confirm("Delete all Xhandy data in this browser? / 确定清空本浏览器里的全部数据？")) return;
+    if (!confirm(XH.t("opt_reset_confirm"))) return;
     await store.reset();
     await load();
   });

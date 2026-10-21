@@ -10,6 +10,7 @@
 
   const DEFAULTS = {
     settings: {
+      lang: "auto", // interface language: "auto" (follow browser), "en", "zh"
       targets: [], // handles to highlight, without "@"
       staleHours: 48,
       showHeat: true, // colour the age chip by views per hour

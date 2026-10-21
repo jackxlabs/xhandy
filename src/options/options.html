@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Xhandy settings</title>
+    <title data-i18n="opt_title">Xhandy settings</title>
     <style>
       :root { --fg: #0f1419; --muted: #536471; --bg: #f7f9f9; --card: #fff; --line: rgba(15,20,25,.1); --accent: #1d9bf0; --ok: #00875a; color-scheme: light dark; }
       @media (prefers-color-scheme: dark) {
@@ -13,9 +13,10 @@
       h2 { font-size: 15px; margin: 0 0 8px; }
       section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin: 14px 0; }
       label { display: block; margin: 10px 0 4px; }
-      input[type="number"], textarea { box-sizing: border-box; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; }
+      input[type="number"], select, textarea { box-sizing: border-box; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; }
       input[type="number"] { width: 110px; }
-      input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      select { min-width: 200px; }
+      input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       textarea { width: 100%; height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
       .hint { color: var(--muted); font-size: 12.5px; }
       .sub { margin-left: 24px; }
@@ -27,93 +28,101 @@
   </head>
   <body>
     <h1>Xhandy</h1>
-    <p class="hint">
+    <p class="hint" data-i18n="opt_intro">
       Xhandy never clicks, sends, likes or follows for you. It only reads the page and your own actions,
-      and keeps everything in this browser. / Xhandy 不会替你点击、发送、点赞或关注，只读取页面和你自己的操作，数据只存在本浏览器。
+      and keeps everything in this browser.
     </p>
 
     <section>
-    <h2>Features / 功能开关</h2>
-    <label><input id="showAge" type="checkbox" /> Post age chip (age, heat, old post) / 帖子发帖时间（含热度、旧帖）</label>
-    <label class="sub"><input id="showHeat" type="checkbox" /> Colour posts by views per hour / 按每小时浏览量给帖子标颜色</label>
-    <label><input id="showSeen" type="checkbox" /> Interaction chip / 显示与作者的互动次数</label>
-    <label class="sub"><input id="showInbound" type="checkbox" /> Show interactions from others / 显示他人对我的互动</label>
-    <label><input id="showReplies" type="checkbox" /> Show replies and author size / 显示回复数与作者粉丝数</label>
-    <label><input id="showReplied" type="checkbox" /> Mark posts I replied to / 标记我回复过的帖子</label>
-    <label><input id="showRel" type="checkbox" /> Show mutual / you follow / follows you on posts / 在帖子上显示互关状态</label>
-    <label><input id="dupWarn" type="checkbox" /> Duplicate-reply warning / 防重复回复提醒</label>
-    <label><input id="followWarn" type="checkbox" /> Follow and unfollow reminders / 关注与取关限流提醒</label>
-    <label><input id="hud" type="checkbox" /> Show the stats bar on X (Alt+H) / 在 X 页面显示统计条</label>
+    <h2 data-i18n="opt_sec_lang">Language</h2>
+    <label for="lang" data-i18n="opt_lang">Interface language</label>
+    <select id="lang"></select>
     </section>
 
     <section>
-    <h2>Target accounts / 关注对象</h2>
-    <label for="targets">One handle per line, without @ / 每行一个用户名，不带 @</label>
+    <h2 data-i18n="opt_sec_features">Features</h2>
+    <label><input id="showAge" type="checkbox" /> <span data-i18n="opt_showAge">Post age chip (age, heat, old post)</span></label>
+    <label class="sub"><input id="showHeat" type="checkbox" /> <span data-i18n="opt_showHeat">Colour posts by views per hour</span></label>
+    <label><input id="showSeen" type="checkbox" /> <span data-i18n="opt_showSeen">Interaction chip</span></label>
+    <label class="sub"><input id="showInbound" type="checkbox" /> <span data-i18n="opt_showInbound">Show interactions from others</span></label>
+    <label><input id="showReplies" type="checkbox" /> <span data-i18n="opt_showReplies">Show replies and author size</span></label>
+    <label><input id="showReplied" type="checkbox" /> <span data-i18n="opt_showReplied">Mark posts I replied to</span></label>
+    <label><input id="showRel" type="checkbox" /> <span data-i18n="opt_showRel">Show mutual / you follow / follows you on posts</span></label>
+    <label><input id="dupWarn" type="checkbox" /> <span data-i18n="opt_dupWarn">Duplicate-reply warning</span></label>
+    <label><input id="followWarn" type="checkbox" /> <span data-i18n="opt_followWarn">Follow and unfollow reminders</span></label>
+    <label><input id="hud" type="checkbox" /> <span data-i18n="opt_hud">Show the stats bar on X (Alt+H)</span></label>
+    </section>
+
+    <section>
+    <h2 data-i18n="opt_sec_targets">Target accounts</h2>
+    <label for="targets" data-i18n="opt_targets_hint">One handle per line, without @</label>
     <textarea id="targets"></textarea>
-
     </section>
+
     <section>
-    <h2>Post badges / 帖子标记</h2>
-    <label for="staleHours">Mark posts older than (hours) / 超过多少小时算旧帖</label>
+    <h2 data-i18n="opt_sec_badges">Post badges</h2>
+    <label for="staleHours" data-i18n="opt_staleHours">Mark posts older than (hours)</label>
     <input id="staleHours" type="number" min="1" />
-    <label for="heatWarm">Warm from (views/hour) / 每小时多少浏览算「有热度」（橙）</label>
+    <label for="heatWarm" data-i18n="opt_heatWarm">Warm from (views/hour)</label>
     <input id="heatWarm" type="number" min="1" />
-    <label for="heatHot">Hot from (views/hour) / 每小时多少浏览算「火」（红 🔥）</label>
+    <label for="heatHot" data-i18n="opt_heatHot">Hot from (views/hour)</label>
     <input id="heatHot" type="number" min="1" />
-    <p class="hint">
+    <p class="hint" data-i18n="opt_heat_hint">
       Views ÷ hours since posting, from the count X already sent with the post. Old posts keep the "old post" colour.
-      / 浏览数 ÷ 发布至今的小时数，浏览数取自 X 本来就发给浏览器的数据。旧帖仍显示旧帖颜色。
     </p>
-
     </section>
+
     <section>
-    <h2>Follow relationship / 关注关系</h2>
-    <label for="relStaleDays">Mark as possibly outdated after (days) / 超过多少天标为可能过时</label>
+    <h2 data-i18n="opt_sec_rel">Follow relationship</h2>
+    <label for="relStaleDays" data-i18n="opt_relStaleDays">Mark as possibly outdated after (days)</label>
     <input id="relStaleDays" type="number" min="1" />
-    <label for="followLimit">Daily follow reminder above / 每天关注超过多少个时提醒</label>
+    <label for="followLimit" data-i18n="opt_followLimit">Daily follow reminder above</label>
     <input id="followLimit" type="number" min="1" />
-    <label for="unfollowLimit">Daily unfollow reminder above / 每天取关超过多少个时提醒</label>
+    <label for="unfollowLimit" data-i18n="opt_unfollowLimit">Daily unfollow reminder above</label>
     <input id="unfollowLimit" type="number" min="1" />
-    <label for="followPace">Follow pace reminder above (within window) / 窗口时间内关注超过多少个时提醒</label>
+    <label for="followPace" data-i18n="opt_followPace">Follow pace reminder above (within window)</label>
     <input id="followPace" type="number" min="1" />
-    <label for="unfollowPace">Unfollow pace reminder above (within window) / 窗口时间内取关超过多少个时提醒</label>
+    <label for="unfollowPace" data-i18n="opt_unfollowPace">Unfollow pace reminder above (within window)</label>
     <input id="unfollowPace" type="number" min="1" />
-    <label for="paceMinutes">Pace window (minutes) / 节奏统计窗口（分钟）</label>
+    <label for="paceMinutes" data-i18n="opt_paceMinutes">Pace window (minutes)</label>
     <input id="paceMinutes" type="number" min="5" max="1440" />
     <p class="hint" id="relStatus"></p>
-    <p class="hint">
+    <p class="hint" data-i18n="opt_rel_hint">
       Read from data X already sends to your browser while you browse. No extra requests. It is display only:
-      Xhandy never follows or unfollows anyone. / 只读取你浏览时 X 本来就发给浏览器的数据，不额外请求；只显示，不会关注或取关任何人。
+      Xhandy never follows or unfollows anyone.
     </p>
-
     </section>
+
     <section>
-    <h2>Duplicate-reply warning / 防重复提醒</h2>
-    <label for="dupThreshold">Similarity threshold (0–1) / 相似度阈值</label>
+    <h2 data-i18n="opt_sec_dup">Duplicate-reply warning</h2>
+    <label for="dupThreshold" data-i18n="opt_dupThreshold">Similarity threshold (0–1)</label>
     <input id="dupThreshold" type="number" min="0.1" max="1" step="0.05" />
-    <label for="dupWindow">Compare with the last N things you sent / 和最近多少条比较</label>
+    <label for="dupWindow" data-i18n="opt_dupWindow">Compare with the last N things you sent</label>
     <input id="dupWindow" type="number" min="5" max="300" />
-    <label for="repeatShort">Warn when a short reply would be sent for the Nth time / 短回复第几次时提醒</label>
+    <label for="repeatShort" data-i18n="opt_repeatShort">Warn when a short reply would be sent for the Nth time</label>
     <input id="repeatShort" type="number" min="2" max="20" />
-
     </section>
+
     <section>
-    <h2>Daily stats / 今日统计</h2>
-    <label for="dailyReplyGoal">Daily reply goal, 0 = none / 每日回复目标，0 为不设</label>
+    <h2 data-i18n="opt_sec_stats">Daily stats</h2>
+    <label for="dailyReplyGoal" data-i18n="opt_dailyReplyGoal">Daily reply goal, 0 = none</label>
     <input id="dailyReplyGoal" type="number" min="0" />
-
     </section>
-    <p><button id="save" class="primary">Save / 保存</button><span id="status"></span></p>
+
+    <p><button id="save" class="primary" data-i18n="opt_save">Save</button><span id="status"></span></p>
 
     <section>
-    <h2>Data / 数据</h2>
+    <h2 data-i18n="opt_sec_data">Data</h2>
     <p>
-      <button id="export">Export JSON / 导出</button>
+      <button id="export" data-i18n="opt_export">Export JSON</button>
       <label style="display: inline"><input id="import" type="file" accept="application/json" /></label>
     </p>
-    <p><button id="reset" class="danger">Delete all data / 清空数据</button></p>
+    <p><button id="reset" class="danger" data-i18n="opt_reset">Delete all data</button></p>
     </section>
 
+    <script src="../locales/en.js"></script>
+    <script src="../locales/zh.js"></script>
+    <script src="../lib/i18n.js"></script>
     <script src="../lib/store.js"></script>
     <script src="options.js"></script>
   </body>

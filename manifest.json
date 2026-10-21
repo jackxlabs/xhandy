@@ -27,6 +27,8 @@
         "https://twitter.com/*"
       ],
       "js": [
+        "src/locales/en.js",
+        "src/locales/zh.js",
         "src/lib/i18n.js",
         "src/lib/similarity.js",
         "src/lib/store.js",

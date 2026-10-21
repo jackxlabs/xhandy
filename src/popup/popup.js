@@ -1,6 +1,14 @@
 (async function () {
   const { store } = globalThis.XH;
   const s = await store.get();
+  if (s && s.settings) {
+    XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
+  }
+  document.documentElement.lang = XH.lang === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = XH.t(el.getAttribute("data-i18n"));
+  });
+
   const rows = document.getElementById("rows");
   const head = document.getElementById("head");
   for (const k of ["hud_day", "hud_likes", "hud_replies", "hud_posts", "hud_follows", "hud_unfollows", "hud_time"]) {
@@ -38,7 +46,7 @@
       window.close();
     } catch (_) {
       const msg = document.getElementById("nfb-msg");
-      msg.textContent = XH.lang === "zh" ? "先打开 x.com 再点。" : "Open x.com first.";
+      msg.textContent = XH.t("pop_open_x");
       msg.hidden = false;
     }
   });
