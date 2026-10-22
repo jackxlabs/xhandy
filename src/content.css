@@ -77,6 +77,14 @@
   pointer-events: none;
   user-select: none;
 }
+/* A badge that doesn't fit in the name row gets its own row (see fitBadge in content.js). */
+.xh-badge.xh-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  margin: 2px 0 6px;
+  overflow: visible;
+}
 .xh-chip {
   flex: 0 0 auto;
   padding: 0 7px;

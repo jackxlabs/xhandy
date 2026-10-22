@@ -1081,6 +1081,23 @@ try {
     await setStoredPart("keys", {});
   });
 
+  await step("a badge that doesn't fit in the name row moves above the post text, with nothing cut off", async () => {
+    await page.waitForSelector("#narrow .xh-badge.xh-badge-row", { timeout: 5000 });
+    const r = await page.evaluate(() => {
+      const b = document.querySelector("#narrow .xh-badge");
+      return {
+        beforeText: b.nextElementSibling?.dataset.testid === "tweetText",
+        inNameRow: !!b.closest('[data-testid="User-Name"]'),
+        clipped: b.scrollWidth > b.clientWidth + 1,
+        star: !!b.querySelector(".xh-star"),
+      };
+    });
+    assert.deepStrictEqual(r, { beforeText: true, inNameRow: false, clipped: false, star: true });
+    // Badges that fit stay in the name row.
+    assert.ok(await page.$('#fresh [data-testid="User-Name"] .xh-badge'));
+    assert.strictEqual(await page.$("#fresh .xh-badge-row"), null);
+  });
+
   await step("own posts have no star", async () => {
     assert.strictEqual(await page.$("#mine .xh-star"), null);
   });

@@ -96,6 +96,15 @@
         <button data-testid="reply">reply</button>
         <button data-testid="like">like</button>
       </article>
+      <!-- Like X on a narrow window: the name row has a fixed width and cuts off what doesn't fit. -->
+      <article data-testid="tweet" id="narrow" tabindex="0" style="width: 150px">
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-nina"><a href="/nina" class="av">N</a></div></div>
+        <div data-testid="User-Name" style="overflow: hidden">
+          <a href="/nina">Nina Longname</a>
+          <a href="/nina/status/888"><time id="t-narrow"></time></a>
+        </div>
+        <div data-testid="tweetText">narrow post</div>
+      </article>
     </main>
     <div role="dialog" id="composer">
       <div data-testid="tweetTextarea_0_label">
@@ -164,6 +173,7 @@
       document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());
       document.getElementById("t-fresh").setAttribute("datetime", new Date(Date.now() - 2 * 3600e3).toISOString());
       document.getElementById("t-fresh2").setAttribute("datetime", new Date(Date.now() - 3600e3).toISOString());
+      document.getElementById("t-narrow").setAttribute("datetime", new Date(Date.now() - 5 * 3600e3).toISOString());
       document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
       // Like X: "l" on a focused post toggles like <-> unlike.
       document.addEventListener("keydown", (e) => {

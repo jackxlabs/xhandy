@@ -17,6 +17,7 @@
     followBtn: '[data-testid$="-follow"]',
     unfollowBtn: '[data-testid$="-unfollow"]',
     profileLink: 'a[data-testid="AppTabBar_Profile_Link"]',
+    tweetText: '[data-testid="tweetText"]',
   };
 
   let S = null; // cached state
@@ -204,9 +205,21 @@
         nodes.push(star);
       }
       badge.replaceChildren(...nodes);
+      requestAnimationFrame(() => fitBadge(article, badge));
     }
     article.classList.toggle("xh-target", isKey);
     article.classList.toggle("xh-key", isKey);
+  }
+
+  // X's name row has a fixed width (narrow windows, the Subscribe button on a post's own page), so a long
+  // badge would be cut off. When it doesn't fit, it moves to its own row above the post text, where chips
+  // wrap. It never moves back, so it can't flip between the two places.
+  function fitBadge(article, badge) {
+    if (!badge.isConnected || badge.classList.contains("xh-badge-row")) return;
+    if (badge.scrollWidth <= badge.clientWidth + 1) return;
+    const text = [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'));
+    badge.classList.add("xh-badge-row");
+    if (text) text.before(badge);
   }
 
   function annotateAll() {
