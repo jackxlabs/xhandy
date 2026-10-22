@@ -32,9 +32,12 @@ in its own row. Non-goals: new data, hover details, schema changes.
   id gets `xh-badge-row` and is placed before its own tweet text right away (same placement code as
   `fitBadge`; factor out a `placeAsRow(article, badge)` helper). X reuses the page when navigating, so decide
   per annotate call from `location.pathname`.
+- Reused elements: X can show another post in the same article element. The badge stores the post id
+  (`data-post`); when it changes, the badge goes back to the name row before fitting again, and the star
+  reads the author with `tweetInfo` when clicked.
 - "Own tweet text" means the first `[data-testid="tweetText"]` in the article that is not inside a quoted
-  post (`closest('[role="link"]')` is null). No text: keep the badge in the name row with the row class, so
-  it wraps.
+  post (`closest('[role="link"]')` is null). No text: place the row right after the name row (User-Name's
+  parent, or User-Name itself when its parent is the article).
 - Settings labels: zh `opt_showAge: "热度标签（每小时浏览量、旧帖）"`, `opt_showHeat: "显示每小时浏览量并标颜色"`;
   en `opt_showAge: "Heat chip (views per hour, old post)"`, `opt_showHeat: "Show views per hour and colour"`.
   Setting keys stay `showAge` / `showHeat`.

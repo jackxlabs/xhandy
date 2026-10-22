@@ -171,13 +171,18 @@
       article.classList.toggle("xh-key", false);
       return;
     }
-    const key = JSON.stringify([chips, isKey, showStar]);
+    const key = JSON.stringify([info.id, chips, isKey, showStar]);
+    const host = article.querySelector(SEL.userName) || info.anchor.parentElement;
     if (!badge) {
       badge = document.createElement("span");
       badge.className = "xh-badge";
-      const host = article.querySelector(SEL.userName) || info.anchor.parentElement;
+      host.appendChild(badge);
+    } else if (badge.dataset.post !== info.id) {
+      // X can reuse a post's element for another post: start again in the name row.
+      badge.classList.remove("xh-badge-row");
       host.appendChild(badge);
     }
+    badge.dataset.post = info.id;
     const focalId = focalStatusId();
     const isFocal = !!focalId && info.id === focalId;
     if (badge.dataset.key !== key) {
@@ -200,39 +205,56 @@
           (e) => {
             e.preventDefault();
             e.stopPropagation();
-            toggleKeyAccount(info.handle);
+            // Read the author when clicked, not when the star was made, in case the element was reused.
+            const now = tweetInfo(article);
+            if (now) toggleKeyAccount(now.handle);
           },
           true
         );
         nodes.push(star);
       }
       badge.replaceChildren(...nodes);
-      if (isFocal) {
-        placeAsRow(article, badge);
-      } else {
-        requestAnimationFrame(() => fitBadge(article, badge));
-      }
-    } else if (isFocal) {
-      placeAsRow(article, badge);
+      if (!isFocal) queueFit(article, badge);
     }
+    if (isFocal) placeAsRow(article, badge);
     article.classList.toggle("xh-target", isKey);
     article.classList.toggle("xh-key", isKey);
   }
 
+  // Own row: above the post's own text (not a quoted post's), or right below the name row when the post has
+  // no text, so the name row's fixed width can't cut it off.
   function placeAsRow(article, badge) {
     if (!badge.isConnected) return;
-    const text = [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'));
     badge.classList.add("xh-badge-row");
-    if (text && badge.nextElementSibling !== text) text.before(badge);
+    const text = [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'));
+    if (text) {
+      if (badge.nextElementSibling !== text) text.before(badge);
+      return;
+    }
+    const name = article.querySelector(SEL.userName);
+    if (!name) return;
+    const row = name.parentElement && name.parentElement !== article ? name.parentElement : name;
+    if (row.nextElementSibling !== badge) row.after(badge);
   }
 
   // X's name row has a fixed width (narrow windows, the Subscribe button on a post's own page), so a long
-  // badge would be cut off. When it doesn't fit, it moves to its own row above the post text, where chips
-  // wrap. It never moves back, so it can't flip between the two places.
-  function fitBadge(article, badge) {
-    if (!badge.isConnected || badge.classList.contains("xh-badge-row")) return;
-    if (badge.scrollWidth <= badge.clientWidth + 1) return;
-    placeAsRow(article, badge);
+  // badge would be cut off. When it doesn't fit, it moves to its own row, where chips wrap. It never moves
+  // back while showing the same post, so it can't flip between the two places. Checks run once per frame,
+  // all measurements first and all moves after, so a busy timeline doesn't force a layout per post.
+  const fitQueue = new Map(); // badge -> article
+  function queueFit(article, badge) {
+    if (!fitQueue.size) requestAnimationFrame(runFits);
+    fitQueue.set(badge, article);
+  }
+  function runFits() {
+    const tooWide = [];
+    for (const [badge, article] of fitQueue) {
+      if (badge.isConnected && !badge.classList.contains("xh-badge-row") && badge.scrollWidth > badge.clientWidth + 1) {
+        tooWide.push([article, badge]);
+      }
+    }
+    fitQueue.clear();
+    for (const [article, badge] of tooWide) placeAsRow(article, badge);
   }
 
   function annotateAll() {

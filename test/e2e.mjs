@@ -147,7 +147,7 @@ try {
   await page.goto("https://x.com/home");
   await page.bringToFront();
 
-  await step("badges show post age, old post is marked stale", async () => {
+  await step("badges show views per hour, old post is marked stale", async () => {
     await page.waitForSelector("#fresh .xh-badge");
     await page.waitForFunction(() => /15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
     await page.waitForFunction(() => /^694\/h · old post/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
@@ -172,21 +172,19 @@ try {
     await page.waitForFunction(() => /← follows you/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
     await page.waitForFunction(() => /→ you follow/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
 
-    // A "none" relationship shows no relationship chip
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new CustomEvent("xh-relations", {
-          detail: JSON.stringify({
-            u: [{ handle: "dan", following: false, followedBy: false }],
-            v: [],
-            f: [],
-            at: Date.now(),
-          }),
-        })
-      );
-    });
-    await page.waitForTimeout(300);
-    assert.strictEqual(await page.$("#dan .xh-chip[class*='xh-rel-']"), null);
+    // When neither follows the other any more, the relationship chip goes away.
+    const sendRel = (following) =>
+      page.evaluate((following) => {
+        window.dispatchEvent(
+          new CustomEvent("xh-relations", {
+            detail: JSON.stringify({ u: [{ handle: "dan", following, followedBy: false }], v: [], f: [], at: Date.now() }),
+          })
+        );
+      }, following);
+    await sendRel(true);
+    await page.waitForSelector("#dan .xh-chip.xh-rel-following", { timeout: 5000 });
+    await sendRel(false);
+    await page.waitForFunction(() => !document.querySelector("#dan .xh-chip[class*='xh-rel-']"), null, { timeout: 5000 });
   });
 
   await step("liking counts in the HUD and the author's badge", async () => {
@@ -1116,17 +1114,52 @@ try {
     assert.strictEqual(await page.$("#fresh .xh-badge-row"), null);
   });
 
-  await step("a post with no tweetText keeps its badge in the name row and is not clipped", async () => {
+  await step("a post with no text whose badge doesn't fit gets its own row below the name row", async () => {
+    await page.waitForSelector("#narrow2 .xh-badge.xh-badge-row", { timeout: 5000 });
     const r = await page.evaluate(() => {
-      const article = document.querySelector("#fresh");
-      const b = article?.querySelector(".xh-badge");
+      const b = document.querySelector("#narrow2 .xh-badge");
       return {
-        hasTweetText: !!article?.querySelector('[data-testid="tweetText"]'),
-        inNameRow: !!b?.closest('[data-testid="User-Name"]'),
-        clipped: b ? b.scrollWidth > b.clientWidth + 1 : true,
+        inNameRow: !!b.closest('[data-testid="User-Name"]'),
+        afterName: b.previousElementSibling?.dataset.testid === "User-Name",
+        clipped: b.scrollWidth > b.clientWidth + 1,
+        star: !!b.querySelector(".xh-star"),
       };
     });
-    assert.deepStrictEqual(r, { hasTweetText: false, inNameRow: true, clipped: false });
+    assert.deepStrictEqual(r, { inNameRow: false, afterName: true, clipped: false, star: true });
+  });
+
+  await step("when X reuses a post's element for another post, the badge starts over and the star stars the new author", async () => {
+    await setStoredPart("keys", {});
+    await page.waitForSelector("#narrow .xh-badge.xh-badge-row", { timeout: 5000 });
+    // Like X's virtual list: the same element now shows a post by alice, with room for the badge.
+    await page.evaluate(() => {
+      const a = document.querySelector("#narrow");
+      a.style.width = "";
+      const name = a.querySelector('[data-testid="User-Name"]');
+      name.querySelector("a").setAttribute("href", "/alice");
+      const link = document.createElement("a");
+      link.href = "/alice/status/113";
+      const time = document.createElement("time");
+      time.setAttribute("datetime", new Date(Date.now() - 3600e3).toISOString());
+      link.append(time);
+      name.querySelector('a[href*="/status/"]').replaceWith(link);
+    });
+    await page.waitForFunction(() => {
+      const b = document.querySelector("#narrow .xh-badge");
+      return b && b.closest('[data-testid="User-Name"]') && !b.classList.contains("xh-badge-row");
+    }, null, { timeout: 5000 });
+    await page.click("#narrow .xh-star");
+    const keys = await (async () => {
+      for (let i = 0; i < 30; i++) {
+        const k = await storedPart("keys");
+        if (k && Object.keys(k).length) return k;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return {};
+    })();
+    assert.ok(keys.alice, "the star stars the post now shown");
+    assert.strictEqual(keys.nina, undefined);
+    await setStoredPart("keys", {});
   });
 
   await step("on a status page the focal post badge is before its text, and a reply stays in its name row", async () => {

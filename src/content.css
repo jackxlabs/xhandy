@@ -127,11 +127,6 @@
   color: var(--xh-fg);
   background: var(--xh-chip);
 }
-.xh-rel-none {
-  color: var(--xh-muted);
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--xh-border);
-}
 .xh-seen {
   color: var(--xh-purple);
   background: var(--xh-purple-bg);

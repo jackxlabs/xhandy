@@ -10,6 +10,7 @@
 
 - [x] 2.1 Factor `placeAsRow(article, badge)` out of `fitBadge`; focal post on its status page always in a row (src/content.js); fixture: a status-page fixture or a URL the test can open where the focal post has tweetText; e2e: focal post badge is before its text, a reply on the same page stays in its name row
 - [x] 2.2 Keep the existing "doesn't fit" e2e step passing; add one where the post has no tweetText and the badge is not clipped (scrollWidth <= clientWidth + 1)
+- [x] 2.3 Audit fixes: a reused post element resets its badge (data-post) and the star reads the author at click time; a post with no text gets its row right below the name row; fit checks batched per frame (reads, then moves); e2e for the no-text case, element reuse and the "neither follows" chip
 
 ## 3. Docs
 

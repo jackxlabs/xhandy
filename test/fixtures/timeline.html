@@ -105,6 +105,14 @@
         </div>
         <div data-testid="tweetText">narrow post</div>
       </article>
+      <article data-testid="tweet" id="narrow2" tabindex="0" style="width: 150px">
+        <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-nora"><a href="/nora" class="av">N</a></div></div>
+        <div data-testid="User-Name" style="overflow: hidden">
+          <a href="/nora">Nora Longname</a>
+          <a href="/nora/status/889"><time id="t-narrow2"></time></a>
+        </div>
+        <img alt="photo only" width="100" height="60">
+      </article>
     </main>
     <div role="dialog" id="composer">
       <div data-testid="tweetTextarea_0_label">
@@ -173,6 +181,7 @@
       document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());
       document.getElementById("t-fresh").setAttribute("datetime", new Date(Date.now() - 2 * 3600e3).toISOString());
       document.getElementById("t-fresh2").setAttribute("datetime", new Date(Date.now() - 3600e3).toISOString());
+      document.getElementById("t-narrow2").setAttribute("datetime", new Date(Date.now() - 5 * 3600e3).toISOString());
       document.getElementById("t-narrow").setAttribute("datetime", new Date(Date.now() - 5 * 3600e3).toISOString());
       document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
       // Like X: "l" on a focused post toggles like <-> unlike.
