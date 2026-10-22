@@ -21,22 +21,32 @@ function loadI18n(lang) {
   return globalThis.XH;
 }
 
-test("reply chip: short follower counts, ratio only when the author is at least 2x bigger", () => {
+test("reply chip: compact ratio without author count, only when author is at least 2x bigger", () => {
   for (const lang of ["en-US", "zh-CN"]) {
     const XH = loadI18n(lang);
-    assert.strictEqual(XH.replyChip(23, 46000, 3800), "💬 23 · 46K · 12×", lang + " all data");
-    assert.strictEqual(XH.replyChip(6, 3200, 4600), "💬 6 · 3.2K", lang + " smaller author: no ratio");
-    assert.strictEqual(XH.replyChip(6, 9000, 4600), "💬 6 · 9K", lang + " under 2x: no ratio");
-    assert.strictEqual(XH.replyChip(6, 9200, 4600), "💬 6 · 9.2K · 2×", lang + " exactly 2x");
-    assert.strictEqual(XH.replyChip(23, 46000, 0), "💬 23 · 46K", lang + " own count unknown");
+    assert.strictEqual(XH.replyChip(23, 46000, 3800), "💬 23 · 12×", lang + " all data");
+    assert.strictEqual(XH.replyChip(6, 3200, 4600), "💬 6", lang + " smaller author: no ratio");
+    assert.strictEqual(XH.replyChip(6, 9000, 4600), "💬 6", lang + " under 2x: no ratio");
+    assert.strictEqual(XH.replyChip(6, 9200, 4600), "💬 6 · 2×", lang + " exactly 2x");
+    assert.strictEqual(XH.replyChip(23, 46000, 0), "💬 23", lang + " own count unknown");
     assert.strictEqual(XH.replyChip(23, undefined, 3800), "💬 23", lang + " author count unknown");
-    assert.strictEqual(XH.replyChip(0, 950, 100), "💬 0 · 950 · 10×", lang + " small numbers");
-    assert.strictEqual(XH.replyChip(5, 1_200_000, 4600), "💬 5 · 1.2M · 261×", lang + " millions");
+    assert.strictEqual(XH.replyChip(0, 950, 100), "💬 0 · 10×", lang + " small numbers");
+    assert.strictEqual(XH.replyChip(5, 1_200_000, 4600), "💬 5 · 261×", lang + " millions");
   }
+  assert.strictEqual(loadI18n("en-US").replyChip(10000, 240_000_000, 2600), "💬 10K · 92K×", "en large ratio");
+  assert.strictEqual(loadI18n("zh-CN").replyChip(10000, 240_000_000, 2600), "💬 1万 · 9.2万×", "zh large ratio");
   assert.strictEqual(loadI18n("en-US").t("replied"), "✓ replied");
   assert.strictEqual(loadI18n("zh-CN").t("replied"), "✓ 已回复");
+  assert.strictEqual(loadI18n("en-US").t("interacted", { n: 1, ago: "2d ago" }), "1× · 2d ago");
+  assert.strictEqual(loadI18n("zh-CN").t("interacted", { n: 1, ago: "2天前" }), "1次 · 2天前");
   assert.strictEqual(loadI18n("en-US").t("interacted_both", { a: 3, b: 5, ago: "today" }), "you 3 · them 5 · today");
   assert.strictEqual(loadI18n("zh-CN").t("interacted_both", { a: 3, b: 5, ago: "今天" }), "我3 · 他5 · 今天");
+  assert.strictEqual(loadI18n("zh-CN").t("rel_following"), "→ 我关注");
+  assert.strictEqual(loadI18n("zh-CN").t("rel_follower"), "← 关注我");
+  assert.strictEqual(loadI18n("en-US").t("opt_showAge"), "Heat chip (views per hour, old post)");
+  assert.strictEqual(loadI18n("en-US").t("opt_showHeat"), "Show views per hour and colour");
+  assert.strictEqual(loadI18n("zh-CN").t("opt_showAge"), "热度标签（每小时浏览量、旧帖）");
+  assert.strictEqual(loadI18n("zh-CN").t("opt_showHeat"), "显示每小时浏览量并标颜色");
   for (const [lang, hour, mins] of [["en-US", "an hour", "30 minutes"], ["zh-CN", "1 小时内", "30 分钟内"]]) {
     const { t } = loadI18n(lang);
     assert.strictEqual(t("pace_hour"), hour);

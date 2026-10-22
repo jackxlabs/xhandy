@@ -147,21 +147,21 @@ try {
 
   await step("badges show post age, old post is marked stale", async () => {
     await page.waitForSelector("#fresh .xh-badge");
-    assert.match(await page.textContent("#fresh .xh-badge"), /2h/);
-    await page.waitForFunction(() => /^3d · 694\/h · old post/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /^694\/h · old post/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#old .xh-chip.xh-stale"));
   });
 
   await step("views per hour colour the age chip: hot, warm, normal, none without data", async () => {
     // alice: 30000 views in 2 h. carol: 600 views in 10 min (counted as 30 min).
     // eve: 100 views in 15 min. dan: no view data.
-    await page.waitForFunction(() => /^🔥 2h · 15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /^🔥 15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#fresh .xh-chip.xh-hot"));
-    await page.waitForFunction(() => /^10m · 1.2K\/h/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /^1\.2K\/h/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#carol .xh-chip.xh-warm"));
-    await page.waitForFunction(() => /^15m · 200\/h/.test(document.querySelector("#eve .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /^200\/h/.test(document.querySelector("#eve .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#eve .xh-chip.xh-age"));
-    assert.match(await page.textContent("#dan .xh-badge"), /^30m(?! ·)/);
+    assert.strictEqual(await page.$("#dan .xh-chip.xh-age, #dan .xh-chip.xh-hot, #dan .xh-chip.xh-warm, #dan .xh-chip.xh-stale"), null);
   });
 
 
@@ -169,12 +169,28 @@ try {
     await page.waitForFunction(() => /⇄ mutual/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
     await page.waitForFunction(() => /← follows you/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
     await page.waitForFunction(() => /→ you follow/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
+
+    // A "none" relationship shows no relationship chip
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "dan", following: false, followedBy: false }],
+            v: [],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    await page.waitForTimeout(300);
+    assert.strictEqual(await page.$("#dan .xh-chip[class*='xh-rel-']"), null);
   });
 
   await step("liking counts in the HUD and the author's badge", async () => {
     await page.click("#fresh [data-testid=like]");
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "1");
-    await page.waitForFunction(() => /you: 1×/.test(document.querySelector("#fresh .xh-badge").textContent));
+    await page.waitForFunction(() => /1× · today/.test(document.querySelector("#fresh .xh-badge").textContent));
   });
 
   const box = '[data-testid="tweetTextarea_0"]';
@@ -185,7 +201,7 @@ try {
     await page.fill(box, text);
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "1");
-    await page.waitForFunction(() => /you: 2×/.test(document.querySelector("#fresh .xh-badge").textContent));
+    await page.waitForFunction(() => /2× · today/.test(document.querySelector("#fresh .xh-badge").textContent));
   });
 
   await step("typing a near-duplicate shows the warning", async () => {
@@ -214,7 +230,7 @@ try {
     await page.fill(box, "Bob, the old post still holds up after three days");
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "2");
-    await page.waitForFunction(() => /you: 1×/.test(document.querySelector("#old .xh-badge").textContent));
+    await page.waitForFunction(() => /1× · today/.test(document.querySelector("#old .xh-badge").textContent));
   });
 
   await step("typing l inside the composer is not counted as a like", async () => {
@@ -242,7 +258,7 @@ try {
     await page.fill(box, "Bob, this confirms author comes from X");
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "4");
-    await page.waitForFunction(() => /you: 2×/.test(document.querySelector("#old .xh-badge").textContent));
+    await page.waitForFunction(() => /2× · today/.test(document.querySelector("#old .xh-badge").textContent));
     const lastSent = (await storedSent()).at(-1);
     assert.strictEqual(lastSent.to, "bob");
     assert.strictEqual(lastSent.kind, "reply");
@@ -531,7 +547,7 @@ try {
         })
       );
     });
-    await page.waitForFunction(() => /💬 23 · 46K(?! ·)/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /💬 23(?! ·)/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#dan .xh-chip.xh-replies"));
 
     // 2. Scenario: All data known (own follower count 3800 arrives for me_test)
@@ -548,7 +564,7 @@ try {
         })
       );
     });
-    await page.waitForFunction(() => /💬 23 · 46K · 12×/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /💬 23 · 12×/.test(document.querySelector("#dan .xh-badge")?.textContent), null, { timeout: 5000 });
 
     // Wait for relMeta.me batch write (2 s) and verify persisted
     await page.waitForTimeout(2200);
@@ -585,7 +601,7 @@ try {
     await page.waitForFunction((n) => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === String(n), before + 1);
     await page.waitForTimeout(400);
     const badge = await page.textContent("#mine .xh-badge");
-    assert.doesNotMatch(badge, /not following|you:/, "no relationship or interaction chip on your own post");
+    assert.doesNotMatch(badge, /not following|you:|\d+×/, "no relationship or interaction chip on your own post");
     assert.doesNotMatch(badge, /4\.6K/, "no follower count of your own account");
   });
 
@@ -695,7 +711,7 @@ try {
 
     // Scenario 3: Reverse view off
     await updateSettings({ showInbound: false });
-    await page.waitForFunction(() => /you: 3× · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /3× · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 5000 });
     await page.waitForFunction(() => !/them|you \d/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
 
     // Restore showInbound setting
@@ -720,7 +736,7 @@ try {
     await page.waitForFunction(() => !document.querySelector(".xh-chip.xh-age, .xh-chip.xh-hot, .xh-chip.xh-warm, .xh-chip.xh-stale"), null, { timeout: 3000 });
     assert.ok(await page.$("#fresh .xh-badge"));
     assert.match(await page.textContent("#fresh .xh-badge"), /⇄ mutual/);
-    assert.doesNotMatch(await page.textContent("#fresh .xh-badge"), /2h/);
+    assert.doesNotMatch(await page.textContent("#fresh .xh-badge"), /15K\/h/);
 
     // 3. Scenario: Nothing left to show - empty badges are removed
     await updateSettings({ showAge: false, showReplies: false, keyAccounts: false });
@@ -735,7 +751,7 @@ try {
     // 4. Restore settings to defaults
     await updateSettings({ showAge: true, showRel: true, showReplies: true, showSeen: true, showReplied: true, keyAccounts: true });
     await page.waitForFunction(() => !!document.querySelector("#fresh .xh-badge") && !!document.querySelector("#dan .xh-badge"), null, { timeout: 3000 });
-    assert.match(await page.textContent("#fresh .xh-badge"), /2h/);
+    assert.match(await page.textContent("#fresh .xh-badge"), /15K\/h/);
   });
 
   await step("interaction chip switch hides both forms", async () => {
@@ -756,7 +772,7 @@ try {
 
     // 4. Turning showSeen on restores single-direction form when showInbound is false
     await updateSettings({ showSeen: true, showInbound: false });
-    await page.waitForFunction(() => /you: 3× · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 3000 });
+    await page.waitForFunction(() => /3× · today/.test(document.querySelector("#old .xh-badge")?.textContent), null, { timeout: 3000 });
     assert.ok(await page.$("#old .xh-chip.xh-seen"));
 
     // 5. Turning showInbound on restores two-direction form
@@ -1307,6 +1323,7 @@ try {
         { timeout: 5000 }
       );
       assert.strictEqual(await p.textContent(".xh-hud [data-k=likes] .xh-hud-label"), "赞");
+      await p.waitForFunction(() => /→ 我关注/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
 
       // Switch language back to en
       await updateSettings({ lang: "en" });
@@ -1316,6 +1333,7 @@ try {
         { timeout: 5000 }
       );
       assert.strictEqual(await p.textContent(".xh-hud [data-k=likes] .xh-hud-label"), "likes");
+      await p.waitForFunction(() => /→ you follow/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
     } finally {
       await updateSettings({ lang: "auto" });
       await p.close();

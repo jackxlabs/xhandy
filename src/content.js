@@ -51,14 +51,6 @@
     return m ? m[1] : null;
   }
 
-  function fmtAge(ms) {
-    const m = Math.max(0, Math.floor(ms / 60000));
-    if (m < 60) return t("age_min", { n: m });
-    const h = Math.floor(m / 60);
-    if (h < 24) return t("age_hour", { n: h });
-    return t("age_day", { n: Math.floor(h / 24) });
-  }
-
   // h:mm, like a clock, so the stats bar keeps a steady width.
   function fmtDuration(sec) {
     const h = Math.floor(sec / 3600);
@@ -115,18 +107,21 @@
     const chips = [];
     if (s.showAge) {
       const rate = s.showHeat ? viewsPerHour(info) : null;
-      const heat = rate == null ? "age" : rate >= s.heatHot ? "hot" : rate >= s.heatWarm ? "warm" : "age";
-      let ageText = (heat === "hot" && !stale ? "🔥 " : "") + fmtAge(now - info.time);
-      if (rate != null) ageText += " · " + t("per_hour", { n: XH.compact(rate) });
-      if (stale) ageText += " · " + t("stale");
-      chips.push([stale ? "stale" : heat, ageText]);
+      if (stale) {
+        const text = rate != null ? t("per_hour", { n: XH.compact(rate) }) + " · " + t("stale") : t("stale");
+        chips.push(["stale", text]);
+      } else if (rate != null) {
+        const heat = rate >= s.heatHot ? "hot" : rate >= s.heatWarm ? "warm" : "age";
+        const text = (heat === "hot" ? "🔥 " : "") + t("per_hour", { n: XH.compact(rate) });
+        chips.push([heat, text]);
+      }
     }
     // On the user's own posts, "not following" and interactions with yourself mean nothing.
     const me = myHandle();
     const own = !!me && me.toLowerCase() === info.handle.toLowerCase();
     const rel = !own && s.showRel && S.rel[info.handle.toLowerCase()];
-    if (rel) {
-      const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : rel.fb ? "follower" : "none";
+    if (rel && (rel.f || rel.fb)) {
+      const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : "follower";
       const old = now - rel.t > s.relStaleDays * 86400000;
       chips.push(["rel-" + key, t("rel_" + key) + (old ? t("rel_stale") : "")]);
     }

@@ -2,12 +2,9 @@
   const XH = (globalThis.XH = globalThis.XH || {});
   XH.locales = XH.locales || {};
   XH.locales.en = {
-    age_min: "{n}m",
-    age_hour: "{n}h",
-    age_day: "{n}d",
     stale: "old post",
     per_hour: "{n}/h",
-    interacted: "you: {n}× · {ago}",
+    interacted: "{n}× · {ago}",
     interacted_both: "you {a} · them {b} · {ago}",
     ago_today: "today",
     ago_days: "{n}d ago",
@@ -48,7 +45,6 @@
     rel_mutual: "⇄ mutual",
     rel_following: "→ you follow",
     rel_follower: "← follows you",
-    rel_none: "not following",
     rel_stale: "(old)",
     nfb_title: "Not following you back",
     nfb_hint: "From data X has already shown this browser. For the full list, open {link} and scroll to the bottom.",
@@ -79,8 +75,8 @@
     opt_lang: "Interface language",
     opt_lang_auto: "Auto (browser language)",
     opt_sec_features: "Features",
-    opt_showAge: "Post age chip (age, heat, old post)",
-    opt_showHeat: "Colour posts by views per hour",
+    opt_showAge: "Heat chip (views per hour, old post)",
+    opt_showHeat: "Show views per hour and colour",
     opt_showSeen: "Interaction chip",
     opt_showInbound: "Show interactions from others",
     opt_showReplies: "Show replies and author size",
