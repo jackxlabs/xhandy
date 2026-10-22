@@ -161,7 +161,6 @@
     if (s.showReplied && S.replied && S.replied[info.id]) {
       chips.push(["replied", t("replied")]);
     }
-    if (isKey) chips.push(["key", "★ " + t("key")]);
 
     const showStar = !!(s.keyAccounts && !own);
     let badge = article.querySelector(":scope .xh-badge");

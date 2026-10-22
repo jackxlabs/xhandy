@@ -150,12 +150,12 @@ button.xh-star {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   margin-left: 2px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 18px;
   line-height: 1;
   color: var(--xh-muted);
   cursor: pointer;

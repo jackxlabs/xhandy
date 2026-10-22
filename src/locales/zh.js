@@ -12,7 +12,6 @@
     ago_today: "今天",
     ago_days: "{n}天前",
     target: "关注对象",
-    key: "重点",
     key_add: "设为重点账号",
     key_remove: "移出重点账号",
     key_done_add: "已将 @{h} 设为重点账号",

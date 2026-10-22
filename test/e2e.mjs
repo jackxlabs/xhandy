@@ -1027,9 +1027,9 @@ try {
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 3000 });
     await page.waitForSelector('#fresh2 .xh-star[aria-pressed="true"]', { timeout: 3000 });
 
-    // Both posts now show key chip and highlight
-    assert.ok(await page.$("#fresh .xh-chip.xh-key"));
-    assert.ok(await page.$("#fresh2 .xh-chip.xh-key"));
+    // Both posts now show the highlight; the filled star is the only key marker
+    assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
+    assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
     assert.ok(await page.$("#fresh.xh-target"));
     assert.ok(await page.$("#fresh2.xh-target"));
 
@@ -1088,7 +1088,7 @@ try {
   await step("key accounts switch hides star and highlight", async () => {
     await setStoredPart("keys", { alice: { h: "alice", t: Date.now() } });
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 3000 });
-    assert.ok(await page.$("#fresh .xh-chip.xh-key"));
+    assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.ok(await page.$("#fresh.xh-target"));
 
     // Turn feature off
@@ -1103,7 +1103,7 @@ try {
     // Turn feature back on
     await updateSettings({ keyAccounts: true });
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 5000 });
-    assert.ok(await page.$("#fresh .xh-chip.xh-key"));
+    assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.ok(await page.$("#fresh.xh-target"));
 
     await setStoredPart("keys", {});

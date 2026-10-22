@@ -12,7 +12,7 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 - **Feature switches**: every feature (post age chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
 - **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
-- **Key accounts** (`Alt+K`, or the button in the toolbar popup): star accounts you care about directly from post badges (`☆` to star, `★` when starred) or with `Alt+S` on the post selected with `j`/`k`. Their posts get a blue edge and a `★ key` chip. A dedicated panel (`Alt+K`) lists your key accounts sorted by silence (accounts with no recent interaction in either direction first) and marks quiet accounts (default 14 days without interaction in either direction, threshold customizable in Options). You can also manage key accounts in Options with search, added dates, last interaction dates, one-click removal, and bulk paste-to-add.
+- **Key accounts** (`Alt+K`, or the button in the toolbar popup): star accounts you care about directly from post badges (`☆` to star, `★` when starred) or with `Alt+S` on the post selected with `j`/`k`. Their posts get a blue edge, and the filled `★` is the only marker; click it again to unstar. A dedicated panel (`Alt+K`) lists your key accounts sorted by silence (accounts with no recent interaction in either direction first) and marks quiet accounts (default 14 days without interaction in either direction, threshold customizable in Options). You can also manage key accounts in Options with search, added dates, last interaction dates, one-click removal, and bulk paste-to-add.
 - **Post badges**: how old each post is (posts older than 48 h are greyed out, since replying there rarely helps),
   how many times you have interacted with the author and when, and a highlight for accounts you choose.
   Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
@@ -110,7 +110,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（显示蓝色高亮和 ★ 重点 标签），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 

@@ -35,11 +35,12 @@ the user is typing.
 - **THEN** @bob is added and a toast confirms it
 
 ### Requirement: Key account highlight
-Posts by key accounts SHALL keep the blue edge and show a "★ 重点" / "★ key" chip.
+Posts by key accounts SHALL keep the blue edge. The filled ★ star button SHALL be the only key marker in
+the badge; there SHALL be no separate key chip.
 
-#### Scenario: Chip text
-- **WHEN** the interface is in English and a post is by a key account
-- **THEN** the chip reads "★ key"
+#### Scenario: One star per post
+- **WHEN** a post is by a key account
+- **THEN** its badge shows a single filled ★ button and no "key" chip, and clicking ★ removes the account
 
 ### Requirement: Managing key accounts in settings
 The settings page SHALL list key accounts with a search box. Each row SHALL show the handle linking to
@@ -88,4 +89,4 @@ behaviour, and SHALL keep the stored list.
 
 #### Scenario: Switched off
 - **WHEN** key accounts are off
-- **THEN** posts show no star or key chip, and turning it back on restores the same list
+- **THEN** posts show no star or highlight, and turning it back on restores the same list

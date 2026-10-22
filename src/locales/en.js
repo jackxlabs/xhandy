@@ -12,7 +12,6 @@
     ago_today: "today",
     ago_days: "{n}d ago",
     target: "target",
-    key: "key",
     key_add: "Add to key accounts",
     key_remove: "Remove from key accounts",
     key_done_add: "Added @{h} to key accounts",
