@@ -1162,11 +1162,11 @@ try {
     await setStoredPart("keys", {});
   });
 
-  await step("on a status page the focal post badge is before its text, and a reply stays in its name row", async () => {
+  await step("on a status page the focal post badge stays in its name row when it fits, like a reply", async () => {
     const p = await ctx.newPage();
     try {
       await p.goto("https://x.com/alice/status/111");
-      await p.waitForSelector("#focal .xh-badge.xh-badge-row", { timeout: 5000 });
+      await p.waitForSelector("#focal .xh-badge", { timeout: 5000 });
       await p.waitForSelector("#reply .xh-badge", { timeout: 5000 });
 
       const focal = await p.evaluate(() => {
@@ -1177,7 +1177,7 @@ try {
           hasRowClass: b.classList.contains("xh-badge-row"),
         };
       });
-      assert.deepStrictEqual(focal, { beforeText: true, inNameRow: false, hasRowClass: true });
+      assert.deepStrictEqual(focal, { beforeText: false, inNameRow: true, hasRowClass: false });
 
       const reply = await p.evaluate(() => {
         const b = document.querySelector("#reply .xh-badge");

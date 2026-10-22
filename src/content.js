@@ -51,11 +51,6 @@
     return m ? m[1] : null;
   }
 
-  function focalStatusId() {
-    const m = location.pathname.match(/^\/[^/]+\/status\/(\d+)/);
-    return m ? m[1] : null;
-  }
-
   // h:mm, like a clock, so the stats bar keeps a steady width.
   function fmtDuration(sec) {
     const h = Math.floor(sec / 3600);
@@ -183,8 +178,6 @@
       host.appendChild(badge);
     }
     badge.dataset.post = info.id;
-    const focalId = focalStatusId();
-    const isFocal = !!focalId && info.id === focalId;
     if (badge.dataset.key !== key) {
       badge.dataset.key = key;
       const nodes = chips.map(([kind, text]) => {
@@ -214,9 +207,8 @@
         nodes.push(star);
       }
       badge.replaceChildren(...nodes);
-      if (!isFocal) queueFit(article, badge);
+      queueFit(article, badge);
     }
-    if (isFocal) placeAsRow(article, badge);
     article.classList.toggle("xh-target", isKey);
     article.classList.toggle("xh-key", isKey);
   }

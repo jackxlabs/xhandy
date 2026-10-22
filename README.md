@@ -16,9 +16,8 @@ That is the point: you get faster without anything that looks like a bot to X.
 - **Post badges**: how many times you have interacted with the author and when (`1× · 2d ago`), and a highlight for accounts you choose.
   Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
   replies, quotes and mentions they gave you, from your notifications and the posts X shows you; each counted
-  once). Turn the second half off in Options. On a post's own status page, the badge always sits in its own row
-  above the post text; on timelines it stays in the name row and moves above the text only when it does not fit,
-  so nothing is cut off.
+  once). Turn the second half off in Options. The badge sits next to the author's name and moves
+  above the post text only when it does not fit, so nothing is cut off.
 - **Post heat**: views per hour since posting (`15K/h`, `🔥 950K/h`).
   Turns orange from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
   Old posts (older than 48 h) are greyed out with an "old post" mark (`694/h · old post`). A recent post with no view
@@ -139,7 +138,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
   - 你和这个作者互动过几次、最近一次是什么时候，例如 `3次 · 今天`。对方也和你互动过的话，会显示双方的次数，例如 `我3 · 他5 · 今天`：对方给你的点赞、回复、引用和提及，来自你的通知页和 X 显示过的帖子，每条只算一次。设置里可以关掉对方那一半。
   - 帖子已有多少回复、作者是你的几倍，例如 `💬 23 · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
-  - 标签排版：在帖子自己的详情页上，标签始终独占一行显示在正文上方；在时间线上默认在名字行，放不下时自动换到正文上方，不会被截断。
+  - 标签跟在作者名字后面，放不下时自动换到正文上方，不会被截断。
 
   这些标签都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。自己的帖子只显示热度和回复数，不显示关注关系和互动次数。
 
