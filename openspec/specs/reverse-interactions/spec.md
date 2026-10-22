@@ -54,7 +54,8 @@ Xhandy SHALL remember what it has counted (a key per counted like, reply, quote 
 ### Requirement: Two-direction interaction chip
 When the reverse view is on, the interaction chip SHALL show the user's count and the other account's
 count, and the time of the latest interaction in either direction. When only one side has interactions,
-the other side shows 0. When the reverse view is off, the chip SHALL look as it does today.
+the other side shows 0. When the reverse view is off, or the other account has no interactions, the chip
+SHALL show the user's count and the time in the short form "1次 · 2天前" / "1× · 2d ago".
 
 #### Scenario: Both directions
 - **WHEN** the user gave 3 interactions and the author gave 5, the latest today
@@ -65,8 +66,8 @@ the other side shows 0. When the reverse view is off, the chip SHALL look as it 
 - **THEN** the chip reads "我0 · 他2 · …" / "you 0 · them 2 · …"
 
 #### Scenario: Reverse view off
-- **WHEN** the user turns the reverse view off in settings
-- **THEN** the chip shows only the user's own count, as before
+- **WHEN** the user turns the reverse view off in settings and interacted once with the author 2 days ago
+- **THEN** the chip reads "1次 · 2天前" / "1× · 2d ago"
 
 ### Requirement: Identify the user
 Xhandy SHALL treat as "the user" the signed-in account, by handle from the page and by account id when a
