@@ -131,6 +131,8 @@
     opt_saved: "Saved",
     opt_sec_data: "Data",
     opt_export: "Export JSON",
+    opt_import: "Import JSON",
+    opt_import_confirm: "Importing replaces all current Xhandy data with this file. Export a backup first if you might need it. Continue?",
     opt_imported: "Imported",
     opt_invalid_file: "Invalid file: {msg}",
     opt_reset: "Delete all data",

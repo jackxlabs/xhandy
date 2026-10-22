@@ -1478,6 +1478,37 @@ try {
       await p.close();
     }
   });
+  await step("import is a labelled button and asks before replacing data", async () => {
+    await updateSettings({ lang: "zh" });
+    await setStoredPart("keys", { alice: { h: "alice", t: Date.now() } });
+    const file = { name: "xhandy.json", mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ keys: { carol: { h: "carol", t: Date.now() } } })) };
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForFunction(() => document.getElementById("import-btn").textContent === "导入 JSON");
+      assert.ok(await p.$eval("#import", (el) => el.hidden), "native file input is hidden");
+
+      let asked = 0;
+      p.once("dialog", (d) => { asked++; d.dismiss(); });
+      await p.setInputFiles("#import", file);
+      await p.waitForTimeout(300);
+      assert.strictEqual(asked, 1, "cancel dialog shown");
+      assert.ok((await storedPart("keys")).alice, "cancel keeps current data");
+
+      p.once("dialog", (d) => { asked++; d.accept(); });
+      await p.setInputFiles("#import", file);
+      await p.waitForFunction(async () => {
+        const k = (await chrome.storage.local.get("xh:keys"))["xh:keys"] || {};
+        return k.carol && !k.alice;
+      }, null, { timeout: 3000 });
+      assert.strictEqual(asked, 2);
+    } finally {
+      await setStoredPart("keys", {});
+      await updateSettings({ lang: "auto" });
+      await p.close();
+    }
+  });
 } finally {
   await ctx.close();
 }

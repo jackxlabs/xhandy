@@ -241,9 +241,11 @@
     URL.revokeObjectURL(a.href);
   });
 
+  $("import-btn").addEventListener("click", () => $("import").click());
   $("import").addEventListener("change", async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    e.target.value = "";
+    if (!file || !confirm(XH.t("opt_import_confirm"))) return;
     try {
       await store.replaceAll(JSON.parse(await file.text()));
       await load();

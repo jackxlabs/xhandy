@@ -131,6 +131,8 @@
     opt_saved: "已保存",
     opt_sec_data: "数据",
     opt_export: "导出 JSON",
+    opt_import: "导入 JSON",
+    opt_import_confirm: "导入会用这个文件替换当前的全部数据，需要的话请先导出备份。继续吗？",
     opt_imported: "已导入",
     opt_invalid_file: "文件无效：{msg}",
     opt_reset: "清空数据",
