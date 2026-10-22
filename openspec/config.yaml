@@ -18,7 +18,8 @@ context: |
     and sends requests from the background service worker, never from content scripts.
   - User data lives only in chrome.storage.local (IndexedDB later, opened in the service worker only).
     A change to what is stored updates README "Privacy" and PRIVACY.md.
-  - Storage: one key per part (xh:settings, xh:people, xh:sent, xh:days, xh:rel, xh:relMeta), writes via
+  - Storage: one key per part (xh:settings, xh:people, xh:sent, xh:days, xh:rel, xh:relMeta, xh:replied,
+    xh:inSeen, xh:pace, xh:keys; PARTS in src/lib/store.js is the source of truth), writes via
     store.update([parts], fn). Schema changes add DEFAULTS, bump VERSION with a migrate() step and a
     migration test; old exports must still import.
   - Soft limits only remind, never block.

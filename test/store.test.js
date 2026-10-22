@@ -166,6 +166,36 @@ test("replaceAll drops what can't be right in an import file", async () => {
   assert.deepStrictEqual(s.pace, { follows: [], unfollows: [] });
 });
 
+test("handles that are Object.prototype names are not handles, so imports can't reach the prototype", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+  for (const h of ["__proto__", "constructor", "Constructor", "prototype"]) assert.strictEqual(store.isHandle(h), false, h);
+  assert.strictEqual(store.isHandle("construct"), true);
+  await store.replaceAll(JSON.parse('{"people":{"__proto__":{"likes":5},"constructor":{"likes":1},"dan":{"likes":2}},' +
+    '"keys":{"__proto__":{"h":"x","t":1}},"rel":{"constructor":{"f":true,"fb":false,"t":1}}}'));
+  const s = await store.get();
+  assert.deepStrictEqual(Object.keys(s.people), ["dan"]);
+  assert.strictEqual(Object.getPrototypeOf(s.people), Object.prototype);
+  assert.deepStrictEqual(s.keys, {});
+  assert.deepStrictEqual(s.rel, {});
+});
+
+test("an import file can't exceed the limits that everyday writes keep", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+  const sent = Array.from({ length: 350 }, (_, i) => ({ t: i, text: "post " + i, kind: "post" }));
+  sent.push({ t: 999, text: "x".repeat(25001), kind: "post" });
+  const rel = {};
+  for (let i = 0; i < 30005; i++) rel["u" + i] = { f: true, fb: false, t: i };
+  await store.replaceAll({ sent, rel });
+  const s = await store.get();
+  assert.strictEqual(s.sent.length, 300);
+  assert.strictEqual(s.sent[299].text, "post 349");
+  assert.strictEqual(Object.keys(s.rel).length, 30000);
+  assert.strictEqual(s.rel.u0, undefined);
+  assert.ok(s.rel.u30004);
+});
+
 test("cleanRelations keeps only well-formed users and view counts", () => {
   const store = loadStore(fakeChrome());
   const r = store.cleanRelations(JSON.stringify({

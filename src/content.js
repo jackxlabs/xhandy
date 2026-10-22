@@ -36,7 +36,7 @@
     const href = time.closest("a").getAttribute("href");
     const parts = new URL(href, location.origin).pathname.split("/");
     const i = parts.indexOf("status");
-    if (i < 1) return null;
+    if (i < 1 || !store.isHandle(parts[i - 1])) return null;
     return {
       handle: parts[i - 1],
       id: parts[i + 1],

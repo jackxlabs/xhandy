@@ -8,7 +8,7 @@ Browser helpers for people who engage on X by hand.
 It reads the page and your own actions, shows hints, and keeps all data in your browser.
 That is the point: you get faster without anything that looks like a bot to X.
 
-## Features (v0.4)
+## Features
 
 - **Feature switches**: every feature (post age chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
 - **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
@@ -77,7 +77,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
   timestamps of up to 100 recent follows and 100 recent unfollows (dropped after 24 hours, used for pace reminders),
   the text of your last 300 replies and posts (used for the duplicate-reply warning), the ids of up to 5,000
   posts you replied to (for the `✓ replied` mark), your own handle and follower count, how often each account
-  liked, replied to, quoted or mentioned you, and up to 20,000 ids of those interactions so each is counted once.
+  liked, replied to, quoted or mentioned you, up to 20,000 ids of those interactions so each is counted once, and
+  up to 1,000 key accounts you starred, with the time each was added.
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
   view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
   changes or sends anything. A reply or post is recorded only after X confirms it was created.
@@ -94,9 +95,8 @@ If you use GitHub, [issues](https://github.com/jackxlabs/xhandy/issues) work too
 
 ## Roadmap
 
-- v0.5: interaction queue (open the next post to reply to with a shortcut), save posts to a local idea list,
-  draft prefill for quote posts (you still press send), export and a generic webhook.
-- v0.6: optional Notion sync, Chinese/English UI polish, store listing.
+- Next: a Chrome Web Store listing, so installing and updating take one click.
+- Never: auto-follow, auto-reply, auto-like, bulk actions, or posting anything you haven't read and confirmed.
 
 ## Development
 
@@ -176,6 +176,11 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 - 防重复回复的灵敏度
 - 每日回复目标（统计栏会显示进度条）
 - 导出、导入、清空全部数据
+
+### 接下来
+
+- 下一步：上架 Chrome 网上应用店，安装和更新都只要点一下。
+- 不做：自动关注、自动回复、自动点赞、批量操作，以及发出任何你没看过、没确认的内容。
 
 ### 反馈
 

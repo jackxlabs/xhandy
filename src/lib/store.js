@@ -54,6 +54,7 @@
   const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
   const MAX_SENT = 300;
+  const MAX_TEXT = 25000; // X's longest post
   const MAX_REPLIED = 5000;
   const MAX_IN_SEEN = 20000;
   const MAX_PACE = 100;
@@ -77,7 +78,9 @@
   const ID = /^\d{1,20}$/;
   const DAY = /^\d{4}-\d{2}-\d{2}$/;
   const INBOUND_KEY = /^(L:\d{1,20}:\d{1,20}|P:\d{1,20})$/; // L:<liker>:<post>, P:<post>
-  const isHandle = (h) => typeof h === "string" && HANDLE.test(h);
+  // Handles are used as object keys; these names would hit Object.prototype instead of our data.
+  const RESERVED = new Set(["__proto__", "constructor", "prototype"]);
+  const isHandle = (h) => typeof h === "string" && HANDLE.test(h) && !RESERVED.has(h.toLowerCase());
   const isId = (id) => typeof id === "string" && ID.test(id);
   const isNonNegInt = (n) => typeof n === "number" && Number.isInteger(n) && n >= 0;
   const isObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
@@ -117,6 +120,16 @@
     const keys = Object.keys(seen);
     if (keys.length <= MAX_IN_SEEN) return;
     keys.sort((a, b) => seen[a] - seen[b]).slice(0, keys.length - MAX_IN_SEEN).forEach((k) => delete seen[k]);
+  }
+
+  // Keep the MAX_REL most recently seen relationships.
+  function capRel(rel) {
+    const handles = Object.keys(rel);
+    if (handles.length <= MAX_REL) return;
+    handles
+      .sort((a, b) => rel[a].t - rel[b].t)
+      .slice(0, handles.length - MAX_REL)
+      .forEach((h) => delete rel[h]);
   }
 
   // Keep the newest MAX_KEYS key accounts, dropping the oldest by added timestamp.
@@ -214,9 +227,10 @@
       }
     }
     for (const x of Array.isArray(s.sent) ? s.sent : []) {
-      if (!isObj(x) || typeof x.text !== "string") continue;
+      if (!isObj(x) || typeof x.text !== "string" || x.text.length > MAX_TEXT) continue;
       out.sent.push({ t: num(x.t), text: untriple(x.text), kind: x.kind === "reply" ? "reply" : "post", to: isHandle(x.to) ? x.to : null });
     }
+    if (out.sent.length > MAX_SENT) out.sent = out.sent.slice(-MAX_SENT);
     for (const [k, d] of Object.entries(isObj(s.days) ? s.days : {})) {
       if (!DAY.test(k) || !isObj(d)) continue;
       const day = {};
@@ -227,6 +241,7 @@
       const e = isHandle(h) && cleanRelEntry(r);
       if (e) out.rel[h.toLowerCase()] = e;
     }
+    capRel(out.rel);
     if (isObj(s.relMeta)) {
       out.relMeta = {
         last: num(s.relMeta.last),
@@ -320,7 +335,7 @@
         x.ok === true &&
         (x.kind === "reply" || x.kind === "post") &&
         typeof x.text === "string" &&
-        x.text.length <= 25000 &&
+        x.text.length <= MAX_TEXT &&
         (x.to == null || isHandle(x.to)) &&
         (x.inReplyTo == null || isId(x.inReplyTo))
       ) {
@@ -470,15 +485,7 @@
       });
       fn(guarded);
       if (s.sent && s.sent.length > MAX_SENT) s.sent = s.sent.slice(-MAX_SENT);
-      if (s.rel) {
-        const handles = Object.keys(s.rel);
-        if (handles.length > MAX_REL) {
-          handles
-            .sort((a, b) => s.rel[a].t - s.rel[b].t)
-            .slice(0, handles.length - MAX_REL)
-            .forEach((h) => delete s.rel[h]);
-        }
-      }
+      if (s.rel) capRel(s.rel);
       if (s.replied) capReplied(s.replied);
       if (s.inSeen) capInSeen(s.inSeen);
       if (s.pace) {

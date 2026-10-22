@@ -26,6 +26,7 @@
 - `互动3次 · 今天`：你和这个作者互动过几次；对方也和你互动过时显示 `我3 · 他5 · 今天`
 - `💬 23 · 46K · 12×`：已有多少回复、作者多少粉丝，作者比你大 2 倍以上时显示是你的几倍
 - `✓ 已回复`：你已经回复过这条
+- `☆`：点一下把作者设为重点账号，变成实心 `★`，帖子有蓝色边线；再点一次取消
 - 写回复时和你发过的很像，会提醒；底部统计栏显示今天的赞、回复、发帖、关注和在线时长
 
 ![关注关系、互动次数、「没回关我」列表和今日统计（其他用户的信息已打码）](https://github.com/jackxlabs/xhandy/raw/main/docs/relations-zh.png)
@@ -34,6 +35,8 @@
 |---|---|
 | `j` / `k` | X 自带：选中下一条 / 上一条帖子 |
 | `Shift+F` | 选中帖子作者的「关注」按钮，按 `Enter` 关注、`Esc` 取消（插件自己不会点） |
+| `Alt+S` | 将选中帖子的作者设为或取消重点账号（也可以直接点帖子上的 ☆） |
+| `Alt+K` | 打开「重点账号」面板，最久没互动的排在前面，标出沉寂账号 |
 | `Alt+U` | 打开「我关注了、没回关我」列表 |
 | `Alt+H` | 隐藏或显示底部统计栏 |
 
@@ -56,7 +59,7 @@ Xhandy 不会替你点击、输入、发送或关注任何东西，数据只存�
 **Install:** unzip it somewhere it can stay, open `chrome://extensions` (Chrome, Edge, Brave), turn on **Developer mode**, click **Load unpacked** and choose the `xhandy` folder.
 **Update:** unzip the new version over the same folder and click reload on Xhandy. Don't move the folder: your data is tied to its path.
 
-**Use:** posts get badges for age and views per hour (🔥 when hot), your follow relationship with the author, how often you've interacted (both ways, `you 3 · them 5`), the reply count and author size (`💬 23 · 46K · 12×`), and `✓ replied` on posts you already answered. `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
+**Use:** posts get badges for age and views per hour (🔥 when hot), your follow relationship with the author, how often you've interacted (both ways, `you 3 · them 5`), the reply count and author size (`💬 23 · 46K · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
 
 Xhandy never clicks, types, sends or follows for you, and all data stays in your browser.
 Feedback: DM [@JackHuang47](https://x.com/JackHuang47) on X.

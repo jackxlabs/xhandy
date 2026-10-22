@@ -21,7 +21,7 @@
 
 ## 存储
 
-- 每个顶层部分单独一个键：`xh:settings`、`xh:people`、`xh:sent`、`xh:days`、`xh:rel`、`xh:relMeta`。版本号在 `xh:v`（当前是 2）。v1 时全部放在一个 `xh` 键里，`store.js` 第一次读写时会自动迁移。
+- 每个顶层部分单独一个键：`xh:settings`、`xh:people`、`xh:sent`、`xh:days`、`xh:rel`、`xh:relMeta`、`xh:replied`、`xh:inSeen`、`xh:pace`、`xh:keys`（以 `store.js` 的 `PARTS` 为准）。版本号在 `xh:v`（当前是 4）。v1 时全部放在一个 `xh` 键里，`store.js` 第一次读写时会自动迁移。
 - 写入用 `store.update([要改的部分], fn)`，只读写声明过的部分。fn 碰到没声明的部分会直接报错，所以加新逻辑时把用到的部分都列上。不要为了省事退回 `store.update(fn)` 全量写：在线计时每 15 秒写一次，`rel` 最多 3 万条，全量写会拖慢 X 页面。
 - 改数据结构时：`DEFAULTS` 里加默认值；需要转换老数据就把 `VERSION` 加 1，在 `migrate()` 里写迁移，并在 `test/store.test.js` 里加迁移测试。不能让老用户丢数据。导出文件是完整的状态对象，`replaceAll` 要能导入旧版本导出的文件。
 - 数据会越来越多的功能（`rel`、`people`、`sent`、计划中的想法列表）以后要搬进 IndexedDB。IndexedDB 必须在扩展自己的环境里打开（后台 service worker），不能在内容脚本里打开：那样数据库属于 x.com，X 的代码能读到，也能清掉。
