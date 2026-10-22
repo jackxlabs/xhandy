@@ -10,27 +10,29 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 ## Features
 
-- **Feature switches**: every feature (post age chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
+- **Feature switches**: every feature (heat chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
 - **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
 - **Key accounts** (`Alt+K`, or the button in the toolbar popup): star accounts you care about directly from post badges (`☆` to star, `★` when starred) or with `Alt+S` on the post selected with `j`/`k`. Their posts get a blue edge, and the filled `★` is the only marker; click it again to unstar. A dedicated panel (`Alt+K`) lists your key accounts sorted by silence (accounts with no recent interaction in either direction first) and marks quiet accounts (default 14 days without interaction in either direction, threshold customizable in Options). You can also manage key accounts in Options with search, added dates, last interaction dates, one-click removal, and bulk paste-to-add.
-- **Post badges**: how old each post is (posts older than 48 h are greyed out, since replying there rarely helps),
-  how many times you have interacted with the author and when, and a highlight for accounts you choose.
+- **Post badges**: how many times you have interacted with the author and when (`1× · 2d ago`), and a highlight for accounts you choose.
   Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
   replies, quotes and mentions they gave you, from your notifications and the posts X shows you; each counted
-  once). Turn the second half off in Options.
-- **Post heat**: the age badge also shows views per hour since posting (`2h · 15K/h`) and turns orange
-  from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
-  The view count is the one X already sent with the post; posts under 30 minutes old count as 30 minutes
-  so a few early views don't look like a spike. Thresholds are in Options.
-- **Reply signals**: `💬 23 · 46K · 12×` shows how many replies a post already has, how many
-  followers its author has, and, when the author is at least twice your size, how many times bigger, so you can pick posts where a reply
-  gets seen. `✓ replied` marks posts you already replied to, also from another device once X has shown your
-  reply in this browser. Both come from data X already sent and each can be turned off in Options.
-  Your own posts only show age, heat and the reply count: no relationship or interaction chip.
+  once). Turn the second half off in Options. On a post's own status page, the badge always sits in its own row
+  above the post text; on timelines it stays in the name row and moves above the text only when it does not fit,
+  so nothing is cut off.
+- **Post heat**: views per hour since posting (`15K/h`, `🔥 950K/h`).
+  Turns orange from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
+  Old posts (older than 48 h) are greyed out with an "old post" mark (`694/h · old post`). A recent post with no view
+  data shows no heat chip. The view count is the one X already sent with the post; posts under 30 minutes old count as
+  30 minutes so a few early views don't look like a spike. Thresholds are in Options.
+- **Reply signals**: `💬 23 · 12×` shows how many replies a post already has and, when the author is at least twice
+  your size, how many times bigger, so you can pick posts
+  where a reply gets seen. `✓ replied` marks posts you already replied to, also from another device once X has shown
+  your reply in this browser. Both come from data X already sent and each can be turned off in Options.
+  Your own posts only show heat and the reply count: no relationship or interaction chip.
 - **Follow relationship**: each post shows whether you and the author follow each other
-  (⇄ mutual, → you follow, ← follows you, not following). It is read from the data X already sends
-  to your browser while you scroll; Xhandy makes no extra requests. Display only: it never follows or
-  unfollows anyone.
+  (`⇄ mutual`, `→ you follow`, `← follows you`). When neither follows the other, no chip is shown. It is read from
+  the data X already sends to your browser while you scroll; Xhandy makes no extra requests. Display only: it never
+  follows or unfollows anyone.
 - **Not following you back** (`Alt+U`, or the button in the toolbar popup): a panel on the right listing
   accounts you follow that don't follow you, with search. Built from the same data; for the full list, open your
   own Following page and scroll to the bottom once. Read-only on purpose: each row only links to the profile,
@@ -110,7 +112,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子发了多久和每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 
@@ -132,13 +134,14 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 ![热帖标记：发布 2 小时、每小时 64 万浏览，标红并带 🔥](docs/heat-zh.png)
 
 - **帖子标记**：每条帖子作者名旁边会多几个小标签：
-  - 发了多久和每小时浏览量，例如 `2小时 · 1.5万/时`。每小时 1000 以上变橙，1 万以上变红并带 🔥，说明这条正在火，值得去回复；超过 48 小时的帖子会变灰，回复了也很少有人看到。
-  - 你和作者的关注关系：`⇄ 互关`、`→ 我关注他`、`← 他关注我` 或 `未关注`。
-  - 你和这个作者互动过几次、最近一次是什么时候，例如 `互动3次 · 今天`。对方也和你互动过的话，会显示双方的次数，例如 `我3 · 他5 · 今天`：对方给你的点赞、回复、引用和提及，来自你的通知页和 X 显示过的帖子，每条只算一次。设置里可以关掉对方那一半。
-  - 帖子已有多少回复、作者有多少粉丝、作者是你的几倍，例如 `💬 23 · 46K · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
+  - 每小时浏览量，例如 `1.5万/时` 或 `🔥 1.5万/时`。每小时 1000 以上变橙，1 万以上变红并带 🔥；超过 48 小时的帖子会变灰并标「旧帖」，没有浏览数据的近期帖子不显示热度标签。
+  - 你和作者的关注关系：`⇄ 互关`、`→ 我关注` 或 `← 关注我`。双方均未关注时不显示标签。
+  - 你和这个作者互动过几次、最近一次是什么时候，例如 `3次 · 今天`。对方也和你互动过的话，会显示双方的次数，例如 `我3 · 他5 · 今天`：对方给你的点赞、回复、引用和提及，来自你的通知页和 X 显示过的帖子，每条只算一次。设置里可以关掉对方那一半。
+  - 帖子已有多少回复、作者是你的几倍，例如 `💬 23 · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
+  - 标签排版：在帖子自己的详情页上，标签始终独占一行显示在正文上方；在时间线上默认在名字行，放不下时自动换到正文上方，不会被截断。
 
-  这两项都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。自己的帖子只显示时效、热度和回复数，不显示关注关系和互动次数。
+  这些标签都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。自己的帖子只显示热度和回复数，不显示关注关系和互动次数。
 
   浏览器语言是中文时界面显示中文，否则显示英文。
 
@@ -169,7 +172,7 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 在 `chrome://extensions` 里点 Xhandy 的「详细信息 → 扩展程序选项」，或者右键工具栏图标 →「选项」。可以调：
 
 - 界面语言：中文或英文，默认跟随浏览器语言。设置页、工具栏弹窗和 X 页面上的提示都会一起切换，不用刷新 X
-- 功能开关：所有开关集中在最上方的「功能开关」区域，可独立开启或关闭发帖时间、热度颜色、互动次数、他人互动、回复数与作者体量、已回复标记、互关状态、重点账号、防重复提醒、关注取关限流提醒、底部统计栏（默认全开）
+- 功能开关：所有开关集中在最上方的「功能开关」区域，可独立开启或关闭热度标签、热度颜色、互动次数、他人互动、回复数与作者体量、已回复标记、互关状态、重点账号、防重复提醒、关注取关限流提醒、底部统计栏（默认全开）
 - 重点账号：搜索、查看添加日期与双方最近互动、一键移除、批量粘贴添加（带不带 @ 均可），以及自定义沉寂天数阈值（默认 14 天）
 - 多少小时算旧帖、多少浏览量算「热」和「火」
 - 关注和取关的每日提醒上限（默认各 20 个）以及节奏提醒（默认 60 分钟内超过 10 个时提醒，窗口和数量均可调，只提醒，不拦截）

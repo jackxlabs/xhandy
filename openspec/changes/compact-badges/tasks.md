@@ -8,9 +8,9 @@
 
 ## 2. Placement
 
-- [ ] 2.1 Factor `placeAsRow(article, badge)` out of `fitBadge`; focal post on its status page always in a row (src/content.js); fixture: a status-page fixture or a URL the test can open where the focal post has tweetText; e2e: focal post badge is before its text, a reply on the same page stays in its name row
-- [ ] 2.2 Keep the existing "doesn't fit" e2e step passing; add one where the post has no tweetText and the badge is not clipped (scrollWidth <= clientWidth + 1)
+- [x] 2.1 Factor `placeAsRow(article, badge)` out of `fitBadge`; focal post on its status page always in a row (src/content.js); fixture: a status-page fixture or a URL the test can open where the focal post has tweetText; e2e: focal post badge is before its text, a reply on the same page stays in its name row
+- [x] 2.2 Keep the existing "doesn't fit" e2e step passing; add one where the post has no tweetText and the badge is not clipped (scrollWidth <= clientWidth + 1)
 
 ## 3. Docs
 
-- [ ] 3.1 README (English Features and 中文说明) and docs/release-template.md chip examples match the new texts; no privacy change
+- [x] 3.1 README (English Features and 中文说明) and docs/release-template.md chip examples match the new texts; no privacy change

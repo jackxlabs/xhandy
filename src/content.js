@@ -51,6 +51,11 @@
     return m ? m[1] : null;
   }
 
+  function focalStatusId() {
+    const m = location.pathname.match(/^\/[^/]+\/status\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
   // h:mm, like a clock, so the stats bar keeps a steady width.
   function fmtDuration(sec) {
     const h = Math.floor(sec / 3600);
@@ -173,6 +178,8 @@
       const host = article.querySelector(SEL.userName) || info.anchor.parentElement;
       host.appendChild(badge);
     }
+    const focalId = focalStatusId();
+    const isFocal = !!focalId && info.id === focalId;
     if (badge.dataset.key !== key) {
       badge.dataset.key = key;
       const nodes = chips.map(([kind, text]) => {
@@ -200,10 +207,23 @@
         nodes.push(star);
       }
       badge.replaceChildren(...nodes);
-      requestAnimationFrame(() => fitBadge(article, badge));
+      if (isFocal) {
+        placeAsRow(article, badge);
+      } else {
+        requestAnimationFrame(() => fitBadge(article, badge));
+      }
+    } else if (isFocal) {
+      placeAsRow(article, badge);
     }
     article.classList.toggle("xh-target", isKey);
     article.classList.toggle("xh-key", isKey);
+  }
+
+  function placeAsRow(article, badge) {
+    if (!badge.isConnected) return;
+    const text = [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'));
+    badge.classList.add("xh-badge-row");
+    if (text && badge.nextElementSibling !== text) text.before(badge);
   }
 
   // X's name row has a fixed width (narrow windows, the Subscribe button on a post's own page), so a long
@@ -212,9 +232,7 @@
   function fitBadge(article, badge) {
     if (!badge.isConnected || badge.classList.contains("xh-badge-row")) return;
     if (badge.scrollWidth <= badge.clientWidth + 1) return;
-    const text = [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'));
-    badge.classList.add("xh-badge-row");
-    if (text) text.before(badge);
+    placeAsRow(article, badge);
   }
 
   function annotateAll() {

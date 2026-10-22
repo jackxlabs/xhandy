@@ -21,10 +21,10 @@
 
 ![热帖标记](https://github.com/jackxlabs/xhandy/raw/main/docs/heat-zh.png)
 
-- `2小时 · 1.5万/时`：发了多久、每小时浏览量。1000/时以上变橙，1 万以上变红带 🔥
-- `⇄ 互关` / `→ 我关注他` / `← 他关注我` / `未关注`：你和作者的关注关系
-- `互动3次 · 今天`：你和这个作者互动过几次；对方也和你互动过时显示 `我3 · 他5 · 今天`
-- `💬 23 · 46K · 12×`：已有多少回复、作者多少粉丝，作者比你大 2 倍以上时显示是你的几倍
+- `1.5万/时`：每小时浏览量（旧帖标「旧帖」）。1000/时以上变橙，1 万以上变红带 🔥
+- `⇄ 互关` / `→ 我关注` / `← 关注我`：你和作者的关注关系（互未关注时不显示）
+- `3次 · 今天`：你和这个作者互动过几次；对方也和你互动过时显示 `我3 · 他5 · 今天`
+- `💬 23 · 12×`：已有多少回复，作者粉丝比你多 2 倍以上时显示是你的几倍
 - `✓ 已回复`：你已经回复过这条
 - `☆`：点一下把作者设为重点账号，变成实心 `★`，帖子有蓝色边线；再点一次取消
 - 写回复时和你发过的很像，会提醒；底部统计栏显示今天的赞、回复、发帖、关注和在线时长
@@ -59,7 +59,7 @@ Xhandy 不会替你点击、输入、发送或关注任何东西，数据只存�
 **Install:** unzip it somewhere it can stay, open `chrome://extensions` (Chrome, Edge, Brave), turn on **Developer mode**, click **Load unpacked** and choose the `xhandy` folder.
 **Update:** unzip the new version over the same folder and click reload on Xhandy. Don't move the folder: your data is tied to its path.
 
-**Use:** posts get badges for age and views per hour (🔥 when hot), your follow relationship with the author, how often you've interacted (both ways, `you 3 · them 5`), the reply count and author size (`💬 23 · 46K · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
+**Use:** posts get badges for views per hour (🔥 when hot, old posts marked stale), your follow relationship with the author (hidden when neither follows the other), how often you've interacted (both ways, `you 3 · them 5`, or `1× · 2d ago`), the reply count and size ratio (`💬 23 · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
 
 Xhandy never clicks, types, sends or follows for you, and all data stays in your browser.
 Feedback: DM [@JackHuang47](https://x.com/JackHuang47) on X.

@@ -13,6 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixture = readFileSync(join(root, "test/fixtures/timeline.html"), "utf8");
 const profile = readFileSync(join(root, "test/fixtures/profile.html"), "utf8");
 const following = readFileSync(join(root, "test/fixtures/following.html"), "utf8");
+const status = readFileSync(join(root, "test/fixtures/status.html"), "utf8");
 const api = {
   HomeTimeline: readFileSync(join(root, "test/fixtures/home-timeline.json"), "utf8"),
   UserTweets: readFileSync(join(root, "test/fixtures/user-tweets.json"), "utf8"),
@@ -139,6 +140,7 @@ try {
     if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
     if (new URL(r.request().url()).pathname === "/me_test/following") return r.fulfill({ status: 200, contentType: "text/html", body: following });
     if (new URL(r.request().url()).pathname === "/eve") return r.fulfill({ status: 200, contentType: "text/html", body: profile });
+    if (new URL(r.request().url()).pathname === "/alice/status/111") return r.fulfill({ status: 200, contentType: "text/html", body: status });
     return r.fulfill({ status: 200, contentType: "text/html", body: fixture });
   });
   const page = await ctx.newPage();
@@ -1112,6 +1114,49 @@ try {
     // Badges that fit stay in the name row.
     assert.ok(await page.$('#fresh [data-testid="User-Name"] .xh-badge'));
     assert.strictEqual(await page.$("#fresh .xh-badge-row"), null);
+  });
+
+  await step("a post with no tweetText keeps its badge in the name row and is not clipped", async () => {
+    const r = await page.evaluate(() => {
+      const article = document.querySelector("#fresh");
+      const b = article?.querySelector(".xh-badge");
+      return {
+        hasTweetText: !!article?.querySelector('[data-testid="tweetText"]'),
+        inNameRow: !!b?.closest('[data-testid="User-Name"]'),
+        clipped: b ? b.scrollWidth > b.clientWidth + 1 : true,
+      };
+    });
+    assert.deepStrictEqual(r, { hasTweetText: false, inNameRow: true, clipped: false });
+  });
+
+  await step("on a status page the focal post badge is before its text, and a reply stays in its name row", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto("https://x.com/alice/status/111");
+      await p.waitForSelector("#focal .xh-badge.xh-badge-row", { timeout: 5000 });
+      await p.waitForSelector("#reply .xh-badge", { timeout: 5000 });
+
+      const focal = await p.evaluate(() => {
+        const b = document.querySelector("#focal .xh-badge");
+        return {
+          beforeText: b.nextElementSibling?.dataset.testid === "tweetText",
+          inNameRow: !!b.closest('[data-testid="User-Name"]'),
+          hasRowClass: b.classList.contains("xh-badge-row"),
+        };
+      });
+      assert.deepStrictEqual(focal, { beforeText: true, inNameRow: false, hasRowClass: true });
+
+      const reply = await p.evaluate(() => {
+        const b = document.querySelector("#reply .xh-badge");
+        return {
+          inNameRow: !!b.closest('[data-testid="User-Name"]'),
+          hasRowClass: b.classList.contains("xh-badge-row"),
+        };
+      });
+      assert.deepStrictEqual(reply, { inNameRow: true, hasRowClass: false });
+    } finally {
+      await p.close();
+    }
   });
 
   await step("own posts have no star", async () => {
