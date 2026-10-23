@@ -21,11 +21,3 @@ off. A badge that has moved SHALL NOT move back while the post is on screen.
 #### Scenario: Post without text
 - **WHEN** a badge does not fit and the post has no text of its own
 - **THEN** the badge gets its own row right below the name row, in full
-
-### Requirement: Focal post on its own page
-On a post's own page (the URL is that post's status page), that post's badge SHALL always be on its own row
-above the post text. Replies and other posts on the page SHALL follow the normal rule.
-
-#### Scenario: Opening a post
-- **WHEN** the user opens a post's page
-- **THEN** that post's badge is on its own row above the text, and replies below keep badges in their name rows when they fit
