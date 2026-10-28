@@ -21,6 +21,10 @@ SHALL stay in their feature's section.
 - **WHEN** the user turns a switch off and presses Save
 - **THEN** the setting is stored and open x.com tabs apply it without a reload
 
+#### Scenario: Top posts off
+- **WHEN** the top posts switch is off
+- **THEN** profiles show no top posts button and Alt+B does nothing
+
 #### Scenario: Notes off
 - **WHEN** the notes switch is off
 - **THEN** profiles show no note button, posts show no note chip, Alt+N does nothing, and stored notes are
