@@ -17,6 +17,7 @@
     followBtn: '[data-testid$="-follow"]',
     unfollowBtn: '[data-testid$="-unfollow"]',
     profileLink: 'a[data-testid="AppTabBar_Profile_Link"]',
+    profileName: '[data-testid="UserName"]',
     tweetText: '[data-testid="tweetText"]',
   };
 
@@ -93,6 +94,96 @@
     if (!info) return toast(t("key_pick"), "warn");
     if (isMe(info.handle)) return;
     toggleKeyAccount(info.handle, true);
+  }
+
+  const SYSTEM_PATHS = new Set([
+    "home", "explore", "search", "notifications", "messages", "i", "settings", "compose", "login", "logout"
+  ]);
+
+  function profileHandleFromUrl() {
+    const parts = location.pathname.split("/").filter(Boolean);
+    if (!parts.length) return null;
+    const first = parts[0];
+    if (SYSTEM_PATHS.has(first.toLowerCase())) return null;
+    if (!store.isHandle(first)) return null;
+    return first;
+  }
+
+  function findProfileHeaderName(handle) {
+    const list = document.querySelectorAll(SEL.profileName);
+    const expected = "@" + handle.toLowerCase();
+    for (const el of list) {
+      if (el.closest(SEL.tweet)) continue;
+      const text = (el.textContent || "").toLowerCase();
+      if (text.includes(expected)) return el;
+    }
+    return null;
+  }
+
+  function updateTopPostsButton() {
+    const existing = document.querySelector("button.xh-top");
+    if (!S || !S.settings || !S.settings.topPosts) {
+      if (existing) existing.remove();
+      return;
+    }
+    const handle = profileHandleFromUrl();
+    if (!handle || isMe(handle)) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const nameEl = findProfileHeaderName(handle);
+    if (!nameEl) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    if (existing) {
+      if (existing.dataset.h === handle.toLowerCase() && existing.parentNode === nameEl.parentNode) {
+        existing.textContent = t("top_btn");
+        existing.setAttribute("aria-label", t("top_label", { h: handle }));
+        return;
+      }
+      existing.remove();
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "xh-top";
+    btn.type = "button";
+    btn.dataset.h = handle.toLowerCase();
+    btn.textContent = t("top_btn");
+    btn.setAttribute("aria-label", t("top_label", { h: handle }));
+    btn.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
+        window.open(url, "_blank", "noopener");
+      },
+      true
+    );
+
+    nameEl.after(btn);
+  }
+
+  function handleAltB() {
+    let handle = null;
+    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const info = article && tweetInfo(article);
+    if (info && info.handle) {
+      handle = info.handle;
+    } else {
+      const urlHandle = profileHandleFromUrl();
+      if (urlHandle) handle = urlHandle;
+    }
+
+    if (!handle) {
+      return toast(t("top_pick"), "warn");
+    }
+
+    const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
+    window.open(url, "_blank", "noopener");
   }
 
   function annotate(article) {
@@ -253,6 +344,7 @@
   function annotateAll() {
     if (!S) return;
     document.querySelectorAll(SEL.tweet).forEach(annotate);
+    updateTopPostsButton();
   }
 
   // ---------- 6. counting the user's own actions ----------
@@ -704,6 +796,11 @@
         e.preventDefault();
         if (S && S.settings && S.settings.keyAccounts) {
           handleAltS();
+        }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyB" && !isTyping(e.target)) {
+        e.preventDefault();
+        if (S && S.settings && S.settings.topPosts) {
+          handleAltB();
         }
       } else if (e.key === "Escape" && panelEl && !panelEl.hidden && !followTarget) {
         togglePanel(false);
