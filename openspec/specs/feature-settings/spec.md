@@ -15,7 +15,7 @@ SHALL stay in their feature's section.
 - **WHEN** the user opens the settings page
 - **THEN** the features section lists switches for the post age chip, heat colour, interaction chip,
   interactions from others, reply count and author size, already-replied mark, follow relationship,
-  key accounts, top posts, duplicate-reply warning, follow and unfollow reminders, and the stats bar
+  key accounts, top posts, notes, duplicate-reply warning, follow and unfollow reminders, and the stats bar
 
 #### Scenario: Dependent switches
 - **WHEN** the post age chip or the interaction chip is unchecked
@@ -28,6 +28,11 @@ SHALL stay in their feature's section.
 #### Scenario: Top posts off
 - **WHEN** the top posts switch is off
 - **THEN** profiles show no top posts button and Alt+B does nothing
+
+#### Scenario: Notes off
+- **WHEN** the notes switch is off
+- **THEN** profiles show no note button, posts show no note chip, Alt+N does nothing, and stored notes are
+  kept
 
 ### Requirement: New switches default to on
 New switches SHALL default to on. Data saved by an older version without these settings SHALL load
