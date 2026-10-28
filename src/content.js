@@ -17,6 +17,7 @@
     followBtn: '[data-testid$="-follow"]',
     unfollowBtn: '[data-testid$="-unfollow"]',
     profileLink: 'a[data-testid="AppTabBar_Profile_Link"]',
+    profileName: '[data-testid="UserName"]',
     tweetText: '[data-testid="tweetText"]',
   };
 
@@ -24,6 +25,7 @@
   const views = new Map(); // post id -> { n: views, at: when X reported it }; memory only
   const replyCounts = new Map(); // post id -> replies count; memory only
   const authorFollowers = new Map(); // post id -> author followers count; memory only
+  const handleFollowers = new Map(); // handle (lowercase) -> author followers count; memory only
   const MAX_VIEWS = 5000;
   let pendingReply = null; // { handle, t } set when the user clicks a reply button
   let lastSendAt = 0;
@@ -92,6 +94,140 @@
     if (!info) return toast(t("key_pick"), "warn");
     if (isMe(info.handle)) return;
     toggleKeyAccount(info.handle, true);
+  }
+
+  const SYSTEM_PATHS = new Set([
+    "home", "explore", "search", "notifications", "messages", "i", "settings", "compose", "login", "logout"
+  ]);
+
+  function profileHandleFromUrl() {
+    const parts = location.pathname.split("/").filter(Boolean);
+    if (!parts.length) return null;
+    const first = parts[0];
+    if (SYSTEM_PATHS.has(first.toLowerCase())) return null;
+    if (!store.isHandle(first)) return null;
+    return first;
+  }
+
+  function findProfileHeaderName(handle) {
+    const list = document.querySelectorAll(SEL.profileName);
+    const expected = "@" + handle.toLowerCase();
+    for (const el of list) {
+      if (el.closest(SEL.tweet)) continue;
+      const text = (el.textContent || "").toLowerCase();
+      if (text.includes(expected)) return el;
+    }
+    return null;
+  }
+
+  // The profile owner's own Follow / Following button, never one in a post, hover card or "Who to follow".
+  function findProfileFollowButton(handle) {
+    const b = findFollowButton(handle);
+    return b && !b.closest(SEL.tweet) && !b.closest('[data-testid="HoverCard"]') && !b.closest('[data-testid="sidebarColumn"]') ? b : null;
+  }
+
+  function findProfileFallbackArea(handle) {
+    const userActions = document.querySelector(
+      '[data-testid="primaryColumn"] [data-testid="userActions"], [data-testid="userActions"]'
+    );
+    if (userActions && !userActions.closest(SEL.tweet) && !userActions.closest('[data-testid="HoverCard"]')) {
+      return { el: userActions, position: "before" };
+    }
+    const nameEl = findProfileHeaderName(handle);
+    if (nameEl) {
+      const header = nameEl.closest("header") || nameEl.parentNode;
+      return { el: header, position: "append" };
+    }
+    return null;
+  }
+
+  function updateTopPostsButton() {
+    const existing = document.querySelector("button.xh-top");
+    if (!S || !S.settings || !S.settings.topPosts) {
+      if (existing) existing.remove();
+      return;
+    }
+    const handle = profileHandleFromUrl();
+    if (!handle || isMe(handle)) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    if (document.querySelector('[data-testid="editProfileButton"]')) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const followBtn = findProfileFollowButton(handle);
+    let target = null;
+    let insertBefore = true;
+
+    if (followBtn) {
+      target = followBtn;
+      insertBefore = true;
+    } else {
+      const fallback = findProfileFallbackArea(handle);
+      if (!fallback) {
+        if (existing) existing.remove();
+        return;
+      }
+      target = fallback.el;
+      insertBefore = fallback.position === "before";
+    }
+
+    if (existing) {
+      const isCorrectPlace = insertBefore
+        ? existing.nextSibling === target
+        : existing.parentNode === target && existing === target.lastElementChild;
+      if (existing.dataset.h === handle.toLowerCase() && isCorrectPlace) {
+        existing.textContent = t("top_btn");
+        existing.setAttribute("aria-label", t("top_label", { h: handle }));
+        return;
+      }
+      existing.remove();
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "xh-top";
+    btn.type = "button";
+    btn.dataset.h = handle.toLowerCase();
+    btn.textContent = t("top_btn");
+    btn.setAttribute("aria-label", t("top_label", { h: handle }));
+    btn.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
+        location.assign(url);
+      },
+      true
+    );
+
+    if (insertBefore) {
+      target.before(btn);
+    } else {
+      target.appendChild(btn);
+    }
+  }
+
+  function handleAltB() {
+    let handle = null;
+    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const info = article && tweetInfo(article);
+    if (info && info.handle) {
+      handle = info.handle;
+    } else {
+      const urlHandle = profileHandleFromUrl();
+      if (urlHandle) handle = urlHandle;
+    }
+
+    if (!handle) {
+      return toast(t("top_pick"), "warn");
+    }
+
+    const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
+    location.assign(url);
   }
 
   function annotate(article) {
@@ -252,6 +388,7 @@
   function annotateAll() {
     if (!S) return;
     document.querySelectorAll(SEL.tweet).forEach(annotate);
+    updateTopPostsButton();
   }
 
   // ---------- 6. counting the user's own actions ----------
@@ -704,6 +841,11 @@
         if (S && S.settings && S.settings.keyAccounts) {
           handleAltS();
         }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyB" && !isTyping(e.target)) {
+        e.preventDefault();
+        if (S && S.settings && S.settings.topPosts) {
+          handleAltB();
+        }
       } else if (e.key === "Escape" && panelEl && !panelEl.hidden && !followTarget) {
         togglePanel(false);
       } else if (e.key === "Escape" && followTarget) {
@@ -899,6 +1041,11 @@
         if (typeof p.authorFollowers === "number") {
           authorFollowers.delete(p.id);
           authorFollowers.set(p.id, p.authorFollowers);
+          if (p.author) {
+            const h = p.author.toLowerCase();
+            handleFollowers.delete(h);
+            handleFollowers.set(h, p.authorFollowers);
+          }
         }
         if (meLower && p.author && p.author.toLowerCase() === meLower && p.inReplyTo) {
           recordReplied(p.inReplyTo, payload.at || Date.now());
@@ -915,6 +1062,10 @@
       for (const id of authorFollowers.keys()) {
         if (authorFollowers.size <= MAX_VIEWS) break;
         authorFollowers.delete(id);
+      }
+      for (const h of handleFollowers.keys()) {
+        if (handleFollowers.size <= MAX_VIEWS) break;
+        handleFollowers.delete(h);
       }
       clearTimeout(annotateTimer);
       annotateTimer = setTimeout(annotateAll, 250);

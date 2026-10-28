@@ -22,13 +22,15 @@
 ## Decisions
 
 - **URL**: `https://x.com/search?q=<encoded query>&src=typed_query&f=top`, opened with
-  `window.open(url, "_blank", "noopener")` from the click or keydown handler (a user gesture, so no
-  popup blocker). Query: `from:<handle> min_faves:<N> -filter:replies`.
+  `location.assign(url)` in the current tab (Jack 2026-10-28: a new tab felt heavy; Back returns to the
+  profile). Query: `from:<handle> min_faves:<N> -filter:replies`.
 - **N from follower count** (memory only, per handle, filled alongside `authorFollowers`):
-  under 1K → 10, under 10K → 50, under 100K → 200, under 1M → 1,000, else 5,000; unknown → 100.
-  These tiers are a starting guess (推断), to be tuned after Jack tries them on real accounts.
-- **Button**: `<button class="xh-top" type="button">` inserted once after the profile name block, with a
-  label in the interface language and `aria-label` naming the handle. Click handler calls
+  under 1K → 3, under 10K → 10, under 100K → 50, under 1M → 200, else 1,000; unknown → 10.
+  Lowered 2026-10-28 after Jack tried the first tiers (10 … 5,000) on real accounts and found too few results.
+- **Button**: `<button class="xh-top" type="button">` inserted once before the profile owner's Follow /
+  Following button (found like Shift+F does, by user id or the @handle in its label, never one inside a
+  post, hover card or the sidebar), falling back to `userActions` or the header; styled like X's own
+  secondary pill (36px), with a label in the interface language and `aria-label` naming the handle. Click handler calls
   `preventDefault()` and `stopPropagation()`. Not shown on the signed-in user's own profile (seeing one's
   own top posts is still possible with Alt+B). Re-inserted when X re-renders the header (same observer
   as badges; keyed by handle so it never doubles).
@@ -42,4 +44,4 @@
 
 - X may drop or change search operators → the button would open an empty search. Mitigation: the query
   is visible and editable in X's search box; selector and operator are checked when X changes.
-- New tabs could feel like "automation" → only ever one tab per click or key press, never batched.
+- Opening could feel like "automation" → only ever one navigation per click or key press, never batched.

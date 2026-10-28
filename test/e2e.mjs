@@ -139,6 +139,7 @@ try {
     const name = Object.keys(api).find((k) => r.request().url().endsWith("/" + k));
     if (name) return r.fulfill({ status: 200, contentType: "application/json", body: api[name] });
     if (new URL(r.request().url()).pathname === "/me_test/following") return r.fulfill({ status: 200, contentType: "text/html", body: following });
+    if (new URL(r.request().url()).pathname === "/me_test") return r.fulfill({ status: 200, contentType: "text/html", body: profile.replace(/@eve/g, "@me_test").replace(/Eve/g, "Me") });
     if (new URL(r.request().url()).pathname === "/eve") return r.fulfill({ status: 200, contentType: "text/html", body: profile });
     if (new URL(r.request().url()).pathname === "/alice/status/111") return r.fulfill({ status: 200, contentType: "text/html", body: status });
     return r.fulfill({ status: 200, contentType: "text/html", body: fixture });
@@ -1321,7 +1322,7 @@ try {
       assert.match(featuresTitle, /Features/);
 
       // 2. Verify all switches are present in the features section
-      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts"]) {
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts"]) {
         assert.ok(await p.$(`section:nth-of-type(2) #${id}`), `switch #${id} should be in features section`);
       }
 
@@ -1621,6 +1622,82 @@ try {
       await updateSettings({ lang: "auto" });
       await p.close();
     }
+  });
+
+  await step("profile shows one top posts button", async () => {
+    await page.goto("https://x.com/eve");
+    await page.waitForSelector("button.xh-top", { timeout: 5000 });
+    const count = await page.$$eval("button.xh-top", (els) => els.length);
+    assert.strictEqual(count, 1);
+    const label = await page.$eval("button.xh-top", (el) => el.getAttribute("aria-label"));
+    assert.match(label, /eve/i);
+    const text = await page.$eval("button.xh-top", (el) => el.textContent);
+    assert.match(text, /Top posts|高赞帖/);
+  });
+
+  await step("clicking top posts navigates to search in current tab and clicks nothing on X", async () => {
+    await page.waitForSelector("button.xh-top");
+    await Promise.all([
+      page.waitForURL((url) => /from%3Aeve/.test(url.href || String(url))),
+      page.click("button.xh-top"),
+    ]);
+    const url = page.url();
+    assert.match(url, /from%3Aeve/);
+    assert.match(url, /min_faves%3A/);
+    assert.match(url, /f=top/);
+    await page.goBack();
+    await page.waitForSelector("button.xh-top", { timeout: 5000 });
+    assert.strictEqual(page.url(), "https://x.com/eve");
+    const followLabel = await page.$eval('[data-testid$="-unfollow"], [data-testid$="-follow"]', (el) => el.getAttribute("aria-label"));
+    assert.ok(followLabel);
+    assert.match(followLabel, /Follow @eve/);
+  });
+
+  await step("own profile has no top posts button", async () => {
+    await page.goto("https://x.com/me_test");
+    await page.waitForSelector('[data-testid="UserName"]', { timeout: 5000 });
+    await page.waitForTimeout(400);
+    const topBtn = await page.$("button.xh-top");
+    assert.strictEqual(topBtn, null);
+  });
+
+  await step("Alt+B opens top posts for the selected post's author", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    await page.focus("#fresh");
+    await Promise.all([
+      page.waitForURL((url) => /from%3Aalice/.test(url.href || String(url))),
+      page.keyboard.press("Alt+KeyB"),
+    ]);
+    const url = page.url();
+    assert.match(url, /from%3Aalice/);
+    assert.match(url, /min_faves%3A/);
+    assert.match(url, /f=top/);
+    await page.goBack();
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+  });
+
+  await step("Alt+B with nothing selected shows a toast", async () => {
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.keyboard.press("Alt+KeyB");
+    await page.waitForFunction(
+      () => /Select a post|选中一条帖子/.test(document.querySelector(".xh-toast")?.textContent || ""),
+      null,
+      { timeout: 3000 }
+    );
+  });
+
+  await step("top posts switch off hides the button", async () => {
+    await page.goto("https://x.com/eve");
+    await page.waitForSelector("button.xh-top", { timeout: 5000 });
+    await updateSettings({ topPosts: false });
+    await page.waitForFunction(() => !document.querySelector("button.xh-top"), null, { timeout: 3000 });
+    const currentUrl = page.url();
+    await page.keyboard.press("Alt+KeyB");
+    await page.waitForTimeout(500);
+    assert.strictEqual(page.url(), currentUrl);
+    await updateSettings({ topPosts: true });
+    await page.waitForSelector("button.xh-top", { timeout: 5000 });
   });
 } finally {
   await ctx.close();

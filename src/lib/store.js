@@ -36,6 +36,7 @@
       paceMinutes: 60, // pace reminder window in minutes
       keyAccounts: true, // key accounts feature switch (star, highlight, panel)
       quietDays: 14, // days of inactivity before a key account is marked quiet
+      topPosts: true, // open X search for an account's top posts
     },
     people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
