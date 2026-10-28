@@ -6,11 +6,11 @@
 
 ## 2. Storage
 
-- [ ] 2.1 Add `topPosts: true` to DEFAULTS.settings. Verify: store tests still pass; an old export without `topPosts` loads with it on.
+- [x] 2.1 Add `topPosts: true` to DEFAULTS.settings. Verify: store tests still pass; an old export without `topPosts` loads with it on.
 
 ## 3. On x.com
 
-- [ ] 3.1 Keep follower counts per handle in memory next to `authorFollowers`; pure function `topThreshold(followers)` with the tiers from design.md and unit tests for each boundary and unknown.
+- [x] 3.1 Keep follower counts per handle in memory next to `authorFollowers`; pure function `topThreshold(followers)` with the tiers from design.md and unit tests for each boundary and unknown.
 - [ ] 3.2 `SEL.profileName`, the top posts button on other people's profiles (once per header, not on the own profile, click stopped from reaching X), a profile fixture in `test/fixtures/`. Verify: e2e steps "profile shows one top posts button", "clicking top posts opens the search in a new tab and clicks nothing on X", "own profile has no top posts button".
 - [ ] 3.3 Alt+B: selected post's author, else profile in the URL, else toast; nothing while typing. Verify: e2e steps "Alt+B opens top posts for the selected post's author" and "Alt+B with nothing selected shows a toast".
 - [ ] 3.4 `topPosts` switch hides the button and disables Alt+B. Verify: e2e step "top posts switch off hides the button".

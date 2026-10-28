@@ -32,6 +32,7 @@
         "src/lib/i18n.js",
         "src/lib/similarity.js",
         "src/lib/store.js",
+        "src/lib/top-posts.js",
         "src/content.js"
       ],
       "css": [

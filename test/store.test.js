@@ -71,6 +71,7 @@ test("a fresh install starts from defaults", async () => {
   assert.strictEqual(s.settings.lang, "auto");
   assert.strictEqual(s.settings.keyAccounts, true);
   assert.strictEqual(s.settings.quietDays, 14);
+  assert.strictEqual(s.settings.topPosts, true);
 });
 
 test("update writes only the parts it declares", async () => {
@@ -126,10 +127,11 @@ test("export format round-trips through replaceAll, and reset clears everything"
 });
 
 test("settings of the wrong type fall back to defaults", async () => {
-  const chrome = fakeChrome({ "xh:v": 4, "xh:settings": { keyAccounts: "alice", quietDays: "12", staleHours: "12", hud: 0, heatHot: 5 } });
+  const chrome = fakeChrome({ "xh:v": 4, "xh:settings": { keyAccounts: "alice", quietDays: "12", topPosts: 123, staleHours: "12", hud: 0, heatHot: 5 } });
   const s = await loadStore(chrome).get();
   assert.strictEqual(s.settings.keyAccounts, true);
   assert.strictEqual(s.settings.quietDays, 14);
+  assert.strictEqual(s.settings.topPosts, true);
   assert.strictEqual(s.settings.targets, undefined);
   assert.strictEqual(s.settings.staleHours, 48);
   assert.strictEqual(s.settings.hud, true);

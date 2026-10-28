@@ -24,6 +24,7 @@
   const views = new Map(); // post id -> { n: views, at: when X reported it }; memory only
   const replyCounts = new Map(); // post id -> replies count; memory only
   const authorFollowers = new Map(); // post id -> author followers count; memory only
+  const handleFollowers = new Map(); // handle (lowercase) -> author followers count; memory only
   const MAX_VIEWS = 5000;
   let pendingReply = null; // { handle, t } set when the user clicks a reply button
   let lastSendAt = 0;
@@ -899,6 +900,11 @@
         if (typeof p.authorFollowers === "number") {
           authorFollowers.delete(p.id);
           authorFollowers.set(p.id, p.authorFollowers);
+          if (p.author) {
+            const h = p.author.toLowerCase();
+            handleFollowers.delete(h);
+            handleFollowers.set(h, p.authorFollowers);
+          }
         }
         if (meLower && p.author && p.author.toLowerCase() === meLower && p.inReplyTo) {
           recordReplied(p.inReplyTo, payload.at || Date.now());
@@ -915,6 +921,10 @@
       for (const id of authorFollowers.keys()) {
         if (authorFollowers.size <= MAX_VIEWS) break;
         authorFollowers.delete(id);
+      }
+      for (const h of handleFollowers.keys()) {
+        if (handleFollowers.size <= MAX_VIEWS) break;
+        handleFollowers.delete(h);
       }
       clearTimeout(annotateTimer);
       annotateTimer = setTimeout(annotateAll, 250);
