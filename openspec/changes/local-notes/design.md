@@ -26,6 +26,7 @@
   - A note with no status, no tags and no text is deleted on save.
   - Cap 5,000 notes; over the cap, saving a new note is refused with a toast (notes are user-written, so
     never dropped silently).
+    Only an import file with more than 5,000 notes is cut, keeping the 5,000 edited most recently.
   - Keyed by handle like the other parts so badges look it up cheaply. When `rel` shows the same `id`
     under a new handle, the note moves to the new key (handle changes keep the note).
   - No VERSION change: a new part only needs DEFAULTS and a cleanState step; old exports without `notes`
@@ -41,7 +42,7 @@
   after the relationship chip. Counts in the badge key so it redraws when the note changes.
 - **Settings page**: section "备注 / Notes" with search (handle, tags, text), status filter, rows with
   handle link, status, tags, the first line of text, last edited date, and Delete.
-- **Setting**: `notes: true`; off hides the button, chip and editor and disables Alt+N. Stored notes stay.
+- **Setting**: `localNotes: true` (not `notes`, so it is not confused with the `notes` part); off hides the button, chip and editor and disables Alt+N. Stored notes stay.
 
 ## Risks / Trade-offs
 
