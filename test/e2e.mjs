@@ -1631,22 +1631,26 @@ try {
     assert.strictEqual(count, 1);
     const label = await page.$eval("button.xh-top", (el) => el.getAttribute("aria-label"));
     assert.match(label, /eve/i);
+    const text = await page.$eval("button.xh-top", (el) => el.textContent);
+    assert.match(text, /Top posts|高赞帖/);
   });
 
-  await step("clicking top posts opens the search in a new tab and clicks nothing on X", async () => {
+  await step("clicking top posts navigates to search in current tab and clicks nothing on X", async () => {
     await page.waitForSelector("button.xh-top");
-    const [newPage] = await Promise.all([
-      ctx.waitForEvent("page"),
+    await Promise.all([
+      page.waitForURL((url) => /from%3Aeve/.test(url.href || String(url))),
       page.click("button.xh-top"),
     ]);
-    const url = newPage.url();
-    await newPage.close();
+    const url = page.url();
     assert.match(url, /from%3Aeve/);
     assert.match(url, /min_faves%3A/);
     assert.match(url, /f=top/);
+    await page.goBack();
+    await page.waitForSelector("button.xh-top", { timeout: 5000 });
     assert.strictEqual(page.url(), "https://x.com/eve");
     const followLabel = await page.$eval('[data-testid$="-unfollow"], [data-testid$="-follow"]', (el) => el.getAttribute("aria-label"));
     assert.ok(followLabel);
+    assert.match(followLabel, /Follow @eve/);
   });
 
   await step("own profile has no top posts button", async () => {
@@ -1661,15 +1665,16 @@ try {
     await page.goto("https://x.com/home");
     await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
     await page.focus("#fresh");
-    const [newPage] = await Promise.all([
-      ctx.waitForEvent("page"),
+    await Promise.all([
+      page.waitForURL((url) => /from%3Aalice/.test(url.href || String(url))),
       page.keyboard.press("Alt+KeyB"),
     ]);
-    const url = newPage.url();
-    await newPage.close();
+    const url = page.url();
     assert.match(url, /from%3Aalice/);
     assert.match(url, /min_faves%3A/);
     assert.match(url, /f=top/);
+    await page.goBack();
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
   });
 
   await step("Alt+B with nothing selected shows a toast", async () => {
@@ -1687,13 +1692,10 @@ try {
     await page.waitForSelector("button.xh-top", { timeout: 5000 });
     await updateSettings({ topPosts: false });
     await page.waitForFunction(() => !document.querySelector("button.xh-top"), null, { timeout: 3000 });
-    let opened = false;
-    const onPage = () => { opened = true; };
-    ctx.on("page", onPage);
+    const currentUrl = page.url();
     await page.keyboard.press("Alt+KeyB");
     await page.waitForTimeout(500);
-    ctx.off("page", onPage);
-    assert.strictEqual(opened, false);
+    assert.strictEqual(page.url(), currentUrl);
     await updateSettings({ topPosts: true });
     await page.waitForSelector("button.xh-top", { timeout: 5000 });
   });

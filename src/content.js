@@ -120,6 +120,27 @@
     return null;
   }
 
+  // The profile owner's own Follow / Following button, never one in a post, hover card or "Who to follow".
+  function findProfileFollowButton(handle) {
+    const b = findFollowButton(handle);
+    return b && !b.closest(SEL.tweet) && !b.closest('[data-testid="HoverCard"]') && !b.closest('[data-testid="sidebarColumn"]') ? b : null;
+  }
+
+  function findProfileFallbackArea(handle) {
+    const userActions = document.querySelector(
+      '[data-testid="primaryColumn"] [data-testid="userActions"], [data-testid="userActions"]'
+    );
+    if (userActions && !userActions.closest(SEL.tweet) && !userActions.closest('[data-testid="HoverCard"]')) {
+      return { el: userActions, position: "before" };
+    }
+    const nameEl = findProfileHeaderName(handle);
+    if (nameEl) {
+      const header = nameEl.closest("header") || nameEl.parentNode;
+      return { el: header, position: "append" };
+    }
+    return null;
+  }
+
   function updateTopPostsButton() {
     const existing = document.querySelector("button.xh-top");
     if (!S || !S.settings || !S.settings.topPosts) {
@@ -132,14 +153,33 @@
       return;
     }
 
-    const nameEl = findProfileHeaderName(handle);
-    if (!nameEl) {
+    if (document.querySelector('[data-testid="editProfileButton"]')) {
       if (existing) existing.remove();
       return;
     }
 
+    const followBtn = findProfileFollowButton(handle);
+    let target = null;
+    let insertBefore = true;
+
+    if (followBtn) {
+      target = followBtn;
+      insertBefore = true;
+    } else {
+      const fallback = findProfileFallbackArea(handle);
+      if (!fallback) {
+        if (existing) existing.remove();
+        return;
+      }
+      target = fallback.el;
+      insertBefore = fallback.position === "before";
+    }
+
     if (existing) {
-      if (existing.dataset.h === handle.toLowerCase() && existing.parentNode === nameEl.parentNode) {
+      const isCorrectPlace = insertBefore
+        ? existing.nextSibling === target
+        : existing.parentNode === target && existing === target.lastElementChild;
+      if (existing.dataset.h === handle.toLowerCase() && isCorrectPlace) {
         existing.textContent = t("top_btn");
         existing.setAttribute("aria-label", t("top_label", { h: handle }));
         return;
@@ -159,12 +199,16 @@
         e.preventDefault();
         e.stopPropagation();
         const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
-        window.open(url, "_blank", "noopener");
+        location.assign(url);
       },
       true
     );
 
-    nameEl.after(btn);
+    if (insertBefore) {
+      target.before(btn);
+    } else {
+      target.appendChild(btn);
+    }
   }
 
   function handleAltB() {
@@ -183,7 +227,7 @@
     }
 
     const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
-    window.open(url, "_blank", "noopener");
+    location.assign(url);
   }
 
   function annotate(article) {

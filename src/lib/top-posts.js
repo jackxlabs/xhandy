@@ -1,15 +1,15 @@
 // Top posts: builds the x.com search URL for an account's best-received posts. No network calls.
 (function () {
-  // min_faves from the author's follower count; 100 when the count is unknown.
+  // min_faves from the author's follower count; 10 when the count is unknown.
   function topThreshold(followers) {
     if (!Number.isFinite(followers) || followers < 0) {
-      return 100;
+      return 10;
     }
-    if (followers < 1000) return 10;
-    if (followers < 10000) return 50;
-    if (followers < 100000) return 200;
-    if (followers < 1000000) return 1000;
-    return 5000;
+    if (followers < 1000) return 3;
+    if (followers < 10000) return 10;
+    if (followers < 100000) return 50;
+    if (followers < 1000000) return 200;
+    return 1000;
   }
 
   // X's own search, sorted by Top, for the account's popular original posts.

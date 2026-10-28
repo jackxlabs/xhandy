@@ -9,8 +9,8 @@ network request or API cost, by opening X's own search with the right query.
 
 ## What Changes
 
-- A "Top posts / 高赞帖" button on profile pages, placed next to the profile's name. Clicking it opens
-  X's own search for that account's top original posts in a new tab:
+- A "🔥 Top posts / 🔥 高赞帖" button on profile pages, placed before the profile's Follow /
+  Following button. Clicking it opens X's own search for that account's top original posts in the current tab (Back returns to the profile):
   `from:<handle> min_faves:<N> -filter:replies`, sorted by Top.
 - Alt+B (Option+B on Mac) does the same for the author of the post selected with j/k, or for the profile
   being viewed when no post is selected.
@@ -24,7 +24,7 @@ Out of scope:
 - Saving searches.
 
 How the rules are kept:
-- Never acting for the user: opening a new tab after the user clicks or presses a key is navigation,
+- Never acting for the user: opening the search after the user clicks or presses a key is navigation,
   not an action on X. Nothing on X is clicked, typed or changed. The button belongs to Xhandy.
 - Network: none added. The search runs on x.com in the user's own tab, the same as typing it there.
 - Storage: one new setting (`topPosts`); no new part, no VERSION change.

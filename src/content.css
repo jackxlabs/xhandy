@@ -186,34 +186,36 @@ button.xh-star:focus-visible {
 
 button.xh-top {
   all: unset;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  height: 24px;
-  padding: 0 10px;
-  margin-left: 8px;
+  gap: 6px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 16px;
+  margin-right: 8px;
   border-radius: 999px;
-  border: 1px solid var(--xh-line);
+  border: 1px solid var(--xh-border);
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--xh-muted);
-  background: var(--xh-chip);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--xh-fg);
+  background: transparent;
   cursor: pointer;
   pointer-events: auto;
   user-select: none;
   vertical-align: middle;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 button.xh-top:hover {
   color: var(--xh-fg);
-  background: var(--xh-surface);
+  background: var(--xh-chip);
   border-color: var(--xh-frame);
 }
 button.xh-top:focus-visible {
-  outline: 1.5px solid var(--xh-blue);
+  outline: 2px solid var(--xh-blue);
   outline-offset: 1px;
 }
 

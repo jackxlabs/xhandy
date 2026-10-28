@@ -12,7 +12,7 @@
 ## 3. On x.com
 
 - [x] 3.1 Keep follower counts per handle in memory next to `authorFollowers`; pure function `topThreshold(followers)` with the tiers from design.md and unit tests for each boundary and unknown.
-- [x] 3.2 `SEL.profileName`, the top posts button on other people's profiles (once per header, not on the own profile, click stopped from reaching X), a profile fixture in `test/fixtures/`. Verify: e2e steps "profile shows one top posts button", "clicking top posts opens the search in a new tab and clicks nothing on X", "own profile has no top posts button".
+- [x] 3.2 `SEL.profileName`, the top posts button on other people's profiles (once per header, not on the own profile, click stopped from reaching X), a profile fixture in `test/fixtures/`. Verify: e2e steps "profile shows one top posts button", "clicking top posts navigates to search in current tab and clicks nothing on X", "own profile has no top posts button".
 - [x] 3.3 Alt+B: selected post's author, else profile in the URL, else toast; nothing while typing. Verify: e2e steps "Alt+B opens top posts for the selected post's author" and "Alt+B with nothing selected shows a toast".
 - [x] 3.4 `topPosts` switch hides the button and disables Alt+B. Verify: e2e step "top posts switch off hides the button".
 
