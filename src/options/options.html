@@ -25,6 +25,9 @@
       button.primary { color: #fff; background: var(--accent); border-color: transparent; }
       button.danger { color: #f4212e; }
       #status { color: var(--ok); margin-left: 8px; }
+      .note-tools { display: flex; gap: 8px; margin-bottom: 6px; }
+      .note-tools input { margin-bottom: 0; }
+      .note-tools select { width: 140px; }
       .key-list { max-height: 240px; overflow-y: auto; margin: 6px 0 12px; border: 1px solid var(--line); border-radius: 10px; }
       .key-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
       .key-row:last-child { border-bottom: none; }
@@ -66,6 +69,7 @@
     <label><input id="hud" type="checkbox" /> <span data-i18n="opt_hud">Show the stats bar on X (Alt+H)</span></label>
     <label><input id="keyAccounts" type="checkbox" /> <span data-i18n="opt_keyAccounts">Key accounts (star on posts, highlight, quiet list)</span></label>
     <label><input id="topPosts" type="checkbox" /> <span data-i18n="opt_topPosts">Top posts (profile button, Alt+B)</span></label>
+    <label><input id="localNotes" type="checkbox" /> <span data-i18n="opt_localNotes">Notes (profile button, Alt+N, status chip on posts)</span></label>
     </section>
 
     <section>
@@ -82,6 +86,21 @@
     </div>
     <label for="quietDays" data-i18n="opt_quietDays">Mark accounts quiet after no interaction for (days)</label>
     <input id="quietDays" type="number" min="1" max="365" />
+    </section>
+
+    <section id="secNotes">
+    <h2 data-i18n="opt_sec_notes">Notes</h2>
+    <div class="note-tools">
+      <input id="noteSearch" type="search" data-i18n-ph="opt_notes_search" placeholder="Search @handle, tags, text" />
+      <select id="noteFilter">
+        <option value="" data-i18n="opt_notes_filter_all">All statuses</option>
+        <option value="reach" data-i18n="note_s_reach">To reach out</option>
+        <option value="touch" data-i18n="note_s_touch">In touch</option>
+        <option value="regular" data-i18n="note_s_regular">Regular</option>
+        <option value="work" data-i18n="note_s_work">Working together</option>
+      </select>
+    </div>
+    <div id="noteList" class="key-list"></div>
     </section>
 
     <section>

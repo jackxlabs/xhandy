@@ -28,12 +28,13 @@ It is not synced to other devices and is never sent anywhere.
 - **Posts you replied to**: the ids of up to 5,000 posts you replied to, to mark them with `✓ replied`.
 - **Your own account**: your handle, account id and follower count, to show how big an author is compared with you.
 - **Key accounts**: up to 1,000 accounts you starred, with the handle and the timestamp when each was added, used to highlight their posts and list them in the quiet accounts panel and settings page.
+- **Notes**: up to 5,000 private notes you wrote about accounts, including each account's status preset, tags, note text, X user ID (when known), and timestamps when created and last edited. Kept only in this browser, never sent anywhere, and can be edited, deleted or cleared from the Options page.
 - **Your recent replies and posts**: the text of your last 300, used only to warn you before you send a reply
   that is very similar to one you sent before.
 
 ## Where the data comes from
 
-- The X pages you open and your own actions on them (likes, replies, posts, follows, and the accounts you star).
+- The X pages you open and your own actions on them (likes, replies, posts, follows, the accounts you star, and the notes you write).
 - The data X's own website already sends to your browser while you use it. Xhandy reads copies of these
   responses (follow relationships, view counts, reply and follower counts, your notifications, and X's answers to your own follows, unfollows, posts and
   replies; a post or reply is recorded only once X confirms it was created).

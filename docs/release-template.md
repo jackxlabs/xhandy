@@ -37,6 +37,7 @@
 | `Shift+F` | 选中帖子作者的「关注」按钮，按 `Enter` 关注、`Esc` 取消（插件自己不会点） |
 | `Alt+S` | 将选中帖子的作者设为或取消重点账号（也可以直接点帖子上的 ☆） |
 | `Alt+B` | 博主高赞帖：在当前页打开选中帖子作者或当前主页的高赞原创推文搜索 |
+| `Alt+N` | 账号备注：打开选中帖子作者或当前主页的备注编辑器，`Esc` 关闭 |
 | `Alt+K` | 打开「重点账号」面板，最久没互动的排在前面，标出沉寂账号 |
 | `Alt+U` | 打开「我关注了、没回关我」列表 |
 | `Alt+H` | 隐藏或显示底部统计栏 |
@@ -60,7 +61,7 @@ Xhandy 不会替你点击、输入、发送或关注任何东西，数据只存�
 **Install:** unzip it somewhere it can stay, open `chrome://extensions` (Chrome, Edge, Brave), turn on **Developer mode**, click **Load unpacked** and choose the `xhandy` folder.
 **Update:** unzip the new version over the same folder and click reload on Xhandy. Don't move the folder: your data is tied to its path.
 
-**Use:** posts get badges for views per hour (🔥 when hot, old posts marked stale), your follow relationship with the author (hidden when neither follows the other), how often you've interacted (both ways, `you 3 · them 5`, or `1× · 2d ago`), the reply count and size ratio (`💬 23 · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Alt+B` opens an author's top posts search, `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
+**Use:** posts get badges for views per hour (🔥 when hot, old posts marked stale), your follow relationship with the author (hidden when neither follows the other), how often you've interacted (both ways, `you 3 · them 5`, or `1× · 2d ago`), the reply count and size ratio (`💬 23 · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Alt+B` opens an author's top posts search, `Alt+N` opens the note editor, `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
 
 Xhandy never clicks, types, sends or follows for you, and all data stays in your browser.
 Feedback: DM [@JackHuang47](https://x.com/JackHuang47) on X.

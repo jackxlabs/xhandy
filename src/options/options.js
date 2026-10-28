@@ -3,13 +3,16 @@
   const XH = globalThis.XH;
   const $ = (id) => document.getElementById(id);
   const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit", "followPace", "unfollowPace", "paceMinutes", "quietDays"];
-  const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts"];
+  const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts", "localNotes"];
 
   let lastRelMeta = null;
   let lastRelCount = 0;
   let allKeys = {};
+  let allNotes = {};
   let allPeople = {};
   let keyQuery = "";
+  let noteQuery = "";
+  let noteFilterStatus = "";
 
   function applyI18n() {
     document.documentElement.lang = XH.lang === "zh" ? "zh-CN" : "en";
@@ -121,6 +124,94 @@
     }
   }
 
+  function renderNotesList() {
+    const listEl = $("noteList");
+    if (!listEl) return;
+    const entries = Object.entries(allNotes).filter(([h]) => store.isHandle(h));
+
+    listEl.replaceChildren();
+    if (!entries.length) {
+      const empty = document.createElement("div");
+      empty.className = "key-empty";
+      empty.textContent = XH.t("opt_notes_empty");
+      listEl.appendChild(empty);
+      return;
+    }
+
+    const filtered = entries
+      .filter(([h, entry]) => {
+        if (noteFilterStatus && entry.s !== noteFilterStatus) return false;
+        if (!noteQuery) return true;
+        const q = noteQuery.replace(/^@/, "").toLowerCase();
+        if (h.toLowerCase().includes(q) || (entry.h || "").toLowerCase().includes(q)) return true;
+        if (Array.isArray(entry.tags) && entry.tags.some((t) => t.toLowerCase().includes(q))) return true;
+        if (entry.text && entry.text.toLowerCase().includes(q)) return true;
+        return false;
+      })
+      .sort(([, a], [, b]) => (b.u || b.t || 0) - (a.u || a.t || 0));
+
+    if (!filtered.length) {
+      const empty = document.createElement("div");
+      empty.className = "key-empty";
+      empty.textContent = XH.t("opt_notes_none");
+      listEl.appendChild(empty);
+      return;
+    }
+
+    for (const [h, entry] of filtered) {
+      const row = document.createElement("div");
+      row.className = "key-row";
+      row.dataset.handle = h;
+
+      const info = document.createElement("div");
+      info.className = "key-row-info";
+
+      const link = document.createElement("a");
+      const displayH = entry.h || h;
+      link.href = "https://x.com/" + displayH;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "@" + displayH;
+
+      const meta = document.createElement("span");
+      meta.className = "key-row-meta";
+      const parts = [];
+      if (entry.s) parts.push(XH.t("note_s_" + entry.s));
+      if (Array.isArray(entry.tags) && entry.tags.length > 0) {
+        parts.push(entry.tags.map((t) => "#" + t).join(" "));
+      }
+      if (entry.text) {
+        const firstLine = entry.text.split("\n")[0].trim();
+        const truncated = Array.from(firstLine).slice(0, 80).join("");
+        if (truncated) parts.push(truncated);
+      }
+      const dateVal = entry.u || entry.t;
+      if (dateVal) {
+        const dateStr = new Date(dateVal).toLocaleDateString();
+        parts.push(XH.t("opt_note_last_edited", { date: dateStr }));
+      }
+      meta.textContent = parts.join(" · ");
+
+      info.append(link, meta);
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "remove";
+      delBtn.dataset.handle = h;
+      delBtn.textContent = XH.t("opt_note_del");
+      delBtn.addEventListener("click", async () => {
+        await store.update(["notes"], (s) => {
+          delete s.notes[h];
+        });
+        delete allNotes[h];
+        renderNotesList();
+      });
+
+      row.append(info, delBtn);
+      listEl.appendChild(row);
+    }
+  }
+
   async function load() {
     const all = await store.get();
     const s = all.settings;
@@ -130,8 +221,10 @@
     renderLangSelect(s.lang);
 
     allKeys = all.keys || {};
+    allNotes = all.notes || {};
     allPeople = all.people || {};
     renderKeyAccountsList();
+    renderNotesList();
 
     for (const k of NUMS) {
       if ($(k)) $(k).value = s[k];
@@ -155,6 +248,7 @@
     applyI18n();
     renderLangSelect(lang);
     renderKeyAccountsList();
+    renderNotesList();
     renderRelStatus();
   });
 
@@ -165,6 +259,20 @@
     keyQuery = e.target.value.trim().replace(/^@/, "").toLowerCase();
     renderKeyAccountsList();
   });
+
+  if ($("noteSearch")) {
+    $("noteSearch").addEventListener("input", (e) => {
+      noteQuery = e.target.value.trim().toLowerCase();
+      renderNotesList();
+    });
+  }
+
+  if ($("noteFilter")) {
+    $("noteFilter").addEventListener("change", (e) => {
+      noteFilterStatus = e.target.value;
+      renderNotesList();
+    });
+  }
 
   $("keyAddBtn").addEventListener("click", async () => {
     const rawVal = $("keyPaste").value;
@@ -259,6 +367,17 @@
     if (!confirm(XH.t("opt_reset_confirm"))) return;
     await store.reset();
     await load();
+  });
+
+  store.onChange((all) => {
+    if (all && all.notes) {
+      allNotes = all.notes;
+      renderNotesList();
+    }
+    if (all && all.keys) {
+      allKeys = all.keys;
+      renderKeyAccountsList();
+    }
   });
 
   load();

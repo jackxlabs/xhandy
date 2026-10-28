@@ -15,12 +15,12 @@ Implement after author-highlights (profile header selector and fixture).
 
 ## 3. Settings page
 
-- [ ] 3.1 Notes section with search, status filter, rows and delete; switch in the features section. Verify: e2e steps "settings lists notes and filters by status" and "deleting a note in settings removes its chip on x.com".
+- [x] 3.1 Notes section with search, status filter, rows and delete; switch in the features section. Verify: e2e steps "settings lists notes and filters by status" and "deleting a note in settings removes its chip on x.com".
 
 ## 4. Docs and checks
 
-- [ ] 4.1 README (Features in English and 中文说明, shortcut Alt+N), PRIVACY.md and README Privacy (notes about other accounts are written by the user and kept in the browser), `docs/release-template.md`. Verify: reviewer reads the diff.
-- [ ] 4.2 Run `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e`; exit code 0, no `FAIL` lines.
+- [x] 4.1 README (Features in English and 中文说明, shortcut Alt+N), PRIVACY.md and README Privacy (notes about other accounts are written by the user and kept in the browser), `docs/release-template.md`. Verify: reviewer reads the diff.
+- [x] 4.2 Run `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e`; exit code 0, no `FAIL` lines.
 
 ## Workflow follow-up
 

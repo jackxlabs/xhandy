@@ -1322,7 +1322,7 @@ try {
       assert.match(featuresTitle, /Features/);
 
       // 2. Verify all switches are present in the features section
-      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts"]) {
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts", "localNotes"]) {
         assert.ok(await p.$(`section:nth-of-type(2) #${id}`), `switch #${id} should be in features section`);
       }
 
@@ -1861,6 +1861,55 @@ try {
     await updateSettings({ localNotes: true });
     await page.goto("https://x.com/eve");
     await page.waitForSelector("button.xh-note-btn", { timeout: 5000 });
+  });
+
+  await step("settings lists notes and filters by status", async () => {
+    await setStoredPart("notes", {
+      alice: { h: "Alice", s: "reach", tags: ["design", "ui"], text: "Met at meetup", t: 1000, u: 1000 },
+      bob: { h: "Bob", s: "touch", tags: ["podcast"], text: "Emailed yesterday", t: 2000, u: 2000 },
+      charlie: { h: "Charlie", s: "work", tags: ["client", "sponsor"], text: "Ongoing project contract", t: 3000, u: 3000 },
+    });
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("#noteList .key-row", { timeout: 5000 });
+      const initialCount = await p.$$eval("#noteList .key-row", (els) => els.length);
+      assert.strictEqual(initialCount, 3);
+
+      // Filter by 'work'
+      await p.selectOption("#noteFilter", "work");
+      await p.waitForFunction(() => document.querySelectorAll("#noteList .key-row").length === 1, null, { timeout: 3000 });
+      const workText = await p.$eval("#noteList .key-row", (el) => el.textContent);
+      assert.match(workText, /Charlie/);
+
+      // Reset filter and search by tag 'podcast'
+      await p.selectOption("#noteFilter", "");
+      await p.waitForFunction(() => document.querySelectorAll("#noteList .key-row").length === 3, null, { timeout: 3000 });
+      await p.fill("#noteSearch", "podcast");
+      await p.waitForFunction(() => document.querySelectorAll("#noteList .key-row").length === 1, null, { timeout: 3000 });
+      const searchPodText = await p.$eval("#noteList .key-row", (el) => el.textContent);
+      assert.match(searchPodText, /Bob/);
+    } finally {
+      await p.close();
+    }
+  });
+
+  await step("deleting a note in settings removes its chip on x.com", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector('#noteList .key-row[data-handle="alice"]', { timeout: 5000 });
+      await p.click('#noteList .key-row[data-handle="alice"] button.remove');
+      await p.waitForFunction(() => !document.querySelector('#noteList .key-row[data-handle="alice"]'), null, { timeout: 3000 });
+    } finally {
+      await p.close();
+    }
+
+    // Check on x.com timeline that alice's chip is removed
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    const chips = await page.$$("#fresh .xh-badge .xh-note");
+    assert.strictEqual(chips.length, 0);
   });
 } finally {
   await ctx.close();

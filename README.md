@@ -10,7 +10,8 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 ## Features
 
-- **Feature switches**: every feature (heat chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, top posts, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
+- **Feature switches**: every feature (heat chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, top posts, notes, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in a dedicated "Features" section at the top of Options. All are on by default.
+- **Notes** (`Alt+N`, or the button on profiles): keep private notes, tags and relationship stages for any account. Choose from four status presets (To reach out, In touch, Regular, Working together), up to 5 tags, and up to 500 characters of text. Posts by that account show a status chip or `#tag` next to the author's name (hover to preview the note). Manage, search and filter all notes in Options. Data is stored strictly in your browser and never leaves.
 - **Top posts** (`Alt+B`, or the button on profiles): opens X's own search for an account's best-received original posts (`from:<handle> min_faves:<N> -filter:replies`), with the threshold N chosen from their follower count; the browser's Back button returns to the profile. Helps you find winning topics and opening lines without typing search queries by hand. Turn it off in Options.
 - **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
 - **Key accounts** (`Alt+K`, or the button in the toolbar popup): star accounts you care about directly from post badges (`☆` to star, `★` when starred) or with `Alt+S` on the post selected with `j`/`k`. Their posts get a blue edge, and the filled `★` is the only marker; click it again to unstar. A dedicated panel (`Alt+K`) lists your key accounts sorted by silence (accounts with no recent interaction in either direction first) and marks quiet accounts (default 14 days without interaction in either direction, threshold customizable in Options). You can also manage key accounts in Options with search, added dates, last interaction dates, one-click removal, and bulk paste-to-add.
@@ -58,7 +59,7 @@ That is the point: you get faster without anything that looks like a bot to X.
   (`pointer-events: none`), so they never block a click on X.
 
 X's own shortcuts already cover navigation and actions (`j`/`k`, `l` like, `r` reply, `t` repost, `?` for the list),
-and Xhandy adds `Alt+S` (star/unstar selected post's author), `Alt+B` (top posts search), `Alt+K` (key accounts panel), `Alt+U` (not following you back panel), `Shift+F` (follow assistant), and `Alt+H` (toggle stats bar).
+and Xhandy adds `Alt+S` (star/unstar selected post's author), `Alt+B` (top posts search), `Alt+N` (edit note), `Alt+K` (key accounts panel), `Alt+U` (not following you back panel), `Shift+F` (follow assistant), and `Alt+H` (toggle stats bar).
 
 ## Install (unpacked)
 
@@ -79,8 +80,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
   timestamps of up to 100 recent follows and 100 recent unfollows (dropped after 24 hours, used for pace reminders),
   the text of your last 300 replies and posts (used for the duplicate-reply warning), the ids of up to 5,000
   posts you replied to (for the `✓ replied` mark), your own handle and follower count, how often each account
-  liked, replied to, quoted or mentioned you, up to 20,000 ids of those interactions so each is counted once, and
-  up to 1,000 key accounts you starred, with the time each was added.
+  liked, replied to, quoted or mentioned you, up to 20,000 ids of those interactions so each is counted once,
+  up to 1,000 key accounts you starred, with the time each was added, and up to 5,000 private notes you wrote about accounts (status, tags, text, and when each was created and last edited).
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
   view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
   changes or sends anything. A reply or post is recorded only after X confirms it was created.
@@ -112,7 +113,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算），在别人主页点击「高赞帖」或按 Alt+B 一键搜索该博主的高赞原创推文（在当前页打开，按浏览器的后退回到主页）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），在别人主页点击「📝 备注」或按 Alt+N 打开账号备注编辑器（设置待破冰、已破冰、常互动、合作中 4 种状态，添加标签和 500 字私密备忘，并在帖子上显示状态或标签角标），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，统计今天的点赞、回复、发帖、关注、取关数和在线时长（关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算），在别人主页点击「高赞帖」或按 Alt+B 一键搜索该博主的高赞原创推文（在当前页打开，按浏览器的后退回到主页）。每个功能都可以在设置页顶部的「功能开关」集中开启或关闭（默认全开）。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 
@@ -157,6 +158,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 | `j` / `k` | X 自带：选中下一条 / 上一条帖子 |
 | `Alt+S` | 重点账号：将选中帖子的作者设为或取消重点账号（有轻提示确认） |
 | `Alt+B` | 博主高赞帖：在当前页打开选中帖子作者或当前主页的高赞原创推文搜索 |
+| `Alt+N` | 账号备注：打开选中帖子作者或当前主页的备注编辑器，`Esc` 关闭 |
 | `Alt+K` | 打开或关闭「重点账号」面板，按最久未互动排序并标出沉寂账号，`Esc` 关闭 |
 | `Shift+F` | 关注助手：找到选中帖子作者的「关注」按钮并让它获得焦点。页面上已有就直接用（比如你把鼠标移到作者头像上弹出的资料卡），没有就跳到作者主页 |
 | `Enter` / `Esc` | 关注助手出现后：按 `Enter` 关注，按 `Esc` 取消。插件自己永远不会点 |
@@ -173,8 +175,9 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 在 `chrome://extensions` 里点 Xhandy 的「详细信息 → 扩展程序选项」，或者右键工具栏图标 →「选项」。可以调：
 
 - 界面语言：中文或英文，默认跟随浏览器语言。设置页、工具栏弹窗和 X 页面上的提示都会一起切换，不用刷新 X
-- 功能开关：所有开关集中在最上方的「功能开关」区域，可独立开启或关闭热度标签、热度颜色、互动次数、他人互动、回复数与作者体量、已回复标记、互关状态、重点账号、防重复提醒、关注取关限流提醒、底部统计栏（默认全开）
+- 功能开关：所有开关集中在最上方的「功能开关」区域，可独立开启或关闭热度标签、热度颜色、互动次数、他人互动、回复数与作者体量、已回复标记、互关状态、重点账号、高赞帖、账号备注、防重复提醒、关注取关限流提醒、底部统计栏（默认全开）
 - 重点账号：搜索、查看添加日期与双方最近互动、一键移除、批量粘贴添加（带不带 @ 均可），以及自定义沉寂天数阈值（默认 14 天）
+- 账号备注：搜索用户名/标签/正文、按状态筛选（待破冰、已破冰、常互动、合作中）、查看最后编辑日期、一键删除备注
 - 多少小时算旧帖、多少浏览量算「热」和「火」
 - 关注和取关的每日提醒上限（默认各 20 个）以及节奏提醒（默认 60 分钟内超过 10 个时提醒，窗口和数量均可调，只提醒，不拦截）
 - 防重复回复的灵敏度
