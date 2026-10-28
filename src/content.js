@@ -141,20 +141,16 @@
     return null;
   }
 
-  function updateTopPostsButton() {
-    const existing = document.querySelector("button.xh-top");
-    if (!S || !S.settings || !S.settings.topPosts) {
-      if (existing) existing.remove();
-      return;
-    }
-    const handle = profileHandleFromUrl();
-    if (!handle || isMe(handle)) {
-      if (existing) existing.remove();
-      return;
-    }
+  function updateProfileButtons() {
+    const existingTop = document.querySelector("button.xh-top");
+    const existingNote = document.querySelector("button.xh-note-btn");
+    const showTop = !!(S && S.settings && S.settings.topPosts);
+    const showNote = !!(S && S.settings && S.settings.localNotes);
 
-    if (document.querySelector('[data-testid="editProfileButton"]')) {
-      if (existing) existing.remove();
+    const handle = profileHandleFromUrl();
+    if (!handle || isMe(handle) || document.querySelector('[data-testid="editProfileButton"]')) {
+      if (existingTop) existingTop.remove();
+      if (existingNote) existingNote.remove();
       return;
     }
 
@@ -168,47 +164,306 @@
     } else {
       const fallback = findProfileFallbackArea(handle);
       if (!fallback) {
-        if (existing) existing.remove();
+        if (existingTop) existingTop.remove();
+        if (existingNote) existingNote.remove();
         return;
       }
       target = fallback.el;
       insertBefore = fallback.position === "before";
     }
 
-    if (existing) {
-      const isCorrectPlace = insertBefore
-        ? existing.nextSibling === target
-        : existing.parentNode === target && existing === target.lastElementChild;
-      if (existing.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-        existing.textContent = t("top_btn");
-        existing.setAttribute("aria-label", t("top_label", { h: handle }));
+    let topBtn = existingTop;
+    if (!showTop) {
+      if (existingTop) {
+        existingTop.remove();
+        topBtn = null;
+      }
+    } else {
+      if (existingTop) {
+        const isCorrectPlace = insertBefore
+          ? existingTop.nextSibling === target || (existingNote && existingTop.nextSibling === existingNote)
+          : existingTop.parentNode === target;
+        if (existingTop.dataset.h === handle.toLowerCase() && isCorrectPlace) {
+          existingTop.textContent = t("top_btn");
+          existingTop.setAttribute("aria-label", t("top_label", { h: handle }));
+        } else {
+          existingTop.remove();
+          topBtn = null;
+        }
+      }
+      if (!topBtn) {
+        topBtn = document.createElement("button");
+        topBtn.className = "xh-top";
+        topBtn.type = "button";
+        topBtn.dataset.h = handle.toLowerCase();
+        topBtn.textContent = t("top_btn");
+        topBtn.setAttribute("aria-label", t("top_label", { h: handle }));
+        topBtn.addEventListener(
+          "click",
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
+            location.assign(url);
+          },
+          true
+        );
+        if (insertBefore) {
+          target.before(topBtn);
+        } else {
+          target.appendChild(topBtn);
+        }
+      }
+    }
+
+    if (!showNote) {
+      if (existingNote) existingNote.remove();
+      return;
+    }
+
+    let noteBtn = existingNote;
+    if (existingNote) {
+      const isCorrectPlace = topBtn
+        ? existingNote.previousElementSibling === topBtn
+        : insertBefore
+        ? existingNote.nextSibling === target
+        : existingNote.parentNode === target;
+      if (existingNote.dataset.h === handle.toLowerCase() && isCorrectPlace) {
+        existingNote.textContent = t("note_btn");
+        existingNote.setAttribute("aria-label", t("note_title") + " @" + handle);
+      } else {
+        existingNote.remove();
+        noteBtn = null;
+      }
+    }
+    if (!noteBtn) {
+      noteBtn = document.createElement("button");
+      noteBtn.className = "xh-note-btn";
+      noteBtn.type = "button";
+      noteBtn.dataset.h = handle.toLowerCase();
+      noteBtn.textContent = t("note_btn");
+      noteBtn.setAttribute("aria-label", t("note_title") + " @" + handle);
+      noteBtn.addEventListener(
+        "click",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openNoteEditor(handle);
+        },
+        true
+      );
+      if (topBtn) {
+        topBtn.after(noteBtn);
+      } else if (insertBefore) {
+        target.before(noteBtn);
+      } else {
+        target.appendChild(noteBtn);
+      }
+    }
+  }
+
+  function updateTopPostsButton() {
+    updateProfileButtons();
+  }
+
+  let noteEditorEl = null;
+
+  function closeNoteEditor() {
+    if (noteEditorEl) {
+      noteEditorEl.remove();
+      noteEditorEl = null;
+    }
+  }
+
+  function openNoteEditor(handle) {
+    if (!handle) return;
+    closeNoteEditor();
+    if (!S || !S.settings || !S.settings.localNotes) return;
+
+    const lower = handle.toLowerCase();
+    const existingNote = (S.notes && S.notes[lower]) || null;
+    let selectedStatus = existingNote && existingNote.s ? existingNote.s : null;
+    let currentTags = Array.isArray(existingNote?.tags) ? [...existingNote.tags] : [];
+
+    const pop = document.createElement("div");
+    pop.className = "xh-note";
+    pop.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") closeNoteEditor();
+    });
+    pop.addEventListener("keyup", (e) => e.stopPropagation());
+    pop.addEventListener("keypress", (e) => e.stopPropagation());
+
+    const header = document.createElement("div");
+    header.className = "xh-note-header";
+    const userTitle = document.createElement("div");
+    userTitle.className = "xh-note-user";
+    userTitle.textContent = "@" + handle;
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "xh-note-close";
+    closeBtn.textContent = "×";
+    closeBtn.setAttribute("aria-label", t("note_close"));
+    closeBtn.addEventListener("click", () => closeNoteEditor());
+    header.appendChild(userTitle);
+    header.appendChild(closeBtn);
+    pop.appendChild(header);
+
+    const statusesDiv = document.createElement("div");
+    statusesDiv.className = "xh-note-statuses";
+    const statusBtns = [];
+    for (const st of XH.store.NOTE_STATUS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "xh-note-status";
+      btn.dataset.s = st;
+      btn.textContent = t("note_s_" + st);
+      btn.setAttribute("aria-pressed", selectedStatus === st ? "true" : "false");
+      btn.addEventListener("click", () => {
+        if (selectedStatus === st) {
+          selectedStatus = null;
+        } else {
+          selectedStatus = st;
+        }
+        statusBtns.forEach((b) => {
+          b.setAttribute("aria-pressed", b.dataset.s === selectedStatus ? "true" : "false");
+        });
+      });
+      statusBtns.push(btn);
+      statusesDiv.appendChild(btn);
+    }
+    pop.appendChild(statusesDiv);
+
+    const tagsWrap = document.createElement("div");
+    tagsWrap.className = "xh-note-tags-wrap";
+    const tagsList = document.createElement("div");
+    tagsList.className = "xh-note-tags";
+
+    const tagInput = document.createElement("input");
+    tagInput.type = "text";
+    tagInput.className = "xh-note-tag";
+    tagInput.placeholder = t("note_tag_ph");
+
+    const tagHint = document.createElement("div");
+    tagHint.className = "xh-note-tag-hint";
+    tagHint.hidden = true;
+    tagHint.textContent = t("note_tag_hint");
+
+    function renderTags() {
+      tagsList.replaceChildren(
+        ...currentTags.map((tag, idx) => {
+          const chip = document.createElement("span");
+          chip.className = "xh-note-tag-chip";
+          chip.textContent = tag;
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "xh-note-tag-del";
+          del.textContent = "×";
+          del.addEventListener("click", () => {
+            currentTags.splice(idx, 1);
+            renderTags();
+          });
+          chip.appendChild(del);
+          return chip;
+        })
+      );
+    }
+    renderTags();
+
+    tagInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === ",") {
+        e.preventDefault();
+        const raw = tagInput.value.trim().replace(/^#+/, "").trim();
+        if (!raw) return;
+        const chars = Array.from(raw);
+        if (currentTags.length >= 5 || chars.length > 20) {
+          tagHint.hidden = false;
+          return;
+        }
+        if (currentTags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
+          tagInput.value = "";
+          return;
+        }
+        tagHint.hidden = true;
+        currentTags.push(raw);
+        tagInput.value = "";
+        renderTags();
+      }
+    });
+
+    tagsWrap.appendChild(tagsList);
+    tagsWrap.appendChild(tagInput);
+    tagsWrap.appendChild(tagHint);
+    pop.appendChild(tagsWrap);
+
+    const textWrap = document.createElement("div");
+    textWrap.className = "xh-note-text-wrap";
+    const textarea = document.createElement("textarea");
+    textarea.className = "xh-note-text";
+    textarea.maxLength = 500;
+    textarea.placeholder = t("note_text_ph");
+    textarea.value = existingNote && existingNote.text ? existingNote.text : "";
+
+    const countDiv = document.createElement("div");
+    countDiv.className = "xh-note-count";
+    const updateCount = () => {
+      const len = Array.from(textarea.value).length;
+      countDiv.textContent = `${len}/500`;
+    };
+    updateCount();
+    textarea.addEventListener("input", updateCount);
+
+    textWrap.appendChild(textarea);
+    textWrap.appendChild(countDiv);
+    pop.appendChild(textWrap);
+
+    const actions = document.createElement("div");
+    actions.className = "xh-note-actions";
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "xh-note-del";
+    delBtn.textContent = t("note_del");
+    delBtn.addEventListener("click", () => doSave(true));
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "xh-note-save";
+    saveBtn.textContent = t("note_save");
+    saveBtn.addEventListener("click", () => doSave(false));
+
+    actions.appendChild(delBtn);
+    actions.appendChild(saveBtn);
+    pop.appendChild(actions);
+
+    async function doSave(empty) {
+      const pending = tagInput.value.trim().replace(/^#+/, "").trim();
+      if (!empty && pending && !currentTags.some((x) => x.toLowerCase() === pending.toLowerCase())) currentTags.push(pending);
+      const sVal = empty ? null : selectedStatus;
+      const tagsVal = empty ? [] : currentTags;
+      const textVal = empty ? "" : textarea.value.trim();
+      const idVal = (S.rel && S.rel[lower] && S.rel[lower].id) || (existingNote && existingNote.id) || undefined;
+      let r;
+      await store.update(["notes"], (s) => {
+        r = store.saveNote(s.notes, handle, {
+          s: sVal,
+          tags: tagsVal,
+          text: textVal,
+          id: idVal,
+        });
+      });
+      if (r && r.reason === "full") {
+        toast(t("note_full"), "warn");
         return;
       }
-      existing.remove();
+      closeNoteEditor();
+      if (r && r.deleted) toast(t("note_deleted"));
+      else toast(t("note_saved"));
     }
 
-    const btn = document.createElement("button");
-    btn.className = "xh-top";
-    btn.type = "button";
-    btn.dataset.h = handle.toLowerCase();
-    btn.textContent = t("top_btn");
-    btn.setAttribute("aria-label", t("top_label", { h: handle }));
-    btn.addEventListener(
-      "click",
-      (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
-        location.assign(url);
-      },
-      true
-    );
-
-    if (insertBefore) {
-      target.before(btn);
-    } else {
-      target.appendChild(btn);
-    }
+    document.body.appendChild(pop);
+    noteEditorEl = pop;
+    textarea.focus();
   }
 
   function handleAltB() {
@@ -228,6 +483,28 @@
 
     const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
     location.assign(url);
+  }
+
+  function handleAltN() {
+    let handle = null;
+    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const info = article && tweetInfo(article);
+    if (info && info.handle) {
+      handle = info.handle;
+    } else {
+      const urlHandle = profileHandleFromUrl();
+      if (urlHandle) handle = urlHandle;
+    }
+
+    if (!handle) {
+      return toast(t("note_pick"), "warn");
+    }
+
+    if (isMe(handle)) {
+      return;
+    }
+
+    openNoteEditor(handle);
   }
 
   function annotate(article) {
@@ -260,6 +537,19 @@
       const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : "follower";
       const old = now - rel.t > s.relStaleDays * 86400000;
       chips.push(["rel-" + key, t("rel_" + key) + (old ? t("rel_stale") : "")]);
+    }
+    if (!own && s.localNotes && S.notes) {
+      const note = S.notes[info.handle.toLowerCase()];
+      if (note) {
+        let label = "📝";
+        if (note.s && XH.store.NOTE_STATUS.includes(note.s)) {
+          label = t("note_s_" + note.s);
+        } else if (Array.isArray(note.tags) && note.tags.length > 0) {
+          label = "#" + note.tags[0];
+        }
+        const title = Array.from(note.text || "").slice(0, 200).join("");
+        chips.push(["note", label, title]);
+      }
     }
     if (!own && s.showSeen) {
       const ownCount = p ? p.likes + p.replies : 0;
@@ -316,10 +606,11 @@
     badge.dataset.post = info.id;
     if (badge.dataset.key !== key) {
       badge.dataset.key = key;
-      const nodes = chips.map(([kind, text]) => {
+      const nodes = chips.map(([kind, text, title]) => {
         const c = document.createElement("span");
         c.className = "xh-chip xh-" + kind;
         c.textContent = text;
+        if (title) c.title = title;
         return c;
       });
       if (showStar) {
@@ -846,6 +1137,13 @@
         if (S && S.settings && S.settings.topPosts) {
           handleAltB();
         }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyN" && !isTyping(e.target)) {
+        e.preventDefault();
+        if (S && S.settings && S.settings.localNotes) {
+          handleAltN();
+        }
+      } else if (e.key === "Escape" && noteEditorEl) {
+        closeNoteEditor();
       } else if (e.key === "Escape" && panelEl && !panelEl.hidden && !followTarget) {
         togglePanel(false);
       } else if (e.key === "Escape" && followTarget) {
@@ -877,6 +1175,7 @@
   // ---------- follow relationships (read from X's own responses by page-hook.js) ----------
 
   let relPending = {};
+  let relHandles = {}; // lowercase -> handle as X shows it, for moving notes; not stored
   let relTimer = null;
 
   let repliedPending = {};
@@ -1084,14 +1383,23 @@
     const now = Date.now();
     for (const u of users) {
       relPending[u.handle.toLowerCase()] = { f: u.following, fb: u.followedBy, id: u.id, n: u.name, t: now };
+      relHandles[u.handle.toLowerCase()] = u.handle;
     }
     const onFollowingPage = me && location.pathname.toLowerCase() === "/" + me.toLowerCase() + "/following";
     clearTimeout(relTimer);
     relTimer = setTimeout(() => {
       const batch = relPending;
+      const shown = relHandles;
       relPending = {};
-      store.update(["rel", "relMeta"], (s) => {
+      relHandles = {};
+      store.update(["rel", "relMeta", "notes"], (s) => {
         Object.assign(s.rel, batch);
+        // A known user id under a new handle means the account was renamed: its note follows it.
+        for (const [k, u] of Object.entries(batch)) {
+          if (!u.id) continue;
+          store.renameNote(s.notes, u.id, shown[k] || k);
+          if (s.notes[k] && !s.notes[k].id) s.notes[k].id = u.id;
+        }
         s.relMeta.last = Date.now();
         if (onFollowingPage) s.relMeta.scan = Date.now();
       });
@@ -1372,6 +1680,7 @@
     if (s && s.settings) XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
     if (!s.settings.dupWarn) hideDup();
     if (panelMode === "keys" && s.settings && !s.settings.keyAccounts) togglePanel(false);
+    if (!s.settings.localNotes) closeNoteEditor();
     annotateAll();
     renderHud();
     renderPanel();

@@ -8,10 +8,10 @@ Implement after author-highlights (profile header selector and fixture).
 
 ## 2. On x.com
 
-- [ ] 2.1 Note editor popover (status chips, tags, textarea with count, Save, Delete, Esc), writes via `store.update(["notes"])`, keydown kept from X. Verify: e2e steps "typing in the note editor does not trigger X shortcuts" and "editor saves status, tags and text".
-- [ ] 2.2 Note button on other people's profiles next to the top posts button; Alt+N with the Alt+B target lookup and a toast without a target. Verify: e2e steps "profile note button opens the editor", "Alt+N opens the editor for the selected post's author", "own profile has no note button".
-- [ ] 2.3 Note chip in `annotate()` (status, else #tag, else 📝; title with text; not on own posts), included in the badge key; handle-change move when `rel` reports a known id under a new handle. Verify: e2e step "note chip appears on all of the account's posts and updates after editing"; the never-clicks step untouched.
-- [ ] 2.4 `localNotes` switch hides button, chip and editor, disables Alt+N, keeps data. Verify: e2e step "notes switch off hides notes and keeps them".
+- [x] 2.1 Note editor popover (status chips, tags, textarea with count, Save, Delete, Esc), writes via `store.update(["notes"])`, keydown kept from X. Verify: e2e steps "typing in the note editor does not trigger X shortcuts" and "editor saves status, tags and text".
+- [x] 2.2 Note button on other people's profiles next to the top posts button; Alt+N with the Alt+B target lookup and a toast without a target. Verify: e2e steps "profile note button opens the editor", "Alt+N opens the editor for the selected post's author", "own profile has no note button".
+- [x] 2.3 Note chip in `annotate()` (status, else #tag, else 📝; title with text; not on own posts), included in the badge key; handle-change move when `rel` reports a known id under a new handle. Verify: e2e step "note chip appears on all of the account's posts and updates after editing"; the never-clicks step untouched.
+- [x] 2.4 `localNotes` switch hides button, chip and editor, disables Alt+N, keeps data. Verify: e2e step "notes switch off hides notes and keeps them".
 
 ## 3. Settings page
 

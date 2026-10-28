@@ -31,8 +31,8 @@
     under a new handle, the note moves to the new key (handle changes keep the note).
   - No VERSION change: a new part only needs DEFAULTS and a cleanState step; old exports without `notes`
     import with none. cleanState validates every field and drops invalid entries.
-- **Editor**: one `<div class="xh-note">` popover, anchored under the profile button or the selected
-  post's badge; status as four toggle chips (click again to clear), a tag input (Enter or comma adds,
+- **Editor**: one `<div class="xh-note">` dialog, fixed near the top centre of the window (simpler and
+  never clipped, unlike anchoring to the button or badge); status as four toggle chips (click again to clear), a tag input (Enter or comma adds,
   × removes), a textarea with a character count, Save and Delete. Esc closes without saving. `keydown`
   events inside the editor call `stopPropagation()` so X's shortcuts never fire; the editor counts as
   typing for Xhandy's own shortcuts.

@@ -1699,6 +1699,169 @@ try {
     await updateSettings({ topPosts: true });
     await page.waitForSelector("button.xh-top", { timeout: 5000 });
   });
+
+  await step("typing in the note editor does not trigger X shortcuts", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    await page.focus("#fresh");
+    const likesBefore = await page.$eval(".xh-hud-likes", (el) => el.textContent).catch(() => "0");
+    await page.keyboard.press("Alt+KeyN");
+    await page.waitForSelector("div.xh-note", { timeout: 3000 });
+    // Type j and l inside the textarea
+    await page.type("textarea.xh-note-text", "jl");
+    const textVal = await page.$eval("textarea.xh-note-text", (el) => el.value);
+    assert.strictEqual(textVal, "jl");
+    // Selection still on fresh, like count unchanged
+    const isInsideEditor = await page.evaluate(
+      () =>
+        document.activeElement &&
+        (document.activeElement.classList.contains("xh-note-text") ||
+          document.activeElement.closest("article")?.id === "fresh")
+    );
+    assert.ok(isInsideEditor);
+    const likesAfter = await page.$eval(".xh-hud-likes", (el) => el.textContent).catch(() => "0");
+    assert.strictEqual(likesAfter, likesBefore);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !document.querySelector("div.xh-note"), null, { timeout: 3000 });
+  });
+
+  await step("editor saves status, tags and text", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    await page.focus("#fresh");
+    await page.keyboard.press("Alt+KeyN");
+    await page.waitForSelector("div.xh-note", { timeout: 3000 });
+    // Pick status 'reach'
+    await page.click('button.xh-note-status[data-s="reach"]');
+    // Add tag 'design'
+    await page.fill("input.xh-note-tag", "design");
+    await page.keyboard.press("Enter");
+    await page.waitForSelector(".xh-note-tag-chip", { timeout: 3000 });
+    // Fill text
+    await page.fill("textarea.xh-note-text", "Met at conference");
+    // Click Save
+    await page.click("button.xh-note-save");
+    await page.waitForFunction(() => !document.querySelector("div.xh-note"), null, { timeout: 3000 });
+    // Verify in storage
+    const notes = await storedPart("notes");
+    assert.ok(notes && notes.alice);
+    assert.strictEqual(notes.alice.s, "reach");
+    assert.deepStrictEqual(notes.alice.tags, ["design"]);
+    assert.strictEqual(notes.alice.text, "Met at conference");
+  });
+
+  await step("profile note button opens the editor", async () => {
+    await page.goto("https://x.com/eve");
+    await page.waitForSelector("button.xh-note-btn", { timeout: 5000 });
+    const text = await page.$eval("button.xh-note-btn", (el) => el.textContent);
+    assert.match(text, /Note|备注/);
+    await page.click("button.xh-note-btn");
+    await page.waitForSelector("div.xh-note", { timeout: 3000 });
+    const user = await page.$eval("div.xh-note-user", (el) => el.textContent);
+    assert.match(user, /@eve/i);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !document.querySelector("div.xh-note"), null, { timeout: 3000 });
+  });
+
+  await step("Alt+N opens the editor for the selected post's author", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    await page.focus("#fresh");
+    await page.keyboard.press("Alt+KeyN");
+    await page.waitForSelector("div.xh-note", { timeout: 3000 });
+    const user = await page.$eval("div.xh-note-user", (el) => el.textContent);
+    assert.match(user, /@alice/i);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !document.querySelector("div.xh-note"), null, { timeout: 3000 });
+  });
+
+  await step("own profile has no note button", async () => {
+    await page.goto("https://x.com/me_test");
+    await page.waitForSelector('[data-testid="UserName"]', { timeout: 5000 });
+    await page.waitForTimeout(400);
+    const noteBtn = await page.$("button.xh-note-btn");
+    assert.strictEqual(noteBtn, null);
+  });
+
+  await step("note chip appears on all of the account's posts and updates after editing", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge .xh-note", { timeout: 5000 });
+    const chipText = await page.$eval("#fresh .xh-badge .xh-note", (el) => el.textContent);
+    assert.match(chipText, /To reach out|待破冰/);
+    const title = await page.$eval("#fresh .xh-badge .xh-note", (el) => el.getAttribute("title"));
+    assert.strictEqual(title, "Met at conference");
+
+    // Edit note via Alt+N and verify chip updates
+    await page.focus("#fresh");
+    await page.keyboard.press("Alt+KeyN");
+    await page.waitForSelector("div.xh-note", { timeout: 3000 });
+    await page.fill("textarea.xh-note-text", "Updated conference note");
+    await page.click("button.xh-note-save");
+    await page.waitForFunction(() => !document.querySelector("div.xh-note"), null, { timeout: 3000 });
+
+    await page.waitForFunction(
+      () => document.querySelector("#fresh .xh-badge .xh-note")?.getAttribute("title") === "Updated conference note",
+      null,
+      { timeout: 3000 }
+    );
+  });
+
+  await step("a relation with a known id moves the note to the new handle", async () => {
+    const existing = (await storedPart("notes")) || {};
+    await setStoredPart("notes", {
+      ...existing,
+      old_user: { h: "old_user", id: "777888", s: "work", text: "Important partner", t: 100, u: 100 },
+    });
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "new_user", id: "777888", name: "New User", following: true, followedBy: false }],
+            v: [],
+            f: [],
+            c: [],
+            n: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    await page.waitForTimeout(1400); // Wait for debounce and storage write
+    const notes = await storedPart("notes");
+    assert.strictEqual(notes.old_user, undefined);
+    assert.ok(notes.new_user);
+    assert.strictEqual(notes.new_user.s, "work");
+    assert.strictEqual(notes.new_user.text, "Important partner");
+  });
+
+  await step("notes switch off hides notes and keeps them", async () => {
+    await page.goto("https://x.com/eve");
+    await page.waitForSelector("button.xh-note-btn", { timeout: 5000 });
+    await updateSettings({ localNotes: false });
+    await page.waitForFunction(() => !document.querySelector("button.xh-note-btn"), null, { timeout: 3000 });
+
+    await page.goto("https://x.com/home");
+    await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+    const noteChips = await page.$$("#fresh .xh-badge .xh-note");
+    assert.strictEqual(noteChips.length, 0);
+
+    await page.focus("#fresh");
+    await page.keyboard.press("Alt+KeyN");
+    await page.waitForTimeout(500);
+    const pop = await page.$("div.xh-note");
+    assert.strictEqual(pop, null);
+
+    // Stored notes still exist
+    const notes = await storedPart("notes");
+    assert.ok(notes && notes.alice);
+
+    // Restore setting
+    await updateSettings({ localNotes: true });
+    await page.goto("https://x.com/eve");
+    await page.waitForSelector("button.xh-note-btn", { timeout: 5000 });
+  });
 } finally {
   await ctx.close();
 }
