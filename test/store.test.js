@@ -67,11 +67,13 @@ test("a fresh install starts from defaults", async () => {
   assert.deepStrictEqual(s.rel, {});
   assert.deepStrictEqual(s.sent, []);
   assert.deepStrictEqual(s.keys, {});
+  assert.deepStrictEqual(s.notes, {});
   assert.strictEqual(s.settings.followLimit, 20);
   assert.strictEqual(s.settings.lang, "auto");
   assert.strictEqual(s.settings.keyAccounts, true);
   assert.strictEqual(s.settings.quietDays, 14);
   assert.strictEqual(s.settings.topPosts, true);
+  assert.strictEqual(s.settings.localNotes, true);
 });
 
 test("update writes only the parts it declares", async () => {
@@ -1154,4 +1156,209 @@ test("reset and replaceAll include keys part", async () => {
   // replaceAll writes keys
   await store.replaceAll({ keys: { bob: { h: "Bob", t: 2000 } } });
   assert.deepStrictEqual(chrome.data["xh:keys"], { bob: { h: "Bob", t: 2000 } });
+});
+
+test("cleanNote validates handle keys, status values, tags, text, and timestamps; drops empty notes", () => {
+  const store = loadStore(fakeChrome());
+  const { cleanNote } = store;
+
+  // Invalid handle or reserved proto
+  assert.strictEqual(cleanNote("invalid handle!", { text: "hi" }), null);
+  assert.strictEqual(cleanNote("__proto__", { text: "hi" }), null);
+  assert.strictEqual(cleanNote("alice", null), null);
+
+  // Status filtering: valid vs invalid
+  assert.strictEqual(cleanNote("alice", { s: "reach" }).s, "reach");
+  assert.strictEqual(cleanNote("alice", { s: "unknown_status", text: "ok" }).s, undefined);
+
+  // Tags: trim, length 1-20, case-folded deduplication, cap at 5
+  const cleanedTags = cleanNote("alice", {
+    tags: ["  tag1  ", "#tag1", "TAG1", "", "#", "a".repeat(21), "设".repeat(20), "tag2", "tag3", "tag4", "tag5"],
+  });
+  assert.deepStrictEqual(cleanedTags.tags, ["tag1", "设".repeat(20), "tag2", "tag3", "tag4"]);
+
+  // Text: slice at MAX_NOTE_TEXT (500)
+  const longText = "x".repeat(600);
+  const cleanedText = cleanNote("alice", { text: longText });
+  assert.strictEqual(cleanedText.text.length, 500);
+  // Counted in characters, so an emoji is never cut in half
+  const emoji = cleanNote("alice", { text: "  " + "😀".repeat(600) + "  " }).text;
+  assert.strictEqual(Array.from(emoji).length, 500);
+  assert.strictEqual(emoji, "😀".repeat(500));
+
+  // Timestamps: non-negative integers
+  const withTimes = cleanNote("alice", { text: "hi", t: 1000, u: 2000 });
+  assert.strictEqual(withTimes.t, 1000);
+  assert.strictEqual(withTimes.u, 2000);
+  const backwards = cleanNote("alice", { text: "hi", t: 3000, u: 1000 });
+  assert.strictEqual(backwards.u, 3000, "u is never before t");
+
+  // Id preservation when valid
+  assert.strictEqual(cleanNote("alice", { text: "hi", id: "12345678" }).id, "12345678");
+  assert.strictEqual(cleanNote("alice", { text: "hi", id: "not_a_valid_id" }).id, undefined);
+
+  // Empty note (no status, no tags, no text) drops completely
+  assert.strictEqual(cleanNote("alice", { s: "invalid", tags: [], text: "" }), null);
+  assert.strictEqual(cleanNote("alice", {}), null);
+});
+
+test("saveNote saves valid note, updates existing note without cap refusal, and drops empty note", () => {
+  const store = loadStore(fakeChrome());
+  const { saveNote } = store;
+  const notes = {};
+
+  // 1. Save fresh note
+  const res1 = saveNote(notes, "Alice", { s: "reach", tags: ["vip"], text: "Met at meetup" }, 1000);
+  assert.strictEqual(res1.ok, true);
+  assert.strictEqual(notes.alice.h, "Alice");
+  assert.strictEqual(notes.alice.s, "reach");
+  assert.deepStrictEqual(notes.alice.tags, ["vip"]);
+  assert.strictEqual(notes.alice.text, "Met at meetup");
+  assert.strictEqual(notes.alice.t, 1000);
+  assert.strictEqual(notes.alice.u, 1000);
+
+  // 2. Update existing note keeps created time t, updates u
+  const res2 = saveNote(notes, "alice", { s: "touch", text: "Followed up" }, 2000);
+  assert.strictEqual(res2.ok, true);
+  assert.strictEqual(notes.alice.s, "touch");
+  assert.strictEqual(notes.alice.text, "Followed up");
+  assert.strictEqual(notes.alice.t, 1000, "original t preserved");
+  assert.strictEqual(notes.alice.u, 2000, "u updated to now");
+
+  // 3. Empty note deletes existing
+  const res3 = saveNote(notes, "alice", { text: "" });
+  assert.strictEqual(res3.ok, true);
+  assert.strictEqual(res3.deleted, true);
+  assert.strictEqual(notes.alice, undefined, "alice deleted");
+
+  // Deleting non-existent empty note returns ok and deleted
+  const res4 = saveNote(notes, "bob", null);
+  assert.strictEqual(res4.ok, true);
+  assert.strictEqual(res4.deleted, true);
+
+  // Invalid handle
+  assert.deepStrictEqual(saveNote(notes, "not a handle", { text: "x" }), { ok: false, reason: "handle" });
+});
+
+test("saveNote cap refuses new notes when 5,000 notes reached without dropping existing notes", () => {
+  const store = loadStore(fakeChrome());
+  const { saveNote } = store;
+  const notes = {};
+
+  // Fill up to 5000 notes
+  for (let i = 0; i < 5000; i++) {
+    notes[`user_${i}`] = { h: `User_${i}`, text: `Note ${i}`, t: 100, u: 100 };
+  }
+  assert.strictEqual(Object.keys(notes).length, 5000);
+
+  // Attempt to add 5001st note is refused
+  const refused = saveNote(notes, "new_user", { text: "Too many" }, 200);
+  assert.strictEqual(refused.ok, false);
+  assert.strictEqual(refused.reason, "full");
+  assert.strictEqual(Object.keys(notes).length, 5000, "cap maintained, no notes added");
+  assert.strictEqual(notes["new_user"], undefined);
+  assert.strictEqual(notes["user_0"].text, "Note 0", "existing notes never dropped to make room");
+
+  // Updating an existing note among the 5000 is still allowed
+  const updated = saveNote(notes, "user_0", { text: "Updated note 0" }, 300);
+  assert.strictEqual(updated.ok, true);
+  assert.strictEqual(notes["user_0"].text, "Updated note 0");
+});
+
+test("cleanState caps notes at 5,000 keeping the newest edited by u", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+
+  const overflow = {};
+  for (let i = 1; i <= 5005; i++) {
+    overflow[`u_${i}`] = { h: `U_${i}`, text: `Note ${i}`, t: i * 10, u: i * 10 };
+  }
+
+  await store.replaceAll({ notes: overflow });
+  const s = await store.get();
+  assert.strictEqual(Object.keys(s.notes).length, 5000);
+  assert.strictEqual(s.notes["u_1"], undefined, "oldest u_1 dropped");
+  assert.strictEqual(s.notes["u_5"], undefined, "oldest u_5 dropped");
+  assert.deepStrictEqual(s.notes["u_6"].h, "U_6");
+  assert.deepStrictEqual(s.notes["u_5005"].h, "U_5005");
+});
+
+test("renameNote moves note to new handle when id matches, updates h, and handles missing id", () => {
+  const store = loadStore(fakeChrome());
+  const { renameNote } = store;
+  const notes = {
+    carol_old: { h: "carol_old", id: "987654321", s: "work", text: "Partner", t: 100, u: 100 },
+  };
+
+  // Missing id or invalid input changes nothing
+  assert.strictEqual(renameNote(notes, "999999999", "carol_new"), false);
+  assert.strictEqual(renameNote(notes, "not-an-id", "carol_new"), false);
+  assert.ok(notes.carol_old, "note untouched when id not found");
+
+  // Matching id moves note to new handle and updates h
+  assert.strictEqual(renameNote(notes, "987654321", "Carol_New"), true);
+  assert.strictEqual(notes.carol_new.h, "Carol_New");
+  assert.strictEqual(notes.carol_old, undefined, "old handle removed");
+  assert.strictEqual(notes.carol_new.s, "work");
+  assert.strictEqual(notes.carol_new.text, "Partner");
+
+  // Already under that handle: nothing to do
+  assert.strictEqual(renameNote(notes, "987654321", "CAROL_NEW"), false);
+
+  // Both keys hold a note: the one edited last wins
+  const both = {
+    dan: { h: "dan", id: "111", text: "older", t: 1, u: 10 },
+    dan2: { h: "dan2", text: "newer", t: 1, u: 20 },
+  };
+  assert.strictEqual(renameNote(both, "111", "dan2"), true);
+  assert.strictEqual(both.dan, undefined);
+  assert.strictEqual(both.dan2.text, "newer");
+  const both2 = {
+    eve: { h: "eve", id: "222", text: "newer", t: 1, u: 30 },
+    eve2: { h: "eve2", text: "older", t: 1, u: 20 },
+  };
+  renameNote(both2, "222", "eve2");
+  assert.strictEqual(both2.eve2.text, "newer");
+  assert.strictEqual(both2.eve2.h, "eve2");
+});
+
+test("export and import round trip preserves notes, and reset clears notes", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+
+  await store.update(["notes"], (s) => {
+    s.notes["alice"] = { h: "Alice", id: "12345", s: "reach", tags: ["design"], text: "Nice work", t: 10, u: 20 };
+  });
+  assert.deepStrictEqual(chrome.data["xh:notes"], {
+    alice: { h: "Alice", id: "12345", s: "reach", tags: ["design"], text: "Nice work", t: 10, u: 20 },
+  });
+
+  // reset clears notes
+  await store.reset();
+  assert.strictEqual(chrome.data["xh:notes"], undefined);
+  const fresh = await store.get();
+  assert.deepStrictEqual(fresh.notes, {});
+
+  // replaceAll restores notes
+  await store.replaceAll({
+    notes: {
+      bob: { h: "Bob", s: "touch", text: "Followup", t: 30, u: 40 },
+    },
+  });
+  assert.deepStrictEqual(chrome.data["xh:notes"], {
+    bob: { h: "Bob", s: "touch", text: "Followup", t: 30, u: 40 },
+  });
+});
+
+test("cleanState and replaceAll handle old exports without notes gracefully", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+
+  await store.replaceAll({
+    settings: { hud: false },
+    people: { alice: { likes: 1, replies: 0, last: 1 } },
+  });
+  const s = await store.get();
+  assert.strictEqual(s.settings.hud, false);
+  assert.deepStrictEqual(s.notes, {}, "defaults to empty notes object without throwing");
 });

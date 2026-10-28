@@ -4,7 +4,7 @@ Implement after author-highlights (profile header selector and fixture).
 
 ## 1. Storage
 
-- [ ] 1.1 Add the `notes` part and `localNotes: true` (settings) to DEFAULTS; cleanState validates handle keys, status values, tags (≤5, 1–20 chars, unique case-folded), text (≤500), times; empty notes dropped; cap 5,000 refuses new notes. Pure helpers `saveNote(state, handle, note)` and `renameNote(state, id, newHandle)`. Verify: store tests for validation, empty-note delete, cap refusal, rename by id, export/import round trip, old export without `notes`.
+- [x] 1.1 Add the `notes` part and `localNotes: true` (settings) to DEFAULTS; cleanState validates handle keys, status values, tags (≤5, 1–20 chars, unique case-folded), text (≤500), times; empty notes dropped; cap 5,000 refuses new notes. Pure helpers `saveNote(state, handle, note)` and `renameNote(state, id, newHandle)`. Verify: store tests for validation, empty-note delete, cap refusal, rename by id, export/import round trip, old export without `notes`.
 
 ## 2. On x.com
 

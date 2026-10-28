@@ -37,6 +37,7 @@
       keyAccounts: true, // key accounts feature switch (star, highlight, panel)
       quietDays: 14, // days of inactivity before a key account is marked quiet
       topPosts: true, // open X search for an account's top posts
+      localNotes: true, // private notes and tags on accounts
     },
     people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
@@ -51,6 +52,7 @@
     inSeen: {}, // key -> timestamp
     pace: { follows: [], unfollows: [] },
     keys: {}, // handle (lowercase) -> { h: displayHandle, t: addedAt }
+    notes: {}, // handle (lowercase) -> { h, id?, s?, tags?, text?, t, u }
   };
   const PARTS = Object.keys(DEFAULTS);
   const MAX_REL = 30000;
@@ -60,6 +62,11 @@
   const MAX_IN_SEEN = 20000;
   const MAX_PACE = 100;
   const MAX_KEYS = 1000;
+  const MAX_NOTES = 5000;
+  const MAX_NOTE_TEXT = 500;
+  const MAX_NOTE_TAGS = 5;
+  const MAX_TAG_LEN = 20;
+  const NOTE_STATUS = ["reach", "touch", "regular", "work"];
   const PACE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
   const keyOf = (part) => PREFIX + part;
@@ -144,6 +151,81 @@
       .forEach((h) => delete k[h]);
   }
 
+  // Keep the newest MAX_NOTES notes, dropping the oldest by updated timestamp.
+  function capNotes(notes) {
+    if (!isObj(notes)) return;
+    const handles = Object.keys(notes);
+    if (handles.length <= MAX_NOTES) return;
+    handles
+      .sort((a, b) => ((notes[a] && notes[a].u) || 0) - ((notes[b] && notes[b].u) || 0))
+      .slice(0, handles.length - MAX_NOTES)
+      .forEach((h) => delete notes[h]);
+  }
+
+  const chars = (x) => Array.from(x);
+
+  // Tags: trimmed, leading # dropped, 1-20 characters, unique ignoring case, at most 5.
+  function cleanTags(tags) {
+    if (!Array.isArray(tags)) return [];
+    const seen = new Set();
+    const out = [];
+    for (const raw of tags) {
+      if (typeof raw !== "string") continue;
+      const tag = raw.trim().replace(/^#+/, "").trim();
+      const n = chars(tag).length;
+      if (n < 1 || n > MAX_TAG_LEN || seen.has(tag.toLowerCase())) continue;
+      seen.add(tag.toLowerCase());
+      out.push(tag);
+      if (out.length >= MAX_NOTE_TAGS) break;
+    }
+    return out;
+  }
+
+  // One account's note, or null when it holds no status, tags or text.
+  function cleanNote(handle, v) {
+    if (!isHandle(handle) || !isObj(v)) return null;
+    const st = NOTE_STATUS.includes(v.s) ? v.s : null;
+    const tags = cleanTags(v.tags);
+    const text = typeof v.text === "string" ? chars(v.text.trim()).slice(0, MAX_NOTE_TEXT).join("") : "";
+    if (!st && !tags.length && !text) return null;
+    const t = Math.max(0, num(v.t));
+    const out = { h: isHandle(v.h) ? v.h : handle, t, u: Math.max(num(v.u), t) };
+    if (isId(v.id)) out.id = v.id;
+    if (st) out.s = st;
+    if (tags.length) out.tags = tags;
+    if (text) out.text = text;
+    return out;
+  }
+
+  // Saves the user's edit into the notes part. An empty note deletes it; a new account is refused
+  // when MAX_NOTES are stored, so nothing the user wrote is ever dropped to make room.
+  function saveNote(notes, handle, input, now = Date.now()) {
+    if (!isHandle(handle)) return { ok: false, reason: "handle" };
+    const k = handle.toLowerCase();
+    const old = notes[k];
+    const note = cleanNote(handle, { ...(isObj(input) ? input : {}), id: isObj(input) && isId(input.id) ? input.id : old && old.id, t: old ? old.t : now, u: now });
+    if (!note) {
+      delete notes[k];
+      return { ok: true, deleted: true };
+    }
+    if (!old && Object.keys(notes).length >= MAX_NOTES) return { ok: false, reason: "full" };
+    notes[k] = note;
+    return { ok: true };
+  }
+
+  // The account with this user id now uses newHandle: move its note there. If both keys hold a note,
+  // the one edited last wins. Returns whether anything changed.
+  function renameNote(notes, id, newHandle) {
+    if (!isId(id) || !isHandle(newHandle)) return false;
+    const k = newHandle.toLowerCase();
+    const from = Object.keys(notes).find((h) => h !== k && notes[h] && notes[h].id === id);
+    if (!from) return false;
+    const moved = { ...notes[from], h: newHandle };
+    delete notes[from];
+    if (!notes[k] || notes[k].u <= moved.u) notes[k] = moved;
+    return true;
+  }
+
   function cleanInbound(v) {
     if (!isObj(v)) return null;
     return {
@@ -216,6 +298,7 @@
       inSeen: {},
       pace: cleanPace(s.pace),
       keys: {},
+      notes: {},
     };
     for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
       if (isHandle(h) && isObj(p)) {
@@ -276,6 +359,14 @@
       }
     }
     capKeys(out.keys);
+    if (isObj(s.notes)) {
+      for (const [h, n] of Object.entries(s.notes)) {
+        if (!isHandle(h)) continue;
+        const entry = cleanNote(h, n);
+        if (entry) out.notes[h.toLowerCase()] = entry;
+      }
+    }
+    capNotes(out.notes);
     return out;
   }
 
@@ -383,6 +474,7 @@
     }
     if (part === "pace") return cleanPace(v);
     if (part === "keys") return isObj(v) ? v : {};
+    if (part === "notes") return isObj(v) ? v : {};
     return v || {};
   }
 
@@ -542,5 +634,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple, prunePace };
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple, prunePace, cleanNote, saveNote, renameNote };
 })();
