@@ -1380,10 +1380,12 @@
       }
     }
     if (!users.length) return;
-    const now = Date.now();
     for (const u of users) {
-      relPending[u.handle.toLowerCase()] = { f: u.following, fb: u.followedBy, id: u.id, n: u.name, t: now };
-      relHandles[u.handle.toLowerCase()] = u.handle;
+      const k = u.handle.toLowerCase();
+      const prev = relPending[k];
+      // Within one batch, a later sighting that leaves a flag out keeps the earlier one.
+      relPending[k] = prev ? { ...u, following: u.following ?? prev.following, followedBy: u.followedBy ?? prev.followedBy } : u;
+      relHandles[k] = u.handle;
     }
     const onFollowingPage = me && location.pathname.toLowerCase() === "/" + me.toLowerCase() + "/following";
     clearTimeout(relTimer);
@@ -1393,7 +1395,8 @@
       relPending = {};
       relHandles = {};
       store.update(["rel", "relMeta", "notes"], (s) => {
-        Object.assign(s.rel, batch);
+        const now = Date.now();
+        for (const [k, u] of Object.entries(batch)) s.rel[k] = store.nextRel(s.rel[k], u, now);
         // A known user id under a new handle means the account was renamed: its note follows it.
         for (const [k, u] of Object.entries(batch)) {
           if (!u.id) continue;
@@ -1411,12 +1414,13 @@
   function onFriendship({ handle, id, name, on }) {
     const k = handle.toLowerCase();
     const now = Date.now();
+    // A sighting still waiting in the 1 s batch was read before this follow or unfollow.
+    if (relPending[k]) delete relPending[k].following;
     store.update(["days", "rel", "pace"], (s) => {
       const d = store.today(s);
       if (on) d.follows = (d.follows || 0) + 1;
       else d.unfollows = (d.unfollows || 0) + 1;
-      const old = s.rel[k] || { fb: false, id: null, n: null };
-      s.rel[k] = { ...old, id: id || old.id, n: name || old.n, f: on, t: now };
+      s.rel[k] = store.relAfterFriendship(s.rel[k], { id, name, on }, now);
       const list = (on ? s.pace.follows : s.pace.unfollows) || [];
       const updated = store.prunePace(list.concat(now), now);
       if (on) s.pace.follows = updated;
@@ -1526,12 +1530,23 @@
     const rows = all
       .filter(([, r]) => !r.fb)
       .sort(([a], [b]) => a.localeCompare(b));
-    const matching = rows.filter(
-      ([h, r]) => !panelQuery || h.includes(panelQuery) || (r.n || "").toLowerCase().includes(panelQuery)
-    );
+    const matches = ([h, r]) => !panelQuery || h.includes(panelQuery) || (r.n || "").toLowerCase().includes(panelQuery);
+    // Mutuals who stopped following back and haven't been dismissed go on top, newest first.
+    const isRecent = ([, r]) => r.lostAt != null && !r.ackAt;
+    const recent = rows.filter((x) => isRecent(x) && matches(x)).sort(([, a], [, b]) => b.lostAt - a.lostAt);
+    const matching = rows.filter((x) => !isRecent(x) && matches(x));
     const shown = matching.slice(0, PANEL_MAX);
     const today = S.days[store.dayKey()] || {};
-    const key = JSON.stringify(["nfb", shown.map(([h, r]) => [h, r.n, r.t]), rows.length, S.relMeta.scan, today.unfollows, me, panelQuery]);
+    const key = JSON.stringify([
+      "nfb",
+      recent.map(([h, r]) => [h, r.n, r.lostAt, r.mAt]),
+      shown.map(([h, r]) => [h, r.n, r.t]),
+      rows.length,
+      S.relMeta.scan,
+      today.unfollows,
+      me,
+      panelQuery,
+    ]);
     if (!force && panelEl.dataset.key === key) return;
     panelEl.dataset.key = key;
 
@@ -1550,7 +1565,37 @@
     if (all.length >= 20 && mutual === 0) info.append(el("p", "xh-panel-warn", "⚠ " + t("nfb_suspect", { n: all.length })));
 
     const list = panelEl.querySelector(".xh-panel-list");
-    list.replaceChildren(
+    list.replaceChildren();
+    if (recent.length) {
+      list.append(el("li", "xh-panel-section", t("nfb_recent", { n: recent.length })));
+      for (const [h, r] of recent) {
+        const li = el("li", "xh-panel-recent");
+        const a = el("a", "xh-panel-row");
+        a.href = "/" + h;
+        // When they were last seen as mutuals tells how recent the unfollow really is.
+        const meta = [t("nfb_lost", { ago: XH.ago(r.lostAt, now) })];
+        if (r.mAt != null) meta.push(t("nfb_was", { ago: XH.ago(r.mAt, now) }));
+        const p = S.people[h];
+        if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
+        a.append(
+          el("span", "xh-panel-name", r.n || h),
+          el("span", "xh-panel-handle", "@" + h),
+          el("span", "xh-panel-meta", meta.join(" · "))
+        );
+        const dismiss = el("button", "xh-panel-dismiss", "×");
+        dismiss.type = "button";
+        dismiss.title = dismiss.ariaLabel = t("nfb_dismiss", { h });
+        dismiss.addEventListener("click", () => {
+          store.update(["rel"], (s) => {
+            if (s.rel[h]) s.rel[h].ackAt = Date.now();
+          });
+        });
+        li.append(a, dismiss);
+        list.append(li);
+      }
+      if (shown.length) list.append(el("li", "xh-panel-section", t("nfb_rest")));
+    }
+    list.append(
       ...shown.map(([h, r]) => {
         const li = el("li");
         const a = el("a", "xh-panel-row");
@@ -1566,7 +1611,7 @@
         return li;
       })
     );
-    if (!shown.length) list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_empty")));
+    if (!shown.length && !recent.length) list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_empty")));
     if (matching.length > PANEL_MAX) {
       list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_more", { n: PANEL_MAX, total: matching.length })));
     }

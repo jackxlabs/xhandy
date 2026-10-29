@@ -1,6 +1,6 @@
 # Xhandy privacy policy
 
-Last updated: 2026-10-21
+Last updated: 2026-10-29
 
 Xhandy is a browser extension that shows hints while you use X (x.com). It is built so that your data never
 leaves your browser.
@@ -24,7 +24,8 @@ It is not synced to other devices and is never sent anywhere.
 - **Counted interactions**: up to 20,000 short ids of the interactions above that were already counted, so
   seeing the same notification again does not count it twice.
 - **Follow relationships**: for accounts that X has shown in your browser, their handle, display name, user ID,
-  whether you follow them and whether they follow you.
+  whether you follow them and whether they follow you; for mutuals, when Xhandy last saw you follow each other,
+  when it noticed they stopped following you back, and when you dismissed that notice.
 - **Posts you replied to**: the ids of up to 5,000 posts you replied to, to mark them with `✓ replied`.
 - **Your own account**: your handle, account id and follower count, to show how big an author is compared with you.
 - **Key accounts**: up to 1,000 accounts you starred, with the handle and the timestamp when each was added, used to highlight their posts and list them in the quiet accounts panel and settings page.

@@ -267,3 +267,124 @@ test("collectRelations reads relationship_counts.followers when available", () =
     followedBy: true,
   });
 });
+
+test("collectRelations passes relationship flags through only when X sends booleans", () => {
+  const user = (h, rp) => ({ __typename: "User", rest_id: "1", core: { screen_name: h }, relationship_perspectives: rp });
+  const byHandle = Object.fromEntries(collectRelations([
+    user("both_true", { following: true, followed_by: true }),
+    user("both_false", { following: false, followed_by: false }),
+    user("omitted", { blocking: false }),
+    user("not_bool", { following: 1, followed_by: "true" }),
+  ]).map((u) => [u.handle, u]));
+  assert.strictEqual(byHandle.both_true.following, true);
+  assert.strictEqual(byHandle.both_true.followedBy, true);
+  assert.strictEqual(byHandle.both_false.following, false);
+  assert.strictEqual(byHandle.both_false.followedBy, false);
+  for (const h of ["omitted", "not_bool"]) {
+    assert.ok(!("following" in byHandle[h]), h);
+    assert.ok(!("followedBy" in byHandle[h]), h);
+  }
+});
+
+test("collectRelations keeps a flag from an earlier copy of the same user when a later copy omits it", () => {
+  const r = collectRelations({ a: [
+    { __typename: "User", core: { screen_name: "carol" }, relationship_perspectives: { following: true, followed_by: false } },
+    { __typename: "User", core: { screen_name: "Carol" }, relationship_perspectives: { following: true } },
+  ] });
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].following, true);
+  assert.strictEqual(r[0].followedBy, false);
+});
+
+// store.js attaches to globalThis.XH and only touches chrome.storage when called.
+globalThis.XH = globalThis.XH || {};
+require("../src/lib/store.js");
+const { nextRel } = globalThis.XH.store;
+
+test("nextRel records when an account was last seen as a mutual", () => {
+  const a = nextRel(undefined, { name: "Al", id: "1", following: true, followedBy: true }, 100);
+  assert.deepStrictEqual(a, { f: true, fb: true, id: "1", n: "Al", t: 100, mAt: 100 });
+  const b = nextRel(a, { name: "Al", id: "1", following: true, followedBy: true }, 200);
+  assert.strictEqual(b.mAt, 200);
+  assert.strictEqual(b.t, 200);
+});
+
+test("nextRel detects a mutual that stops following back, once", () => {
+  const mutual = { f: true, fb: true, id: "1", n: "Al", t: 1, mAt: 1 };
+  const lost = nextRel(mutual, { following: true, followedBy: false }, 50);
+  assert.strictEqual(lost.fb, false);
+  assert.strictEqual(lost.lostAt, 50);
+  assert.strictEqual(lost.mAt, 1);
+  const later = nextRel({ ...lost, ackAt: 60 }, { following: true, followedBy: false }, 90);
+  assert.strictEqual(later.lostAt, 50, "first detection time is kept");
+  assert.strictEqual(later.ackAt, 60, "a dismissed alert stays dismissed");
+});
+
+test("nextRel needs a mutual X showed (mAt), not just f and fb both true", () => {
+  const r = nextRel({ f: true, fb: true, id: null, n: null, t: 1 }, { following: true, followedBy: false }, 5);
+  assert.ok(!("lostAt" in r));
+});
+
+test("nextRel does not treat someone who followed you while you didn't follow them as a former mutual", () => {
+  // They followed you, later left; you follow them now and see they don't follow back.
+  const r = nextRel({ f: false, fb: true, id: null, n: null, t: 1 }, { following: true, followedBy: false }, 5);
+  assert.ok(!("lostAt" in r));
+});
+
+test("nextRel starts fresh when a handle now belongs to a different account", () => {
+  const oldMutual = { f: true, fb: true, id: "1", n: "Al", t: 1, mAt: 1 };
+  const r = nextRel(oldMutual, { id: "2", name: "New", following: true, followedBy: false }, 5);
+  assert.deepStrictEqual(r, { f: true, fb: false, id: "2", n: "New", t: 5 });
+});
+
+test("an unfollow the user made, then a follow again, never raises an unfollowed-you alert", () => {
+  const { relAfterFriendship } = globalThis.XH.store;
+  const mutual = { f: true, fb: true, id: "1", n: "Al", t: 1, mAt: 1 };
+  const unfollowed = relAfterFriendship(mutual, { id: "1", name: "Al", on: false }, 10);
+  assert.deepStrictEqual(unfollowed, { f: false, fb: true, id: "1", n: "Al", t: 10 });
+  const refollowed = relAfterFriendship(unfollowed, { id: "1", name: null, on: true }, 20);
+  const seen = nextRel(refollowed, { id: "1", following: true, followedBy: false }, 30);
+  assert.ok(!("lostAt" in seen));
+  // An alert that was never dismissed goes away too, instead of coming back after a follow.
+  const lost = { f: true, fb: false, id: "1", n: "Al", t: 1, mAt: 1, lostAt: 2 };
+  assert.ok(!("lostAt" in relAfterFriendship(lost, { id: "1", name: null, on: false }, 3)));
+  assert.strictEqual(relAfterFriendship(lost, { id: "1", name: null, on: true }, 3).lostAt, 2, "following again keeps it");
+});
+
+test("nextRel ignores accounts that were never mutual", () => {
+  const r = nextRel({ f: true, fb: false, id: null, n: null, t: 1 }, { following: true, followedBy: false }, 5);
+  assert.deepStrictEqual(r, { f: true, fb: false, id: null, n: null, t: 5 });
+  assert.ok(!("lostAt" in nextRel(undefined, { following: true, followedBy: false }, 5)));
+});
+
+test("nextRel ignores unfollows the user made first", () => {
+  const mutual = { f: true, fb: true, id: null, n: null, t: 1, mAt: 1 };
+  for (const followedBy of [true, false]) {
+    const r = nextRel(mutual, { following: false, followedBy }, 5);
+    assert.strictEqual(r.f, false);
+    assert.strictEqual(r.fb, followedBy);
+    assert.ok(!("lostAt" in r));
+  }
+});
+
+test("nextRel keeps stored flags and starts nothing when X leaves a flag out", () => {
+  const mutual = { f: true, fb: true, id: "1", n: "Al", t: 1, mAt: 1 };
+  assert.deepStrictEqual(nextRel(mutual, { following: true }, 5), { ...mutual, t: 5 });
+  assert.deepStrictEqual(nextRel(mutual, { followedBy: false }, 5), { ...mutual, fb: false, t: 5 });
+  assert.deepStrictEqual(nextRel(mutual, {}, 5), { ...mutual, t: 5 });
+  const lost = { f: true, fb: false, id: null, n: null, t: 1, mAt: 1, lostAt: 2, ackAt: 3 };
+  assert.deepStrictEqual(nextRel(lost, { followedBy: true }, 5), { ...lost, fb: true, t: 5 });
+  assert.ok(!("mAt" in nextRel(undefined, { followedBy: true }, 5)));
+});
+
+test("nextRel clears an unfollow and restarts the baseline when the mutual comes back", () => {
+  const lost = { f: true, fb: false, id: null, n: null, t: 1, mAt: 1, lostAt: 2, ackAt: 3 };
+  const r = nextRel(lost, { following: true, followedBy: true }, 9);
+  assert.deepStrictEqual(r, { f: true, fb: true, id: null, n: null, t: 9, mAt: 9 });
+});
+
+test("nextRel keeps a known id and name when X sends none", () => {
+  const r = nextRel({ f: true, fb: true, id: "1", n: "Al", t: 1 }, { id: null, name: null, following: true, followedBy: true }, 5);
+  assert.strictEqual(r.id, "1");
+  assert.strictEqual(r.n, "Al");
+});

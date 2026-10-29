@@ -770,6 +770,42 @@ button.xh-note-save:hover {
 .xh-panel-empty {
   padding: 10px;
 }
+.xh-panel-section {
+  padding: 8px 10px 2px;
+  color: var(--xh-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.xh-panel-recent {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.xh-panel-recent a.xh-panel-row {
+  flex: 1;
+  min-width: 0;
+}
+.xh-panel-recent .xh-panel-meta {
+  color: var(--xh-red);
+}
+.xh-panel-dismiss {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--xh-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.xh-panel-dismiss:hover,
+.xh-panel-dismiss:focus-visible {
+  background: var(--xh-chip);
+  color: var(--xh-fg);
+  outline: none;
+}
 .xh-panel-foot {
   padding: 8px 16px 12px;
   border-top: 1px solid var(--xh-border);

@@ -7,7 +7,7 @@ Tracks mutual follow baselines passively from everyday browsing data, detects wh
 ## ADDED Requirements
 
 ### Requirement: Mutual baseline recording
-When an incoming relationship update shows an account is a mutual follow (`following: true` and `followed_by: true`), Xhandy SHALL store or update the mutual baseline timestamp (`mAt`) in the account's relationship record. If an unfollow was previously recorded (`lostAt`), Xhandy SHALL clear `lostAt` and `ackAt`.
+When an incoming relationship update shows an account is a mutual follow (`following: true` and `followed_by: true`), Xhandy SHALL set the mutual baseline timestamp (`mAt`) in the account's relationship record to the time of that update, so `mAt` is when the account was last seen as a mutual. If an unfollow was previously recorded (`lostAt`), Xhandy SHALL clear `lostAt` and `ackAt`.
 
 #### Scenario: Establishing mutual baseline
 - **WHEN** an incoming relation indicates both `following: true` and `followedBy: true`
@@ -18,10 +18,10 @@ When an incoming relationship update shows an account is a mutual follow (`follo
 - **THEN** `mAt` is updated to the current time, and `lostAt` and `ackAt` are removed
 
 ### Requirement: Passive unfollow detection
-When an incoming relationship update for an account the user still follows (`following: true`) explicitly indicates `followed_by: false`, and that account previously had a recorded mutual baseline (`mAt` present or `fb: true`), Xhandy SHALL record the unfollow detection timestamp (`lostAt`) if not already present.
+When an incoming relationship update for an account the user still follows (`following: true`) explicitly indicates `followed_by: false`, and that account previously had a recorded mutual baseline (`mAt` present), Xhandy SHALL record the unfollow detection timestamp (`lostAt`) if not already present.
 
 #### Scenario: Mutual connection drops follow
-- **WHEN** an account previously stored with `fb: true` or `mAt` is observed with `following: true` and `followedBy: false`
+- **WHEN** an account previously stored with `mAt` is observed with `following: true` and `followedBy: false`
 - **THEN** `lostAt` is set to the current timestamp, and `fb` is set to `false`
 
 #### Scenario: Non-mutual stays non-mutual
@@ -43,8 +43,27 @@ Xhandy SHALL NOT record an unfollow detection when the incoming relationship pay
 - **WHEN** an account is observed with `following: false`
 - **THEN** no unfollow alert is created, regardless of whether `followedBy` is true or false
 
+#### Scenario: User unfollows, then follows again
+- **WHEN** X confirms the user unfollowed a mutual, and the user later follows that account again and it is observed with `following: true` and `followedBy: false`
+- **THEN** no unfollow alert is created, because the user's own unfollow removed `mAt`, `lostAt` and `ackAt` from the record
+
+#### Scenario: Both flags true without an observed mutual
+- **WHEN** a record has `f: true` and `fb: true` but no `mAt` (for example `fb` left over from before the user unfollowed and followed again) and the account is observed with `following: true` and `followedBy: false`
+- **THEN** no unfollow alert is created
+
+#### Scenario: Handle now belongs to a different account
+- **WHEN** an incoming relation carries a user id that differs from the stored record's id for the same handle
+- **THEN** the stored record is replaced as if the handle were new, and no unfollow alert is created from the old account's baseline
+
+### Requirement: Baseline for mutuals stored before this change
+Storage version 5 SHALL give every stored relationship with `f: true` and `fb: true` and no `mAt` a baseline `mAt` equal to its last-seen time `t`, so mutuals recorded before unfollow detection existed can still be detected.
+
+#### Scenario: Upgrading from version 4
+- **WHEN** a version 4 store holds a record `{ f: true, fb: true, t }` without `mAt`
+- **THEN** after migration the record has `mAt: t`, and records that are not mutual are unchanged
+
 ### Requirement: Recent unfollows in panel
-The Not Following Back panel (`Alt+U`) SHALL display a dedicated "Recent unfollows" section at the top when unacknowledged unfollow records (`lostAt` present and `ackAt` absent or zero) exist, ordered from newest detection to oldest. Each entry SHALL display the handle, display name, relative detection time, and a dismiss button.
+The Not Following Back panel (`Alt+U`) SHALL display a dedicated "Recent unfollows" section at the top when unacknowledged unfollow records (`lostAt` present and `ackAt` absent or zero) exist, ordered from newest detection to oldest. Each entry SHALL display the handle, display name, relative detection time, when the account was last seen as a mutual (if known), how often the user interacted with it (if any), and a dismiss button.
 
 #### Scenario: Unacknowledged unfollows shown at top
 - **WHEN** the user opens the Not Following Back panel and two accounts have unacknowledged `lostAt` timestamps

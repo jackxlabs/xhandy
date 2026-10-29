@@ -5,7 +5,7 @@
   const XH = (globalThis.XH = globalThis.XH || {});
   const PREFIX = "xh:";
   const VERSION_KEY = "xh:v";
-  const VERSION = 4;
+  const VERSION = 5;
   const LEGACY_KEY = "xh"; // v1 kept everything under this one key
 
   const DEFAULTS = {
@@ -226,6 +226,41 @@
     return true;
   }
 
+  // The stored relation after X reports u = { name, id, following?, followedBy? } at time now.
+  // mAt: last seen mutual, lostAt: a mutual stopped following back, ackAt: the user dismissed that.
+  // A flag X left out keeps its stored value and never starts or ends a mutual or an unfollow.
+  function nextRel(prev, u, now) {
+    // Same handle, different user id: the handle now belongs to someone else, so nothing carries over.
+    const reused = prev && u.id && prev.id && u.id !== prev.id;
+    const old = prev && !reused ? prev : { f: false, fb: false, id: null, n: null };
+    const next = { ...old, id: u.id || old.id || null, n: u.name || old.n || null, t: now };
+    if (typeof u.following === "boolean") next.f = u.following;
+    if (typeof u.followedBy === "boolean") next.fb = u.followedBy;
+    // Only a mutual X actually showed counts; f and fb can both be true after the user unfollows and follows again.
+    const wasMutual = old.mAt != null;
+    if (u.following === true && u.followedBy === true) {
+      next.mAt = now;
+      delete next.lostAt;
+      delete next.ackAt;
+    } else if (u.following === true && u.followedBy === false && wasMutual) {
+      if (old.lostAt == null) next.lostAt = now;
+    }
+    return next;
+  }
+
+  // The stored relation after X confirms the user followed (on) or unfollowed someone.
+  // Unfollowing ends the mutual from the user's side, so it can never turn into an "unfollowed you" alert.
+  function relAfterFriendship(prev, { id, name, on }, now) {
+    const old = prev || { fb: false, id: null, n: null };
+    const next = { ...old, id: id || old.id, n: name || old.n, f: on, t: now };
+    if (!on) {
+      delete next.mAt;
+      delete next.lostAt;
+      delete next.ackAt;
+    }
+    return next;
+  }
+
   function cleanInbound(v) {
     if (!isObj(v)) return null;
     return {
@@ -254,7 +289,10 @@
 
   function cleanRelEntry(r) {
     if (!isObj(r)) return null;
-    return { f: r.f === true, fb: r.fb === true, id: isId(r.id) ? r.id : null, n: str(r.n, 100), t: num(r.t) };
+    const e = { f: r.f === true, fb: r.fb === true, id: isId(r.id) ? r.id : null, n: str(r.n, 100), t: num(r.t) };
+    // Unfollow detection: mutual since, unfollow detected at, alert dismissed at.
+    for (const k of ["mAt", "lostAt", "ackAt"]) if (isNonNegInt(r[k])) e[k] = r[k];
+    return e;
   }
 
   function cleanPaceList(list) {
@@ -388,9 +426,10 @@
         handle: x.handle,
         name: str(x.name, 100),
         id: isId(x.id) ? x.id : null,
-        following: x.following === true,
-        followedBy: x.followedBy === true,
       };
+      // Flags X left out stay out: the caller keeps what it already knows.
+      if (typeof x.following === "boolean") uEntry.following = x.following;
+      if (typeof x.followedBy === "boolean") uEntry.followedBy = x.followedBy;
       if (isNonNegInt(x.followers)) uEntry.followers = x.followers;
       u.push(uEntry);
     }
@@ -544,6 +583,21 @@
             [keyOf("keys")]: keys,
           });
         }
+        if (v < 5) {
+          // Unfollow detection only trusts mAt. A mutual stored before it existed was last seen mutual at its t.
+          const sr = await chrome.storage.local.get(keyOf("rel"));
+          const rel = sr[keyOf("rel")];
+          const out = { [VERSION_KEY]: 5 };
+          let changed = false;
+          for (const r of Object.values(isObj(rel) ? rel : {})) {
+            if (isObj(r) && r.f === true && r.fb === true && r.mAt == null) {
+              r.mAt = isNonNegInt(r.t) ? r.t : 0;
+              changed = true;
+            }
+          }
+          if (changed) out[keyOf("rel")] = rel;
+          await chrome.storage.local.set(out);
+        }
       })());
   }
 
@@ -634,5 +688,5 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, untriple, prunePace, cleanNote, saveNote, renameNote };
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote };
 })();

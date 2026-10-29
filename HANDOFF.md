@@ -1,27 +1,20 @@
 # HANDOFF: unfollow-detection
 
-Updated 2026-10-29 on Omarchy. Continue on the Mac.
+Updated 2026-10-29 on the Mac.
 
 ## Done
 
-- OpenSpec change `openspec/changes/unfollow-detection/` is written, reviewed against the code and committed (`openspec validate unfollow-detection` passes). No code written yet.
-- Key point from the review: today an omitted `followed_by` / `following` becomes `false` twice (`src/page-hook.js` `collectRelations` uses `!!`, `src/lib/store.js` `cleanRelations` uses `=== true`). The change makes them three-state (true / false / omitted) end to end; see design.md decision 5.
+- Task 0.1 answered on real X: GraphQL `UserByScreenName` sends an explicit `"followed_by": false` for a followed account that does not follow back (`true` for a mutual). Recorded in design.md decision 5; case 2 kept as designed.
+- All tasks 1.1–4.1 implemented (not committed yet): three-state flags in `collectRelations` / `cleanRelations`, `mAt` / `lostAt` / `ackAt` in `cleanRelEntry`, pure transition function `store.nextRel` used by the `xh-relations` handler, "Recently unfollowed you" section with `×` dismiss in the `Alt+U` panel, README (EN + 中文) and PRIVACY.md.
+- Independent review by a subagent, fixes applied: detection trusts only `mAt` (now "last seen mutual"); storage v5 migration gives old mutuals `mAt = t`; the user's own unfollow clears `mAt` / `lostAt` / `ackAt` (`store.relAfterFriendship`) and drops a stale `following` from the 1 s batch; a handle that now has a different user id starts fresh; recent rows also show "still mutual {ago}" and interaction count.
+- `npm test` 101/101, e2e 82/82. `openspec validate unfollow-detection` passes.
 
-## Next step: task 0.1 (blocks task 2.1)
+## Open (Jack to confirm on real X; not verified yet as of 2026-10-29)
 
-On real X, find out whether `relationship_perspectives` carries an explicit `followed_by: false` or leaves the key out when someone does not follow you back.
+- Only `UserByScreenName` was checked. Has the Alt+U list ever shown a real mutual as "not following you back"? If yes, some other GraphQL operation sends a placeholder `followed_by: false`, and alerts need an allow-list of operations (see design.md Risks).
 
-How (no code change needed):
-1. Open the profile of an account you follow that does not follow you back.
-2. DevTools → Network → filter `graphql` → open the `UserByScreenName` response (also check a timeline response such as `HomeTimeline`) → search for `relationship_perspectives`.
-3. Compare with a mutual's profile (should show `followed_by: true`).
+## Next
 
-Then write the answer into design.md, decision 5 "Open question":
-- Explicit `false` is sent: keep the design, start with tasks 1.1–1.4.
-- Key is left out: revise case 2 in design.md (and the spec's safeguard requirement) before writing 2.1. Tasks 1.x can still go ahead.
-
-Then `/opsx:apply unfollow-detection`. Before committing: `npm test` and `CHROMIUM=... npm run e2e`.
-
-## Blocked
-
-Nothing else. Delete this file when the change is archived.
+1. Committed 2026-10-29 (not pushed). Jack is testing locally: reload the unpacked extension and use it on real X for a while. An alert only shows once X shows you a former mutual again with `followed_by: false`.
+2. `/opsx:archive unfollow-detection`, then delete this file.
+3. Releasing (version bump in `manifest.json`, `npm run pack`, push `public`) only when Jack says so.

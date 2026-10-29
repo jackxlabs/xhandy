@@ -493,6 +493,36 @@ try {
     assert.doesNotMatch(await page.textContent(".xh-panel-list"), /@zed/);
   });
 
+  await step("a mutual who stops following back shows on top of the panel until dismissed", async () => {
+    const send = (u) => page.evaluate((u) => {
+      window.dispatchEvent(new CustomEvent("xh-relations", { detail: JSON.stringify({ u, v: [], at: Date.now() }) }));
+    }, u);
+    await send([{ handle: "lost_lia", name: "Lia", following: true, followedBy: true }]);
+    await page.waitForTimeout(1500); // relationships are written in a 1 s batch
+    await send([
+      { handle: "lost_lia", name: "Lia", following: true, followedBy: false },
+      { handle: "never_kim", following: true, followedBy: false }, // never mutual: no alert
+    ]);
+    await page.waitForTimeout(1500);
+    if (await page.$(".xh-panel[hidden]")) await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector('.xh-panel-recent a[href="/lost_lia"]', { timeout: 3000 });
+    assert.match(await page.textContent(".xh-panel-list"), /Recently unfollowed you \(1\)/);
+    assert.match(await page.textContent('.xh-panel-recent a[href="/lost_lia"]'), /unfollow noticed just now · still mutual just now/);
+    assert.strictEqual(await page.$('.xh-panel-recent a[href="/never_kim"]'), null);
+    assert.ok(await page.$('.xh-panel-list li:not(.xh-panel-recent) a[href="/never_kim"]'));
+    if (process.env.SHOTS) await page.screenshot({ path: join(process.env.SHOTS, "panel-recent.png") });
+
+    await page.click(".xh-panel-recent .xh-panel-dismiss");
+    await page.waitForSelector(".xh-panel-recent", { state: "detached", timeout: 3000 });
+    assert.ok(await page.$('.xh-panel-list li:not(.xh-panel-recent) a[href="/lost_lia"]'));
+    assert.doesNotMatch(await page.textContent(".xh-panel-list"), /Recently unfollowed you/);
+    const lia = (await storedPart("rel")).lost_lia;
+    assert.strictEqual(typeof lia.ackAt, "number");
+    assert.strictEqual(typeof lia.lostAt, "number");
+    assert.strictEqual(typeof lia.mAt, "number");
+    await page.keyboard.press("Escape");
+  });
+
   await step("a confirmed reply marks the post as replied", async () => {
     await page.goto("https://x.com/home");
     await page.waitForSelector("#old .xh-badge");

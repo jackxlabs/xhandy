@@ -53,11 +53,11 @@ test("migrates the v1 single key into one key per part and removes it", async ()
   const s = await store.get();
   assert.strictEqual(s.settings.hud, false);
   assert.strictEqual(s.settings.heatHot, 10000, "missing settings get defaults");
-  assert.deepStrictEqual(s.rel.alice, { f: true, fb: true, t: 1 });
+  assert.deepStrictEqual(s.rel.alice, { f: true, fb: true, t: 1, mAt: 1 });
   assert.strictEqual(s.days["2026-10-15"].likes, 3);
   assert.ok(!("xh" in chrome.data), "legacy key removed");
-  assert.strictEqual(chrome.data["xh:v"], 4);
-  assert.deepStrictEqual(chrome.data["xh:rel"], { alice: { f: true, fb: true, t: 1 } });
+  assert.strictEqual(chrome.data["xh:v"], 5);
+  assert.deepStrictEqual(chrome.data["xh:rel"], { alice: { f: true, fb: true, t: 1, mAt: 1 } });
   assert.deepStrictEqual(chrome.data["xh:keys"], {});
 });
 
@@ -86,7 +86,7 @@ test("update writes only the parts it declares", async () => {
 });
 
 test("touching an undeclared part rejects and writes nothing", async () => {
-  const chrome = fakeChrome({ "xh:v": 4 });
+  const chrome = fakeChrome({ "xh:v": 5 });
   const store = loadStore(chrome);
   await assert.rejects(store.update(["days"], (s) => (s.rel.x = {})), /"rel" not in/);
   assert.strictEqual(chrome.writes.length, 0);
@@ -215,7 +215,7 @@ test("cleanRelations keeps only well-formed users and view counts", () => {
   assert.deepStrictEqual(r, {
     u: [
       { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true },
-      { handle: "bob", name: null, id: null, following: false, followedBy: false },
+      { handle: "bob", name: null, id: null },
     ],
     v: [{ id: "10", views: 5 }],
     f: [],
@@ -295,7 +295,7 @@ test("cleanRelations validates new post fields and user followers", () => {
 
   assert.deepStrictEqual(valid.u, [
     { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true, followers: 46000 },
-    { handle: "bob", name: null, id: null, following: false, followedBy: false, followers: 0 },
+    { handle: "bob", name: null, id: null, followers: 0 },
   ]);
 
   assert.deepStrictEqual(valid.v, [
@@ -334,7 +334,7 @@ test("cleanRelations validates new post fields and user followers", () => {
   );
 
   assert.deepStrictEqual(malformed.u, [
-    { handle: "good_user", name: null, id: null, following: false, followedBy: false, followers: 100 },
+    { handle: "good_user", name: null, id: null, followers: 100 },
   ]);
 
   assert.deepStrictEqual(malformed.v, [
@@ -473,7 +473,7 @@ test("migrates v2 store with tripled entries to v3 with one copy each", async ()
   });
   const store = loadStore(chrome);
   const s = await store.get();
-  assert.strictEqual(chrome.data["xh:v"], 4);
+  assert.strictEqual(chrome.data["xh:v"], 5);
   assert.strictEqual(s.sent.length, 4, "entry count is unchanged");
   assert.deepStrictEqual(s.sent[0], { t: 100, text: "Great idea!", kind: "reply", to: "alice" });
   assert.deepStrictEqual(s.sent[1], { t: 200, text: "two copies\ntwo copies", kind: "reply", to: "bob" });
@@ -482,7 +482,7 @@ test("migrates v2 store with tripled entries to v3 with one copy each", async ()
   assert.deepStrictEqual(chrome.data["xh:sent"], s.sent);
 });
 
-test("a v1 store migrates through all steps (v1 -> v2 -> v3 -> v4)", async () => {
+test("a v1 store migrates through all steps (v1 -> v2 -> v3 -> v4 -> v5)", async () => {
   const chrome = fakeChrome({
     xh: {
       settings: { hud: false },
@@ -497,13 +497,13 @@ test("a v1 store migrates through all steps (v1 -> v2 -> v3 -> v4)", async () =>
   const store = loadStore(chrome);
   const s = await store.get();
   assert.ok(!("xh" in chrome.data), "legacy key removed");
-  assert.strictEqual(chrome.data["xh:v"], 4);
+  assert.strictEqual(chrome.data["xh:v"], 5);
   assert.deepStrictEqual(s.sent, [
     { t: 1, text: "tripled", kind: "reply", to: "alice" },
     { t: 2, text: "two\ntwo", kind: "post", to: null },
   ]);
   assert.deepStrictEqual(chrome.data["xh:sent"], s.sent);
-  assert.deepStrictEqual(s.rel.alice, { f: true, fb: true, t: 1 });
+  assert.deepStrictEqual(s.rel.alice, { f: true, fb: true, t: 1, mAt: 1 });
   assert.strictEqual(s.settings.hud, false);
   assert.strictEqual(s.days["2026-10-15"].likes, 3);
   assert.deepStrictEqual(s.keys, {});
@@ -1055,7 +1055,7 @@ test("VERSION 4 migrate moves settings.targets into keys and deletes settings.ta
   const s = await store.get();
   const after = Date.now();
 
-  assert.strictEqual(chrome.data["xh:v"], 4);
+  assert.strictEqual(chrome.data["xh:v"], 5);
   assert.strictEqual(s.settings.targets, undefined);
   assert.strictEqual(chrome.data["xh:settings"].targets, undefined);
   assert.deepStrictEqual(s.keys, {
@@ -1361,4 +1361,69 @@ test("cleanState and replaceAll handle old exports without notes gracefully", as
   const s = await store.get();
   assert.strictEqual(s.settings.hud, false);
   assert.deepStrictEqual(s.notes, {}, "defaults to empty notes object without throwing");
+});
+
+test("cleanRelations keeps relationship flags three-state: true, false, or left out", () => {
+  const store = loadStore(fakeChrome());
+  const r = store.cleanRelations(JSON.stringify({ u: [
+    { handle: "mutual", following: true, followedBy: true },
+    { handle: "lost", following: true, followedBy: false },
+    { handle: "partial", following: true },
+    { handle: "unknown" },
+    { handle: "junk", following: "true", followedBy: 1 },
+  ] }));
+  const byHandle = Object.fromEntries(r.u.map((u) => [u.handle, u]));
+  assert.strictEqual(byHandle.mutual.followedBy, true);
+  assert.strictEqual(byHandle.lost.followedBy, false);
+  assert.strictEqual(byHandle.partial.following, true);
+  assert.ok(!("followedBy" in byHandle.partial));
+  for (const h of ["unknown", "junk"]) {
+    assert.ok(!("following" in byHandle[h]), h);
+    assert.ok(!("followedBy" in byHandle[h]), h);
+  }
+});
+
+test("rel entries keep valid unfollow timestamps and drop bad ones; old entries import unchanged", async () => {
+  const chrome = fakeChrome({ "xh:v": 4 });
+  const store = loadStore(chrome);
+  await store.replaceAll({
+    rel: {
+      old: { f: true, fb: true, t: 1 },
+      lost: { f: true, fb: false, t: 2, mAt: 10, lostAt: 20, ackAt: 30 },
+      zero: { f: true, fb: false, t: 3, mAt: 0, lostAt: 0, ackAt: 0 },
+      bad: { f: true, fb: false, t: 4, mAt: -1, lostAt: 1.5, ackAt: "30" },
+    },
+  });
+  const s = await store.get();
+  assert.deepStrictEqual(s.rel, {
+    old: { f: true, fb: true, id: null, n: null, t: 1 },
+    lost: { f: true, fb: false, id: null, n: null, t: 2, mAt: 10, lostAt: 20, ackAt: 30 },
+    zero: { f: true, fb: false, id: null, n: null, t: 3, mAt: 0, lostAt: 0, ackAt: 0 },
+    bad: { f: true, fb: false, id: null, n: null, t: 4 },
+  });
+});
+
+test("VERSION 5 migrate gives mutuals stored before unfollow detection a baseline", async () => {
+  const chrome = fakeChrome({ "xh:v": 4, "xh:rel": {
+    mutual: { f: true, fb: true, id: null, n: null, t: 70 },
+    following: { f: true, fb: false, id: null, n: null, t: 80 },
+    follower: { f: false, fb: true, id: null, n: null, t: 90 },
+  } });
+  const store = loadStore(chrome);
+  const s = await store.get();
+  assert.strictEqual(chrome.data["xh:v"], 5);
+  assert.deepStrictEqual(s.rel.mutual, { f: true, fb: true, id: null, n: null, t: 70, mAt: 70 });
+  assert.ok(!("mAt" in s.rel.following));
+  assert.ok(!("mAt" in s.rel.follower));
+  // A former mutual seen again without following back is now caught.
+  const seen = store.nextRel(s.rel.mutual, { following: true, followedBy: false }, 100);
+  assert.strictEqual(seen.lostAt, 100);
+});
+
+test("VERSION 5 migrate leaves rel alone when there is no mutual to fix", async () => {
+  const chrome = fakeChrome({ "xh:v": 4, "xh:rel": { bob: { f: true, fb: false, t: 1 } } });
+  const store = loadStore(chrome);
+  await store.get();
+  assert.strictEqual(chrome.data["xh:v"], 5);
+  assert.deepStrictEqual(chrome.writes, [["xh:v"]]);
 });

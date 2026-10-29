@@ -9,7 +9,7 @@ Users want to know when mutual connections unfollow them without having to const
 ## What Changes
 
 - **Mutual Baseline Tracking**: Track whether an account was confirmed as a mutual connection (`mAt`: timestamp when mutual relationship was observed) in `xh:rel`.
-- **Passive Unfollow Detection**: When incoming relation data from normal browsing (`xh-relations`) explicitly indicates that an account the user follows has `followed_by: false`, while our stored baseline recorded them as a mutual (`mAt` present or previously `fb: true`), record `lostAt: Date.now()`.
+- **Passive Unfollow Detection**: When incoming relation data from normal browsing (`xh-relations`) explicitly indicates that an account the user follows has `followed_by: false`, while our stored baseline recorded them as a mutual (`mAt` present), record `lostAt: Date.now()`.
 - **False-Positive Safeguards**: Only flag an unfollow when X explicitly sends `relationship_perspectives.followed_by === false` (never on omitted/null fields), and never when the user initiated the unfollow (`f: false`).
 - **Recent Unfollows in Not Following Back Panel (`Alt+U`)**:
   - Add a distinct "Recent unfollows" section or filter at the top of the panel listing accounts whose unfollow was detected, sorted by `lostAt` descending.

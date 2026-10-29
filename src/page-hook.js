@@ -20,17 +20,20 @@
           handle: v.core.screen_name,
           name: v.core.name || null,
           id: v.rest_id || null,
-          following: !!r.following,
-          followedBy: !!r.followed_by,
         };
+        // Only pass a flag X actually sent: an omitted one is unknown, not false.
+        if (typeof r.following === "boolean") entry.following = r.following;
+        if (typeof r.followed_by === "boolean") entry.followedBy = r.followed_by;
         if (v.relationship_counts && v.relationship_counts.followers != null) {
           const fc = Number(v.relationship_counts.followers);
           if (Number.isFinite(fc) && fc >= 0) entry.followers = fc;
         }
         const key = v.core.screen_name.toLowerCase();
         const existing = out.get(key);
-        if (existing && entry.followers == null && existing.followers != null) {
-          entry.followers = existing.followers;
+        if (existing) {
+          for (const k of ["following", "followedBy", "followers"]) {
+            if (entry[k] == null && existing[k] != null) entry[k] = existing[k];
+          }
         }
         out.set(key, entry);
       }
