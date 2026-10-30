@@ -22,7 +22,7 @@
 
 ## 4. Toolbar Popup
 
-- [ ] 4.1 Rebuild `src/popup/popup.html` / `popup.js`: header with icon and settings button, today card (date + five numbers), 7-day replies bars with day labels, total and average, entry rows with counts from task 1.3 and `Alt K` / `Alt U` key labels, entries hidden when their feature is off, privacy line; keep the "open x.com first" message; strings in both locales; verify with the "popup follows the chosen language" e2e step updated for the new layout plus a new step that checks today's numbers and the Not following back count against seeded storage.
+- [x] 4.1 Rebuild `src/popup/popup.html` / `popup.js`: header with icon and settings button, today card (date + five numbers), 7-day replies bars with day labels, total and average, entry rows with counts from task 1.3 and `Alt K` / `Alt U` key labels, entries hidden when their feature is off, privacy line; keep the "open x.com first" message; strings in both locales; verify with the "popup follows the chosen language" e2e step updated for the new layout plus a new step that checks today's numbers and the Not following back count against seeded storage.
 
 ## 5. Settings Page
 

@@ -4,46 +4,400 @@
     <meta charset="utf-8" />
     <style>
       :root {
-        --fg: #0f1419; --muted: #536471; --bg: #fff; --line: rgba(15,20,25,.08); --num: #4d2a93;
-        --today: rgba(139,92,246,.08); --accent: #794bdc;
-        --edge: linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899);
-        --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+        --xh-bg: #fff;
+        --xh-fg: #0f1419;
+        --xh-muted: #536471;
+        --xh-line: #eff3f4;
+        --xh-chip: #f2f4f5;
+        --xh-subtle: #f7f9f9;
+        --xh-surface: #fff;
+        --xh-shadow: 0 4px 18px rgba(15, 20, 25, 0.08), 0 1px 3px rgba(15, 20, 25, 0.04);
+        --xh-num: #4d2a93;
+        --xh-accent: #6d28d9;
+        --xh-ok: #047857;
+        --xh-hot: #c2410c;
+        --xh-warn: #b45309;
+        --xh-danger: #b91c1c;
         color-scheme: light dark;
       }
       @media (prefers-color-scheme: dark) {
-        :root { --fg: #e7e9ea; --muted: #8b98a5; --bg: #0e0c18; --line: rgba(231,233,234,.1); --num: #dad2ff; --today: rgba(139,92,246,.18); --accent: #a88dff; }
+        :root {
+          --xh-bg: #000;
+          --xh-fg: #e7e9ea;
+          --xh-muted: #8b98a5;
+          --xh-line: #2f3336;
+          --xh-chip: #202327;
+          --xh-subtle: rgba(231, 233, 234, 0.04);
+          --xh-surface: #16181c;
+          --xh-shadow: 0 4px 22px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(231, 233, 234, 0.06);
+          --xh-num: #ddd6fe;
+          --xh-accent: #a78bfa;
+          --xh-ok: #34d399;
+          --xh-hot: #fb923c;
+          --xh-warn: #fbbf24;
+          --xh-danger: #f87171;
+        }
       }
-      body { margin: 0; padding: 0 14px 12px; width: 340px; box-sizing: border-box; font: 13px/1.5 -apple-system, "Segoe UI", system-ui, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--bg); }
-      body::before { content: ""; display: block; height: 3px; margin: 0 -14px 12px; background: var(--edge); }
-      h1 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
-      table { width: 100%; border-collapse: collapse; }
-      th { font-weight: 500; color: var(--muted); font-size: 11px; }
-      th, td { text-align: right; padding: 5px 3px; white-space: nowrap; border-bottom: 1px solid var(--line); }
-      td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--num); }
-      th:first-child, td:first-child { text-align: left; }
-      td:first-child, td.zero { color: var(--muted); opacity: .7; }
-      td:first-child { opacity: 1; }
-      tr.today td { font-weight: 700; background: var(--today); }
-      tr.today td:first-child { color: var(--fg); border-radius: 8px 0 0 8px; }
-      tr.today td:last-child { border-radius: 0 8px 8px 0; }
-      .muted { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      button { width: 100%; margin: 12px 0 0; padding: 7px 12px; border: 1px solid var(--accent); border-radius: 999px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
-      button:hover { background: var(--today); }
-      button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 12px 14px;
+        width: 320px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC", sans-serif;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--xh-fg);
+        background: var(--xh-bg);
+      }
+
+      /* Header */
+      .pop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .pop-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pop-logo {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+      }
+      .pop-opts-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: var(--xh-muted);
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s;
+      }
+      .pop-opts-btn:hover {
+        background: var(--xh-chip);
+        color: var(--xh-fg);
+      }
+      .pop-opts-btn:focus-visible {
+        outline: 2px solid var(--xh-accent);
+        outline-offset: 1px;
+      }
+
+      /* Cards */
+      .pop-card {
+        background: var(--xh-surface);
+        border: 1px solid var(--xh-line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+      }
+
+      /* Today section */
+      .pop-card-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .pop-card-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--xh-muted);
+      }
+      .pop-date {
+        font-size: 11px;
+        color: var(--xh-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .today-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+        text-align: center;
+      }
+      .today-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .today-num {
+        font-size: 16px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--xh-num);
+        line-height: 1.2;
+      }
+      .today-label {
+        font-size: 10px;
+        color: var(--xh-muted);
+        margin-top: 2px;
+        white-space: nowrap;
+      }
+
+      /* 7-day chart */
+      .chart-summary {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        font-size: 11px;
+        color: var(--xh-muted);
+        margin-bottom: 8px;
+      }
+      .chart-stat b {
+        color: var(--xh-fg);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .chart-bars {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        align-items: end;
+        height: 52px;
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--xh-line);
+      }
+      .chart-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        justify-content: flex-end;
+      }
+      .chart-bar-wrap {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+      }
+      .chart-bar {
+        width: 100%;
+        min-height: 2px;
+        border-radius: 3px 3px 1px 1px;
+        background: var(--xh-chip);
+        transition: height 0.2s ease;
+      }
+      .chart-bar.has-replies {
+        background: var(--xh-num);
+      }
+      .chart-col.is-today .chart-bar {
+        background: var(--xh-accent);
+      }
+      .chart-labels {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-top: 4px;
+        text-align: center;
+      }
+      .chart-day-label {
+        font-size: 10px;
+        color: var(--xh-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .chart-day-label.is-today {
+        color: var(--xh-accent);
+        font-weight: 700;
+      }
+
+      /* Entry rows */
+      .entry-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .pop-entry {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--xh-line);
+        border-radius: 10px;
+        background: var(--xh-surface);
+        color: var(--xh-fg);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.15s, border-color 0.15s;
+      }
+      .pop-entry:hover {
+        background: var(--xh-subtle);
+        border-color: var(--xh-chip);
+      }
+      .pop-entry:focus-visible {
+        outline: 2px solid var(--xh-accent);
+        outline-offset: 1px;
+      }
+      .entry-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .entry-title {
+        font-weight: 600;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .entry-kbd {
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--xh-muted);
+        background: var(--xh-chip);
+        padding: 1px 5px;
+        border-radius: 4px;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+      }
+      .entry-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .entry-count {
+        font-size: 12px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--xh-muted);
+      }
+      .entry-count.has-count {
+        color: var(--xh-accent);
+      }
+      .entry-chevron {
+        color: var(--xh-muted);
+        display: flex;
+        align-items: center;
+      }
+
+      /* Message & Privacy footer */
+      .pop-msg {
+        color: var(--xh-warn);
+        font-size: 11px;
+        margin: 0 0 8px;
+        padding: 6px 10px;
+        background: rgba(180, 83, 9, 0.08);
+        border-radius: 6px;
+      }
+      .pop-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--xh-muted);
+        font-size: 11px;
+        padding-top: 4px;
+      }
+      .pop-footer svg {
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
-    <h1>Xhandy</h1>
-    <table>
-      <thead><tr id="head"></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <button id="keys" type="button"></button>
-    <button id="nfb" type="button"></button>
-    <p class="muted" id="nfb-msg" hidden></p>
-    <p class="muted"><span data-i18n="pop_data">Data stays in this browser.</span> <a href="#" id="opts" data-i18n="pop_opts">Settings</a></p>
+    <header class="pop-header">
+      <div class="pop-brand">
+        <img src="../../icons/icon32.png" width="20" height="20" alt="" class="pop-logo">
+        <h1>Xhandy</h1>
+      </div>
+      <button id="opts" type="button" class="pop-opts-btn" title="Settings" aria-label="Settings"></button>
+    </header>
+
+    <!-- Today card -->
+    <section class="pop-card">
+      <div class="pop-card-head">
+        <span class="pop-card-title" data-i18n="pop_today">Today</span>
+        <span class="pop-date" id="today-date"></span>
+      </div>
+      <div class="today-grid">
+        <div class="today-item" data-stat="likes">
+          <span class="today-num" id="today-likes">0</span>
+          <span class="today-label" data-i18n="hud_likes">likes</span>
+        </div>
+        <div class="today-item" data-stat="replies">
+          <span class="today-num" id="today-replies">0</span>
+          <span class="today-label" data-i18n="hud_replies">replies</span>
+        </div>
+        <div class="today-item" data-stat="posts">
+          <span class="today-num" id="today-posts">0</span>
+          <span class="today-label" data-i18n="hud_posts">posts</span>
+        </div>
+        <div class="today-item" data-stat="follows">
+          <span class="today-num" id="today-follows">0</span>
+          <span class="today-label" data-i18n="hud_follows">follows</span>
+        </div>
+        <div class="today-item" data-stat="time">
+          <span class="today-num" id="today-time">0:00</span>
+          <span class="today-label" data-i18n="hud_time">on X</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7-day replies chart card -->
+    <section class="pop-card">
+      <div class="pop-card-head">
+        <span class="pop-card-title" data-i18n="pop_replies_7d">7-day replies</span>
+      </div>
+      <div class="chart-summary">
+        <span class="chart-stat"><span data-i18n="pop_total">7-day total</span>: <b id="chart-total">0</b></span>
+        <span class="chart-stat"><span data-i18n="pop_avg">Daily avg</span>: <b id="chart-avg">0</b></span>
+      </div>
+      <div class="chart-bars" id="chart-bars"></div>
+      <div class="chart-labels" id="chart-labels"></div>
+    </section>
+
+    <!-- Entry rows -->
+    <div class="entry-list">
+      <button id="keys" type="button" class="pop-entry">
+        <div class="entry-main">
+          <span class="entry-title" data-i18n="key_panel_title">Key accounts</span>
+          <kbd class="entry-kbd">Alt K</kbd>
+        </div>
+        <div class="entry-right">
+          <span class="entry-count" id="keys-count"></span>
+          <span class="entry-chevron" id="keys-chevron"></span>
+        </div>
+      </button>
+
+      <button id="nfb" type="button" class="pop-entry">
+        <div class="entry-main">
+          <span class="entry-title" data-i18n="nfb_title">Not following you back</span>
+          <kbd class="entry-kbd">Alt U</kbd>
+        </div>
+        <div class="entry-right">
+          <span class="entry-count" id="nfb-count"></span>
+          <span class="entry-chevron" id="nfb-chevron"></span>
+        </div>
+      </button>
+    </div>
+
+    <p class="pop-msg" id="nfb-msg" hidden></p>
+
+    <footer class="pop-footer">
+      <span id="lock-icon"></span>
+      <span data-i18n="pop_data">Data stays in this browser.</span>
+    </footer>
+
     <script src="../locales/en.js"></script>
     <script src="../locales/zh.js"></script>
     <script src="../lib/i18n.js"></script>

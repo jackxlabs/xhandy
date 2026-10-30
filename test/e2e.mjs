@@ -1575,27 +1575,93 @@ try {
       // 1. In Chinese
       await updateSettings({ lang: "zh" });
       await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
-      await p.waitForSelector("#head th");
+      await p.waitForSelector(".today-grid");
 
-      const thTextsZh = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
-      assert.deepStrictEqual(thTextsZh, ["日期", "赞", "回复", "发帖", "关注", "取关", "在线"]);
-      assert.strictEqual(await p.textContent("#keys"), "重点账号 (Alt+K)");
-      assert.strictEqual(await p.textContent("#nfb"), "我关注了、没回关我的 (Alt+U)");
+      const todayLabelsZh = await p.$$eval(".today-label", (els) => els.map((el) => el.textContent.trim()));
+      assert.deepStrictEqual(todayLabelsZh, ["赞", "回复", "发帖", "关注", "在线"]);
+      assert.match(await p.textContent("#keys"), /重点账号/);
+      assert.match(await p.textContent("#keys"), /Alt K/);
+      assert.match(await p.textContent("#nfb"), /我关注了、没回关我的/);
+      assert.match(await p.textContent("#nfb"), /Alt U/);
       assert.match(await p.textContent("[data-i18n=pop_data]"), /数据只存在本浏览器/);
 
       // 2. In English
       await updateSettings({ lang: "en" });
       await p.reload();
-      await p.waitForSelector("#head th");
+      await p.waitForSelector(".today-grid");
 
-      const thTextsEn = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
-      assert.deepStrictEqual(thTextsEn, ["Day", "likes", "replies", "posts", "follows", "unfollows", "on X"]);
-      assert.strictEqual(await p.textContent("#keys"), "Key accounts (Alt+K)");
-      assert.strictEqual(await p.textContent("#nfb"), "Not following you back (Alt+U)");
+      const todayLabelsEn = await p.$$eval(".today-label", (els) => els.map((el) => el.textContent.trim()));
+      assert.deepStrictEqual(todayLabelsEn, ["likes", "replies", "posts", "follows", "on X"]);
+      assert.match(await p.textContent("#keys"), /Key accounts/);
+      assert.match(await p.textContent("#keys"), /Alt K/);
+      assert.match(await p.textContent("#nfb"), /Not following you back/);
+      assert.match(await p.textContent("#nfb"), /Alt U/);
       assert.match(await p.textContent("[data-i18n=pop_data]"), /Data stays in this browser/);
     } finally {
       await updateSettings({ lang: "auto" });
       await p.close();
+    }
+  });
+
+  await step("popup shows today's numbers and not following back count against seeded storage", async () => {
+    const d = new Date();
+    const todayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    await setStoredPart("days", {
+      [todayKey]: { likes: 12, replies: 23, posts: 4, follows: 5, seconds: 3660 },
+    });
+    await setStoredPart("rel", {
+      u1: { f: true, fb: false, t: 100 },
+      u2: { f: true, fb: false, t: 100 },
+      u3: { f: true, fb: false, t: 100 },
+      u4: { f: true, fb: false, t: 100 },
+      u5: { f: true, fb: false, t: 100 },
+      u6: { f: true, fb: false, t: 100 },
+      u7: { f: true, fb: false, t: 100 },
+      m1: { f: true, fb: true, t: 100 },
+    });
+    await setStoredPart("relMeta", { me: { handle: "me_test" } });
+    await setStoredPart("keys", {
+      qk1: { h: "qk1", t: 100 },
+      qk2: { h: "qk2", t: 100 },
+    });
+
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+      await p.waitForSelector(".today-grid");
+
+      // Verify today's numbers
+      assert.strictEqual(await p.textContent("#today-likes"), "12");
+      assert.strictEqual(await p.textContent("#today-replies"), "23");
+      assert.strictEqual(await p.textContent("#today-posts"), "4");
+      assert.strictEqual(await p.textContent("#today-follows"), "5");
+      assert.strictEqual(await p.textContent("#today-time"), "1:01");
+
+      // Verify Not following back count (7)
+      assert.strictEqual(await p.textContent("#nfb-count"), "7");
+
+      // Verify Key accounts quiet count (2)
+      assert.match(await p.textContent("#keys-count"), /2/);
+
+      // Verify 7-day chart total and bars
+      assert.strictEqual(await p.textContent("#chart-total"), "23");
+      const bars = await p.$$eval(".chart-bar", (els) => els.length);
+      assert.strictEqual(bars, 7);
+
+      // Feature switch: turning keyAccounts off hides Key accounts entry
+      await updateSettings({ keyAccounts: false });
+      await p.reload();
+      await p.waitForSelector(".today-grid");
+      assert.strictEqual(await p.$eval("#keys", (el) => el.hidden), true);
+      assert.strictEqual(await p.$eval("#nfb", (el) => el.hidden), false);
+    } finally {
+      await updateSettings({ keyAccounts: true });
+      await p.close();
+      await setStoredPart("days", {});
+      await setStoredPart("rel", {});
+      await setStoredPart("keys", {});
+      await setStoredPart("relMeta", { last: 0, scan: 0, me: { handle: null, followers: 0, id: null, t: 0 } });
     }
   });
 
