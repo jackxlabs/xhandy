@@ -916,6 +916,102 @@
   // ---------- 6. HUD and time on X ----------
 
   let hudEl = null;
+  let hudDrag = null;
+
+  function clampHud(r, b, w, h) {
+    const maxR = Math.max(8, window.innerWidth - w - 8);
+    const maxB = Math.max(8, window.innerHeight - h - 8);
+    return [Math.min(Math.max(8, r), maxR), Math.min(Math.max(8, b), maxB)];
+  }
+
+  function applyHudPosition() {
+    if (!hudEl || !S || !S.settings || hudEl.hidden) return;
+    if (hudDrag && hudDrag.dragging) return;
+    const r = typeof S.settings.hudRight === "number" ? S.settings.hudRight : 16;
+    const b = typeof S.settings.hudBottom === "number" ? S.settings.hudBottom : 16;
+    const rect = hudEl.getBoundingClientRect();
+    const w = rect.width || hudEl.offsetWidth || 200;
+    const h = rect.height || hudEl.offsetHeight || 32;
+    const [clampedR, clampedB] = clampHud(r, b, w, h);
+    hudEl.style.right = clampedR + "px";
+    hudEl.style.bottom = clampedB + "px";
+  }
+
+  function initHudDrag() {
+    hudEl.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || hudDrag) return;
+      // Start from the position we set, not the box: the entrance animation may still be moving it.
+      const curR = parseFloat(hudEl.style.right) || 16;
+      const curB = parseFloat(hudEl.style.bottom) || 16;
+      hudDrag = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startRight: curR,
+        startBottom: curB,
+        currentRight: curR,
+        currentBottom: curB,
+        dragging: false,
+      };
+      try {
+        hudEl.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    });
+
+    hudEl.addEventListener("pointermove", (e) => {
+      if (!hudDrag || hudDrag.pointerId !== e.pointerId) return;
+      const dx = e.clientX - hudDrag.startX;
+      const dy = e.clientY - hudDrag.startY;
+      if (!hudDrag.dragging) {
+        if (Math.hypot(dx, dy) < 4) return;
+        hudDrag.dragging = true;
+        hudEl.classList.add("xh-dragging");
+      }
+      e.preventDefault();
+      const rawR = hudDrag.startRight - dx;
+      const rawB = hudDrag.startBottom - dy;
+      const rect = hudEl.getBoundingClientRect();
+      const w = rect.width || hudEl.offsetWidth || 200;
+      const h = rect.height || hudEl.offsetHeight || 32;
+      const [r, b] = clampHud(rawR, rawB, w, h);
+      hudDrag.currentRight = Math.round(r);
+      hudDrag.currentBottom = Math.round(b);
+      hudEl.style.right = hudDrag.currentRight + "px";
+      hudEl.style.bottom = hudDrag.currentBottom + "px";
+    });
+
+    hudEl.addEventListener("pointerup", (e) => {
+      if (!hudDrag || hudDrag.pointerId !== e.pointerId) return;
+      try {
+        if (hudEl.hasPointerCapture && hudEl.hasPointerCapture(e.pointerId)) {
+          hudEl.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+      const wasDragging = hudDrag.dragging;
+      const finalRight = hudDrag.currentRight;
+      const finalBottom = hudDrag.currentBottom;
+      hudEl.classList.remove("xh-dragging");
+      hudDrag = null;
+      if (wasDragging) {
+        store.update(["settings"], (s) => {
+          s.settings.hudRight = finalRight;
+          s.settings.hudBottom = finalBottom;
+        });
+      }
+    });
+
+    hudEl.addEventListener("pointercancel", (e) => {
+      if (!hudDrag || hudDrag.pointerId !== e.pointerId) return;
+      try {
+        if (hudEl.hasPointerCapture && hudEl.hasPointerCapture(e.pointerId)) {
+          hudEl.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+      hudEl.classList.remove("xh-dragging");
+      hudDrag = null;
+      applyHudPosition();
+    });
+  }
 
   function renderHud() {
     if (!S) return;
@@ -926,6 +1022,7 @@
     if (!hudEl) {
       hudEl = document.createElement("div");
       hudEl.className = "xh-hud";
+      initHudDrag();
       document.body.appendChild(hudEl);
     }
     hudEl.title = t("hud_hint");
@@ -973,6 +1070,7 @@
       );
     }
     hudEl.hidden = false;
+    applyHudPosition();
   }
 
   // Fade the stats bar while scrolling so it never sits on top of what you are reading.
@@ -980,13 +1078,15 @@
   window.addEventListener(
     "scroll",
     () => {
-      if (!hudEl) return;
+      if (!hudEl || (hudDrag && hudDrag.dragging)) return;
       hudEl.classList.add("xh-scrolling");
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => hudEl.classList.remove("xh-scrolling"), 1000);
     },
     { passive: true }
   );
+
+  window.addEventListener("resize", applyHudPosition, { passive: true });
 
   const TICK = 15;
   setInterval(() => {

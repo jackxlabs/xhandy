@@ -1983,6 +1983,139 @@ try {
     const chips = await page.$$("#fresh .xh-badge .xh-note");
     assert.strictEqual(chips.length, 0);
   });
+
+  await step("default stats bar is in bottom-right corner and clear of composer", async () => {
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    const hudBox = await page.locator(".xh-hud").boundingBox();
+    const composerBox = await page.locator("#composer").boundingBox();
+    const vp = page.viewportSize();
+    assert.ok(hudBox, "stats bar bounding box must exist");
+    assert.ok(composerBox, "composer bounding box must exist");
+
+    // Bottom-right corner: right and bottom distances within ~4px of 16px default
+    const rightDist = vp.width - (hudBox.x + hudBox.width);
+    const bottomDist = vp.height - (hudBox.y + hudBox.height);
+    assert.ok(Math.abs(rightDist - 16) <= 4, `expected right ~16px, got ${rightDist}`);
+    assert.ok(Math.abs(bottomDist - 16) <= 4, `expected bottom ~16px, got ${bottomDist}`);
+
+    // Must not overlap composer
+    const overlaps =
+      hudBox.x < composerBox.x + composerBox.width &&
+      hudBox.x + hudBox.width > composerBox.x &&
+      hudBox.y < composerBox.y + composerBox.height &&
+      hudBox.y + hudBox.height > composerBox.y;
+    assert.strictEqual(overlaps, false, "stats bar must not overlap composer");
+  });
+
+  await step("short click on stats bar does not drag or update settings", async () => {
+    const hudBoxBefore = await page.locator(".xh-hud").boundingBox();
+    const settingsBefore = await storedPart("settings");
+    const clickX = hudBoxBefore.x + hudBoxBefore.width / 2;
+    const clickY = hudBoxBefore.y + hudBoxBefore.height / 2;
+
+    await page.mouse.move(clickX, clickY);
+    await page.mouse.down();
+    await page.mouse.move(clickX + 1, clickY + 1); // 1.4px movement, under 4px threshold
+    await page.mouse.up();
+
+    const hudBoxAfter = await page.locator(".xh-hud").boundingBox();
+    assert.strictEqual(hudBoxAfter.x, hudBoxBefore.x, "HUD x should not have moved");
+    assert.strictEqual(hudBoxAfter.y, hudBoxBefore.y, "HUD y should not have moved");
+
+    const settingsAfter = await storedPart("settings");
+    assert.strictEqual(settingsAfter.hudRight, settingsBefore.hudRight, "hudRight should not change on short click");
+    assert.strictEqual(settingsAfter.hudBottom, settingsBefore.hudBottom, "hudBottom should not change on short click");
+  });
+
+  await step("dragging stats bar moves it, writes position to storage and survives reload", async () => {
+    const hudBox = await page.locator(".xh-hud").boundingBox();
+    const startX = hudBox.x + hudBox.width / 2;
+    const startY = hudBox.y + hudBox.height / 2;
+
+    // Drag towards top-left: target (80, 80)
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(80, 80, { steps: 5 });
+    await page.mouse.up();
+
+    // Verify position moved to top-left area
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-hud");
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.left <= 40 && r.top <= 120;
+    }, null, { timeout: 3000 });
+
+    const movedBox = await page.locator(".xh-hud").boundingBox();
+    assert.ok(movedBox.x <= 40, `expected HUD near left edge, got x=${movedBox.x}`);
+    assert.ok(movedBox.y <= 120, `expected HUD near top, got y=${movedBox.y}`);
+
+    // Verify stored settings written once
+    const settings = await storedPart("settings");
+    assert.ok(typeof settings.hudRight === "number" && settings.hudRight > 500, `hudRight should be large, got ${settings.hudRight}`);
+    assert.ok(typeof settings.hudBottom === "number" && settings.hudBottom > 400, `hudBottom should be large, got ${settings.hudBottom}`);
+
+    // Verify position survives reload
+    await page.reload();
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    const reloadedBox = await page.locator(".xh-hud").boundingBox();
+    assert.ok(Math.abs(reloadedBox.x - movedBox.x) <= 2, `reloaded x=${reloadedBox.x} should match moved x=${movedBox.x}`);
+    assert.ok(Math.abs(reloadedBox.y - movedBox.y) <= 2, `reloaded y=${reloadedBox.y} should match moved y=${movedBox.y}`);
+  });
+
+  await step("stats bar stays clamped inside window on resize without overwriting stored position", async () => {
+    const storedBefore = await storedPart("settings");
+    // Make window narrow
+    await page.setViewportSize({ width: 500, height: 600 });
+    await page.waitForTimeout(300);
+
+    const clampedBox = await page.locator(".xh-hud").boundingBox();
+    assert.ok(clampedBox.x >= 8, `HUD left edge ${clampedBox.x} should be >= 8`);
+    assert.ok(clampedBox.x + clampedBox.width <= 500, `HUD right edge should be inside viewport`);
+
+    // Stored settings must NOT have been changed by resize clamping
+    const storedAfter = await storedPart("settings");
+    assert.strictEqual(storedAfter.hudRight, storedBefore.hudRight, "resize must not overwrite stored hudRight");
+    assert.strictEqual(storedAfter.hudBottom, storedBefore.hudBottom, "resize must not overwrite stored hudBottom");
+
+    // Restore viewport size
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(300);
+  });
+
+  await step("stats bar position syncs across tabs via storage.onChanged", async () => {
+    const page2 = await ctx.newPage();
+    try {
+      await page2.goto("https://x.com/home");
+      await page2.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+
+      // Page 1 drags the bar to a new position
+      await page.bringToFront();
+      const hud1 = await page.locator(".xh-hud").boundingBox();
+      const startX = hud1.x + hud1.width / 2;
+      const startY = hud1.y + hud1.height / 2;
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX + 120, startY + 80, { steps: 5 });
+      await page.mouse.up();
+
+      // Wait for page 2 to pick up the new position via storage.onChanged without reloading page 2
+      const targetBox1 = await page.locator(".xh-hud").boundingBox();
+      await page2.waitForFunction((expectedX) => {
+        const hud = document.querySelector(".xh-hud");
+        if (!hud) return false;
+        return Math.abs(hud.getBoundingClientRect().x - expectedX) <= 3;
+      }, targetBox1.x, { timeout: 5000 });
+
+      const box2 = await page2.locator(".xh-hud").boundingBox();
+      assert.ok(Math.abs(box2.x - targetBox1.x) <= 3, `page2 x=${box2.x} should match page1 x=${targetBox1.x}`);
+      assert.ok(Math.abs(box2.y - targetBox1.y) <= 3, `page2 y=${box2.y} should match page1 y=${targetBox1.y}`);
+    } finally {
+      await page2.close();
+      // Reset position back to default 16 / 16
+      await updateSettings({ hudRight: 16, hudBottom: 16 });
+    }
+  });
 } finally {
   await ctx.close();
 }

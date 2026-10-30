@@ -16,9 +16,9 @@
 
 ## 3. Stats Bar
 
-- [ ] 3.1 Position the stats bar with `right` / `bottom` from `hudRight` / `hudBottom`, clamped inside the window on render and on `resize` without writing the clamped value; restyle it as one rounded pill with number + label pairs; verify with an e2e step that the default bar's box is in the bottom-right corner and does not overlap the composer fixture.
-- [ ] 3.2 Drag: primary-button `pointerdown` on the bar, pointer capture, 4 px threshold, write the position once on `pointerup`; a click without movement does nothing; add e2e steps (drag with Playwright's real mouse moves, check the new position, reload and check it is kept, check a short click does not move it); keep "extension never clicks anything by itself" and "never fakes mouse or pointer events" passing unchanged; verify with e2e.
-- [ ] 3.3 Other tabs follow a new position through `storage.onChanged`; add an e2e step with two pages; verify with e2e.
+- [x] 3.1 Position the stats bar with `right` / `bottom` from `hudRight` / `hudBottom`, clamped inside the window on render and on `resize` without writing the clamped value; restyle it as one rounded pill with number + label pairs; verify with an e2e step that the default bar's box is in the bottom-right corner and does not overlap the composer fixture.
+- [x] 3.2 Drag: primary-button `pointerdown` on the bar, pointer capture, 4 px threshold, write the position once on `pointerup`; a click without movement does nothing; add e2e steps (drag with Playwright's real mouse moves, check the new position, reload and check it is kept, check a short click does not move it); keep "extension never clicks anything by itself" and "never fakes mouse or pointer events" passing unchanged; verify with e2e.
+- [x] 3.3 Other tabs follow a new position through `storage.onChanged`; add an e2e step with two pages; verify with e2e.
 
 ## 4. Toolbar Popup
 

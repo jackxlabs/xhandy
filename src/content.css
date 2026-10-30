@@ -488,6 +488,15 @@ button.xh-note-save:hover {
     transform: translateY(6px);
   }
 }
+/* The stats bar only fades in: a moving entrance would shift it away from the position the user dragged it to. */
+.xh-hud {
+  animation-name: xh-fade-in;
+}
+@keyframes xh-fade-in {
+  from {
+    opacity: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .xh-hud,
   .xh-dup,
@@ -496,21 +505,30 @@ button.xh-note-save:hover {
   }
 }
 
-/* Stats bar: bottom centre, clear of X's left nav, account switcher and the Messages drawer. */
+/* Stats bar: draggable rounded pill positioned by right / bottom */
 .xh-hud {
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
+  right: 16px;
+  bottom: 16px;
   display: flex;
-  align-items: stretch;
-  padding: 0;
-  border-radius: 12px;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 999px;
   border: 1px solid var(--xh-line);
   background: var(--xh-surface);
   box-shadow: var(--xh-shadow);
   white-space: nowrap;
   opacity: 0.95;
   transition: opacity 0.2s ease;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  z-index: 2147483000;
+}
+.xh-hud.xh-dragging {
+  cursor: grabbing;
+  transition: none;
 }
 .xh-hud.xh-scrolling {
   opacity: 0.08;
@@ -518,17 +536,16 @@ button.xh-note-save:hover {
 .xh-hud-item {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 44px;
-  padding: 6px 12px 8px;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 8px;
 }
 .xh-hud-item + .xh-hud-item {
-  border-left: 1px solid var(--xh-border);
+  border-left: 1px solid var(--xh-line);
 }
 .xh-hud-item b {
   font-family: inherit;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -543,17 +560,17 @@ button.xh-note-save:hover {
 .xh-hud-label {
   color: var(--xh-muted);
   font-size: 11px;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 /* Reply goal progress. */
 .xh-hud-bar {
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 8px;
+  right: 8px;
   bottom: 2px;
   height: 2px;
   border-radius: 2px;
-  background: var(--xh-border);
+  background: var(--xh-line);
   overflow: hidden;
 }
 .xh-hud-bar::after {
@@ -571,7 +588,7 @@ button.xh-note-save:hover {
     display: none;
   }
   .xh-hud-item {
-    padding: 6px 9px;
+    padding: 3px 6px;
   }
 }
 
