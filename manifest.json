@@ -33,6 +33,7 @@
         "src/lib/similarity.js",
         "src/lib/store.js",
         "src/lib/top-posts.js",
+        "src/lib/icons.js",
         "src/content.js"
       ],
       "css": [

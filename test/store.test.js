@@ -74,6 +74,8 @@ test("a fresh install starts from defaults", async () => {
   assert.strictEqual(s.settings.quietDays, 14);
   assert.strictEqual(s.settings.topPosts, true);
   assert.strictEqual(s.settings.localNotes, true);
+  assert.strictEqual(s.settings.hudRight, 16);
+  assert.strictEqual(s.settings.hudBottom, 16);
 });
 
 test("update writes only the parts it declares", async () => {
@@ -1426,4 +1428,117 @@ test("VERSION 5 migrate leaves rel alone when there is no mutual to fix", async 
   await store.get();
   assert.strictEqual(chrome.data["xh:v"], 5);
   assert.deepStrictEqual(chrome.writes, [["xh:v"]]);
+});
+
+test("old settings and old export without hudRight/hudBottom load with 16/16, and non-numbers fall back to 16", async () => {
+  // Old settings in storage without hudRight/hudBottom
+  const chrome1 = fakeChrome({ "xh:v": 4, "xh:settings": { hud: true } });
+  const s1 = await loadStore(chrome1).get();
+  assert.strictEqual(s1.settings.hudRight, 16);
+  assert.strictEqual(s1.settings.hudBottom, 16);
+
+  // Old export imported via replaceAll without hudRight/hudBottom
+  const chrome2 = fakeChrome({ "xh:v": 4 });
+  const store2 = loadStore(chrome2);
+  await store2.replaceAll({
+    settings: { hud: false, followLimit: 25 },
+  });
+  const s2 = await store2.get();
+  assert.strictEqual(s2.settings.hud, false);
+  assert.strictEqual(s2.settings.hudRight, 16);
+  assert.strictEqual(s2.settings.hudBottom, 16);
+
+  // Non-numbers fall back to 16
+  const chrome3 = fakeChrome({
+    "xh:v": 4,
+    "xh:settings": { hudRight: "invalid", hudBottom: NaN },
+  });
+  const s3 = await loadStore(chrome3).get();
+  assert.strictEqual(s3.settings.hudRight, 16);
+  assert.strictEqual(s3.settings.hudBottom, 16);
+
+  // Valid numbers are kept
+  const chrome4 = fakeChrome({
+    "xh:v": 4,
+    "xh:settings": { hudRight: 32, hudBottom: 48 },
+  });
+  const s4 = await loadStore(chrome4).get();
+  assert.strictEqual(s4.settings.hudRight, 32);
+  assert.strictEqual(s4.settings.hudBottom, 48);
+});
+
+test("store.notFollowingBack filters followed accounts that do not follow back", () => {
+  const store = loadStore(fakeChrome());
+  const rel = {
+    alice: { f: true, fb: false, n: "Alice", t: 100 },
+    bob: { f: true, fb: true, n: "Bob", t: 200 }, // mutual - exclude
+    charlie: { f: false, fb: true, n: "Charlie", t: 300 }, // follower only - exclude
+    dave: { f: true, fb: false, n: "Dave", t: 400 },
+    me: { f: true, fb: false, n: "Myself", t: 500 }, // own handle - exclude
+    "/evil.com": { f: true, fb: false, n: "Bad", t: 600 }, // invalid handle - exclude
+    "has space": { f: true, fb: false, n: "Bad2", t: 700 }, // invalid handle - exclude
+  };
+
+  const rows = store.notFollowingBack(rel, "me");
+  assert.strictEqual(rows.length, 2);
+  assert.strictEqual(rows[0][0], "alice");
+  assert.strictEqual(rows[1][0], "dave");
+
+  // Own handle with leading @ and different case is also excluded
+  const rows2 = store.notFollowingBack(rel, " @ME ");
+  assert.strictEqual(rows2.length, 2);
+
+  // Non-object rel returns empty array
+  assert.deepStrictEqual(store.notFollowingBack(null, "me"), []);
+});
+
+test("store.quietKeys identifies quiet accounts, drops invalid handles, and counts never-interacted as quiet", () => {
+  const store = loadStore(fakeChrome());
+  const now = 1000000000000;
+  const DAY_MS = 86400000;
+
+  const keys = {
+    alice: { h: "Alice", t: 100 }, // never interacted -> quiet
+    bob: { h: "Bob", t: 200 }, // outbound 20 days ago -> quiet (> 14 days)
+    charlie: { h: "Charlie", t: 300 }, // outbound 5 days ago -> active
+    dave: { h: "Dave", t: 400 }, // outbound 20 days ago, inbound 2 days ago -> active
+    "/bad": { h: "Bad", t: 500 }, // invalid handle -> dropped
+  };
+
+  const people = {
+    bob: { likes: 1, replies: 1, last: now - 20 * DAY_MS },
+    charlie: { likes: 5, replies: 0, last: now - 5 * DAY_MS },
+    dave: {
+      likes: 1,
+      replies: 0,
+      last: now - 20 * DAY_MS,
+      in: { likes: 2, replies: 0, last: now - 2 * DAY_MS },
+    },
+  };
+
+  const all = store.quietKeys(keys, people, 14, now);
+  // /bad must be dropped -> 4 items
+  assert.strictEqual(all.length, 4);
+
+  const byHandle = Object.fromEntries(all.map((item) => [item.h, item]));
+  assert.strictEqual(byHandle.alice.latest, 0);
+  assert.strictEqual(byHandle.alice.isQuiet, true, "never interacted counts as quiet");
+
+  assert.strictEqual(byHandle.bob.latest, now - 20 * DAY_MS);
+  assert.strictEqual(byHandle.bob.isQuiet, true, "older than quietDays counts as quiet");
+
+  assert.strictEqual(byHandle.charlie.latest, now - 5 * DAY_MS);
+  assert.strictEqual(byHandle.charlie.isQuiet, false, "recent interaction is not quiet");
+
+  assert.strictEqual(byHandle.dave.latest, now - 2 * DAY_MS);
+  assert.strictEqual(byHandle.dave.isQuiet, false, "recent inbound interaction is not quiet");
+
+  // Sorted quietest/oldest first: alice (0), then bob (20d ago), then charlie (5d ago), then dave (2d ago)
+  assert.deepStrictEqual(
+    all.map((x) => x.h),
+    ["alice", "bob", "charlie", "dave"]
+  );
+
+  // Non-object keys returns empty array
+  assert.deepStrictEqual(store.quietKeys(null, people, 14, now), []);
 });

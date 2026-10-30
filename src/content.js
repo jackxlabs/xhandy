@@ -1527,9 +1527,7 @@
     const me = (myHandle() || "").toLowerCase();
     // isHandle: each row links to "/" + handle, so a stored "/evil.com" must never become "//evil.com".
     const all = Object.entries(S.rel).filter(([h, r]) => r && r.f && h !== me && store.isHandle(h));
-    const rows = all
-      .filter(([, r]) => !r.fb)
-      .sort(([a], [b]) => a.localeCompare(b));
+    const rows = store.notFollowingBack(S.rel, me);
     const matches = ([h, r]) => !panelQuery || h.includes(panelQuery) || (r.n || "").toLowerCase().includes(panelQuery);
     // Mutuals who stopped following back and haven't been dismissed go on top, newest first.
     const isRecent = ([, r]) => r.lostAt != null && !r.ackAt;
@@ -1626,24 +1624,8 @@
     panelEl.setAttribute("aria-label", t("key_panel_title"));
     const now = Date.now();
     const quietDays = (S.settings && S.settings.quietDays) || 14;
-    const quietThresholdMs = quietDays * 86400000;
 
-    const all = Object.entries(S.keys || {})
-      .filter(([h]) => store.isHandle(h))
-      .map(([h, entry]) => {
-        const p = S.people[h];
-        const youLast = (p && p.last) || 0;
-        const themLast = (p && p.in && p.in.last) || 0;
-        const latest = Math.max(youLast, themLast);
-        const isQuiet = !latest || now - latest >= quietThresholdMs;
-        return { h, entry, youLast, themLast, latest, isQuiet };
-      });
-
-    all.sort((a, b) => {
-      if (a.latest !== b.latest) return a.latest - b.latest;
-      return a.h.localeCompare(b.h);
-    });
-
+    const all = store.quietKeys(S.keys, S.people, quietDays, now);
     const quietCount = all.filter((item) => item.isQuiet).length;
 
     const matching = all.filter(
