@@ -8,11 +8,11 @@
 
 ## 2. On-Page Look (content.css / content.js)
 
-- [ ] 2.1 Replace the colour block in `src/content.css` with the role tokens from design decision 1 for light, dim and dark; remove `--xh-edge`, `--xh-frame`, `--xh-glow`, `--xh-mono` and the gradient `::before` rules; numbers use `inherit` font with `tabular-nums`; verify with the e2e suite and the SHOTS screenshots in light and dark.
-- [ ] 2.2 Chips: neutral grey by default, green mutual, orange warm/hot, violet replied; the heat chip drops "🔥 " from its text and gets the flame icon when hot; update the e2e heat chip check (currently `/^🔥 15K\/h/`) to check the text "15K/h" and the presence of the icon; verify with e2e.
-- [ ] 2.3 Star button uses the star icon (outline / filled through `aria-pressed`), keeps its label and click handling; note chip uses the note icon for text-only notes; profile buttons "高赞帖" / "备注" get the flame / note icons and lose the emoji in `src/locales/*.js`; verify with the existing key-accounts, top-posts and notes e2e steps.
-- [ ] 2.4 Toasts: neutral card, border and shadow, icon in the meaning colour before the title, no side bar; verify with the duplicate-reply and follow e2e steps and a SHOTS screenshot.
-- [ ] 2.5 Panels: count badge in the title, close icon, rounded search with search icon, initial-letter avatars coloured by a hash of the handle, one-line name + handle with ellipsis, recent unfollows on a tinted row, footer progress bar for today's unfollows vs the limit; add an e2e step with a 50-character display name checking the panel width is unchanged and the row's name line does not wrap; verify with e2e.
+- [x] 2.1 Replace the colour block in `src/content.css` with the role tokens from design decision 1 for light, dim and dark; remove `--xh-edge`, `--xh-frame`, `--xh-glow`, `--xh-mono` and the gradient `::before` rules; numbers use `inherit` font with `tabular-nums`; verify with the e2e suite and the SHOTS screenshots in light and dark.
+- [x] 2.2 Chips: neutral grey by default, green mutual, orange warm/hot, violet replied; the heat chip drops "🔥 " from its text and gets the flame icon when hot; update the e2e heat chip check (currently `/^🔥 15K\/h/`) to check the text "15K/h" and the presence of the icon; verify with e2e.
+- [x] 2.3 Star button uses the star icon (outline / filled through `aria-pressed`), keeps its label and click handling; note chip uses the note icon for text-only notes; profile buttons "高赞帖" / "备注" get the flame / note icons and lose the emoji in `src/locales/*.js`; verify with the existing key-accounts, top-posts and notes e2e steps.
+- [x] 2.4 Toasts: neutral card, border and shadow, icon in the meaning colour before the title, no side bar; verify with the duplicate-reply and follow e2e steps and a SHOTS screenshot.
+- [x] 2.5 Panels: count badge in the title, close icon, rounded search with search icon, initial-letter avatars coloured by a hash of the handle, one-line name + handle with ellipsis, recent unfollows on a tinted row, footer progress bar for today's unfollows vs the limit; add an e2e step with a 50-character display name checking the panel width is unchanged and the row's name line does not wrap; verify with e2e.
 
 ## 3. Stats Bar
 

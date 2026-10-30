@@ -158,8 +158,9 @@ try {
   await step("views per hour colour the age chip: hot, warm, normal, none without data", async () => {
     // alice: 30000 views in 2 h. carol: 600 views in 10 min (counted as 30 min).
     // eve: 100 views in 15 min. dan: no view data.
-    await page.waitForFunction(() => /^🔥 15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /^15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#fresh .xh-chip.xh-hot"));
+    assert.ok(await page.$("#fresh .xh-chip.xh-hot svg"));
     await page.waitForFunction(() => /^1\.2K\/h/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#carol .xh-chip.xh-warm"));
     await page.waitForFunction(() => /^200\/h/.test(document.querySelector("#eve .xh-badge")?.textContent), null, { timeout: 5000 });
@@ -520,6 +521,47 @@ try {
     assert.strictEqual(typeof lia.ackAt, "number");
     assert.strictEqual(typeof lia.lostAt, "number");
     assert.strictEqual(typeof lia.mAt, "number");
+    await page.keyboard.press("Escape");
+  });
+
+  await step("long display names stay on one line with ellipsis and keep panel width", async () => {
+    if (await page.$(".xh-panel[hidden]")) await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+    const widthBefore = await page.evaluate(() => Math.round(document.querySelector(".xh-panel").getBoundingClientRect().width));
+
+    const longName = "Alice With A Very Long Display Name For Testing UI"; // 50 chars
+    assert.strictEqual(longName.length, 50);
+    await page.evaluate((name) => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "long_user", name, following: true, followedBy: false }],
+            v: [],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    }, longName);
+    await page.waitForTimeout(1500); // 1s batch delay
+    await page.waitForSelector('.xh-panel a[href="/long_user"]', { timeout: 3000 });
+
+    const widthAfter = await page.evaluate(() => Math.round(document.querySelector(".xh-panel").getBoundingClientRect().width));
+    assert.strictEqual(widthAfter, widthBefore, "panel width must not change with long display names");
+
+    const rowMetrics = await page.evaluate(() => {
+      const row = document.querySelector('.xh-panel a[href="/long_user"]');
+      const user = row.querySelector(".xh-panel-user");
+      const name = row.querySelector(".xh-panel-name");
+      const rUser = user.getBoundingClientRect();
+      return {
+        userHeight: rUser.height,
+        nameScrollWidth: name.scrollWidth,
+        nameClientWidth: name.clientWidth,
+      };
+    });
+    assert.ok(rowMetrics.userHeight <= 26, `name line wrapped: height is ${rowMetrics.userHeight}`);
+    assert.ok(rowMetrics.nameScrollWidth > rowMetrics.nameClientWidth, "long display name must overflow and be truncated");
     await page.keyboard.press("Escape");
   });
 
