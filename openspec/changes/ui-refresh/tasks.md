@@ -26,9 +26,9 @@
 
 ## 5. Settings Page
 
-- [ ] 5.1 Restructure `src/options/options.html` into a section nav (General, Post marks, Follow & unfollow, Duplicate replies, Key accounts, Notes, Data) with one visible section, switches placed per the `feature-settings` delta, units next to numbers, an "Advanced" `<details>` per section holding the fields listed in the `settings-page` spec, the stats bar "Reset position" action in General, and a layout that stacks the nav above the content below 700 px; verify with an e2e step that switches sections and a SHOTS screenshot at 1280 and 500 px.
-- [ ] 5.2 Autosave in `src/options/options.js`: `saveSetting(key, value)` with the per-key range table, switches and selects on `change`, numbers on `change` and 600 ms after typing stops, "Saved" indicator, invalid input marked with `aria-invalid` and not saved; remove the Save button; replace the e2e `#save` click with autosave and add steps for an out-of-range value (pace 2 → 5) and an empty field (stored value kept); verify with e2e.
-- [ ] 5.3 Reset position writes 16 / 16 and an open x.com tab moves the bar back without a reload; verify with an e2e step.
+- [x] 5.1 Restructure `src/options/options.html` into a section nav (General, Post marks, Follow & unfollow, Duplicate replies, Key accounts, Notes, Data) with one visible section, switches placed per the `feature-settings` delta, units next to numbers, an "Advanced" `<details>` per section holding the fields listed in the `settings-page` spec, the stats bar "Reset position" action in General, and a layout that stacks the nav above the content below 700 px; verify with an e2e step that switches sections and a SHOTS screenshot at 1280 and 500 px.
+- [x] 5.2 Autosave in `src/options/options.js`: `saveSetting(key, value)` with the per-key range table, switches and selects on `change`, numbers on `change` and 600 ms after typing stops, "Saved" indicator, invalid input marked with `aria-invalid` and not saved; remove the Save button; replace the e2e `#save` click with autosave and add steps for an out-of-range value (pace 2 → 5) and an empty field (stored value kept); verify with e2e.
+- [x] 5.3 Reset position writes 16 / 16 and an open x.com tab moves the bar back without a reload; verify with an e2e step.
 
 ## 6. Docs and Final Check
 
