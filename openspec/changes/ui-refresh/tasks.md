@@ -32,7 +32,7 @@
 
 ## 6. Docs and Final Check
 
-- [ ] 6.1 Update README feature list and 中文说明 (stats bar dragging, popup, settings autosave), README Privacy and `PRIVACY.md` (stats bar position stored locally); verify by reading the diff.
+- [x] 6.1 Update README feature list and 中文说明 (stats bar dragging, popup, settings autosave), README Privacy and `PRIVACY.md` (stats bar position stored locally); verify by reading the diff.
 - [ ] 6.2 Manual check on real X (Mac and Linux, light and dark): badges, stats bar default position against X's chat drawer (adjust the default if it overlaps, per design risks), dragging, panels with long names, popup, settings; record the result in the review report.
 - [ ] 6.3 Retake `docs/relations-zh.png` and `docs/heat-zh.png` on real X after 6.2; verify the README images show the new look.
 
