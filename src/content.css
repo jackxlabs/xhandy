@@ -4,6 +4,8 @@
    "not following back" panel, which only appears when you open it (Alt+U) and needs clicks. */
 
 :root {
+  /* Overlays hang off <body>, which X leaves on the browser's default (serif) font, so name X's font. */
+  --xh-font: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Noto Sans SC", "PingFang SC", sans-serif;
   --xh-bg: #fff;
   --xh-fg: #0f1419;
   --xh-muted: #536471;
@@ -254,7 +256,7 @@ div.xh-note {
   width: 380px;
   max-width: calc(100vw - 32px);
   padding: 16px 18px;
-  font-family: inherit;
+  font-family: var(--xh-font);
   font-size: 13px;
   line-height: 1.45;
   color: var(--xh-fg);
@@ -470,7 +472,7 @@ button.xh-note-save:hover {
   position: fixed;
   z-index: 2147483000;
   box-sizing: border-box;
-  font-family: inherit;
+  font-family: var(--xh-font);
   font-size: 13px;
   line-height: 1.45;
   color: var(--xh-fg);
@@ -674,7 +676,7 @@ button.xh-note-save:hover {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  font-family: inherit;
+  font-family: var(--xh-font);
   font-size: 13px;
   line-height: 1.45;
   color: var(--xh-fg);

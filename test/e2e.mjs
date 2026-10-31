@@ -2134,6 +2134,22 @@ try {
     assert.strictEqual(chips.length, 0);
   });
 
+  await step("stats bar uses a sans-serif font even when the page body has none", async () => {
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    // X leaves <body> on the browser default (serif); reproduce that, then check the bar does not inherit it.
+    const fonts = await page.evaluate(() => {
+      const prev = document.body.style.fontFamily;
+      document.body.style.fontFamily = "serif";
+      const hud = getComputedStyle(document.querySelector(".xh-hud")).fontFamily;
+      const num = getComputedStyle(document.querySelector(".xh-hud-item b")).fontFamily;
+      document.body.style.fontFamily = prev;
+      return { hud, num };
+    });
+    for (const f of [fonts.hud, fonts.num]) {
+      assert.ok(/sans-serif/.test(f) && !/^serif$/.test(f), `expected a sans-serif stack, got ${f}`);
+    }
+  });
+
   await step("default stats bar is in bottom-right corner and clear of composer", async () => {
     await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
     const hudBox = await page.locator(".xh-hud").boundingBox();
