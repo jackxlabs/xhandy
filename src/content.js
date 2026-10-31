@@ -598,8 +598,7 @@
     let badge = article.querySelector(":scope .xh-badge");
     if (!chips.length && !showStar) {
       if (badge) badge.remove();
-      article.classList.toggle("xh-target", false);
-      article.classList.toggle("xh-key", false);
+      article.toggleAttribute("data-xh-key", false);
       return;
     }
     const key = JSON.stringify([info.id, chips, isKey, showStar]);
@@ -652,8 +651,8 @@
       badge.replaceChildren(...nodes);
       queueFit(article, badge);
     }
-    article.classList.toggle("xh-target", isKey);
-    article.classList.toggle("xh-key", isKey);
+    // An attribute, not a class: X rewrites the article's class on hover.
+    article.toggleAttribute("data-xh-key", isKey);
   }
 
   // Own row: above the post's own text (not a quoted post's), or right below the name row when the post has

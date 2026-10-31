@@ -898,20 +898,20 @@ try {
 
     // A tinted post that is also a key account keeps its box-shadow edge and has a background-image that is not "none"
     await setStoredPart("keys", { alice: { h: "alice", t: now } });
-    await page.waitForSelector("#fresh.xh-key", { timeout: 5000 });
+    await page.waitForSelector("#fresh[data-xh-key]", { timeout: 5000 });
 
     const keyStyles = await page.evaluate(() => {
       const el = document.querySelector("#fresh");
       const cs = getComputedStyle(el);
       return {
         hasTint: el.hasAttribute("data-xh-tint"),
-        hasKey: el.classList.contains("xh-key"),
+        hasKey: el.hasAttribute("data-xh-key"),
         boxShadow: cs.boxShadow,
         backgroundImage: cs.backgroundImage,
       };
     });
     assert.ok(keyStyles.hasTint, "keeps the tint");
-    assert.ok(keyStyles.hasKey, "has xh-key class");
+    assert.ok(keyStyles.hasKey, "is a key account");
     assert.ok(keyStyles.boxShadow && keyStyles.boxShadow !== "none" && keyStyles.boxShadow.includes("inset"), "keeps box-shadow edge");
     assert.ok(keyStyles.backgroundImage && keyStyles.backgroundImage !== "none", "background-image is not none");
 
@@ -919,10 +919,12 @@ try {
     const afterClassReset = await page.evaluate(() => {
       const el = document.querySelector("#fresh");
       el.className = "x-hover-class";
-      return { tint: el.getAttribute("data-xh-tint"), bg: getComputedStyle(el).backgroundImage };
+      const cs = getComputedStyle(el);
+      return { tint: el.getAttribute("data-xh-tint"), bg: cs.backgroundImage, edge: cs.boxShadow };
     });
     assert.strictEqual(afterClassReset.tint, "8", "tint survives a class rewrite");
     assert.notStrictEqual(afterClassReset.bg, "none", "background still drawn after a class rewrite");
+    assert.ok(afterClassReset.edge.includes("inset"), "key-account edge still drawn after a class rewrite");
 
     // Change the two-way author's counts via setStoredPart and wait for the class to change without reload (shared 3 -> step 4)
     await setStoredPart("people", {
@@ -1218,8 +1220,8 @@ try {
     assert.strictEqual(await page.getAttribute("#fresh2 .xh-star", "aria-pressed"), "false");
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
-    assert.strictEqual(await page.$("#fresh.xh-target"), null);
-    assert.strictEqual(await page.$("#fresh2.xh-target"), null);
+    assert.strictEqual(await page.$("#fresh[data-xh-key]"), null);
+    assert.strictEqual(await page.$("#fresh2[data-xh-key]"), null);
 
     // Click star on fresh (alice)
     await page.click("#fresh .xh-star");
@@ -1229,8 +1231,8 @@ try {
     // Both posts now show the highlight; the filled star is the only key marker
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
-    assert.ok(await page.$("#fresh.xh-target"));
-    assert.ok(await page.$("#fresh2.xh-target"));
+    assert.ok(await page.$("#fresh[data-xh-key]"));
+    assert.ok(await page.$("#fresh2[data-xh-key]"));
 
     // Storage updated
     const k = await storedPart("keys");
@@ -1244,8 +1246,8 @@ try {
 
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
-    assert.strictEqual(await page.$("#fresh.xh-target"), null);
-    assert.strictEqual(await page.$("#fresh2.xh-target"), null);
+    assert.strictEqual(await page.$("#fresh[data-xh-key]"), null);
+    assert.strictEqual(await page.$("#fresh2[data-xh-key]"), null);
 
     const kAfter = await storedPart("keys");
     assert.strictEqual(kAfter.alice, undefined);
@@ -1383,12 +1385,12 @@ try {
     await setStoredPart("keys", { alice: { h: "alice", t: Date.now() } });
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 3000 });
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
-    assert.ok(await page.$("#fresh.xh-target"));
+    assert.ok(await page.$("#fresh[data-xh-key]"));
 
     // Turn feature off
     await updateSettings({ keyAccounts: false });
     await page.waitForFunction(
-      () => !document.querySelector("#fresh .xh-star") && !document.querySelector("#fresh .xh-chip.xh-key") && !document.querySelector("#fresh.xh-target"),
+      () => !document.querySelector("#fresh .xh-star") && !document.querySelector("#fresh .xh-chip.xh-key") && !document.querySelector("#fresh[data-xh-key]"),
       null,
       { timeout: 5000 }
     );
@@ -1398,7 +1400,7 @@ try {
     await updateSettings({ keyAccounts: true });
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 5000 });
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
-    assert.ok(await page.$("#fresh.xh-target"));
+    assert.ok(await page.$("#fresh[data-xh-key]"));
 
     await setStoredPart("keys", {});
   });

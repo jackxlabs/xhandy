@@ -155,8 +155,7 @@ span.xh-chip.xh-note {
   color: var(--xh-amber);
   background: var(--xh-amber-bg);
 }
-article.xh-target,
-article.xh-key {
+article[data-xh-key] {
   box-shadow: inset 3px 0 0 var(--xh-blue);
 }
 article[data-xh-tint] {
