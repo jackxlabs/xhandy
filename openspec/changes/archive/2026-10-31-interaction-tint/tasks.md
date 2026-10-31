@@ -16,4 +16,4 @@
 ## 4. Docs and checks
 
 - [x] 4.1 Update the README feature list (English) and 中文说明 with the tint, including that inbound counts only include what X showed in this browser; add "interaction tint" to the feature-switches list. Verify: reread both sections; `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e` pass with counts recorded in the report.
-- [ ] 4.2 Manual check on real X (light, Dim, Lights out): tint visible but text readable at step 8, faint but visible at step 1, still visible on hover, not confused with X's own highlights, blue edge visible on key accounts. Adjust the percentages in `content.css` if needed and record the result in the review report.
+- [x] 4.2 Manual check on real X (light, Dim, Lights out): tint visible but text readable at step 8, faint but visible at step 1, still visible on hover, not confused with X's own highlights, blue edge visible on key accounts. Adjust the percentages in `content.css` if needed and record the result in the review report.
