@@ -514,6 +514,15 @@
     const s = S.settings;
     const p = S.people[info.handle.toLowerCase()];
     const isKey = !!(s.keyAccounts && S.keys && S.keys[info.handle.toLowerCase()]);
+    // On the user's own posts, "not following" and interactions with yourself mean nothing.
+    const me = myHandle();
+    const own = !!me && me.toLowerCase() === info.handle.toLowerCase();
+
+    const step = (!own && s.showTint) ? XH.store.tintLevel(p, s, now) : 0;
+    // Touch the classes only when the step changes; X can reuse the element for another author.
+    for (let i = 1; i <= 8; i++) article.classList.toggle("xh-tint-" + i, i === step);
+    article.classList.toggle("xh-tint", step > 0);
+
     const stale = now - info.time > s.staleHours * 3600 * 1000;
 
     // Each chip: [kind, text]. Kind picks the colour in content.css.
@@ -529,9 +538,6 @@
         chips.push([heat, text]);
       }
     }
-    // On the user's own posts, "not following" and interactions with yourself mean nothing.
-    const me = myHandle();
-    const own = !!me && me.toLowerCase() === info.handle.toLowerCase();
     const rel = !own && s.showRel && S.rel[info.handle.toLowerCase()];
     if (rel && (rel.f || rel.fb)) {
       const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : "follower";

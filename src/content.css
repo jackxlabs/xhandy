@@ -159,6 +159,17 @@ article.xh-target,
 article.xh-key {
   box-shadow: inset 3px 0 0 var(--xh-blue);
 }
+article.xh-tint {
+  background-image: linear-gradient(var(--xh-tint-c), var(--xh-tint-c));
+}
+article.xh-tint-1 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 4%, transparent); }
+article.xh-tint-2 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 5.71%, transparent); }
+article.xh-tint-3 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 7.43%, transparent); }
+article.xh-tint-4 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 9.14%, transparent); }
+article.xh-tint-5 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 10.86%, transparent); }
+article.xh-tint-6 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 12.57%, transparent); }
+article.xh-tint-7 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 14.29%, transparent); }
+article.xh-tint-8 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 16%, transparent); }
 button.xh-star {
   all: unset;
   display: inline-flex;
