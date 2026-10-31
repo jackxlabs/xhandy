@@ -5,8 +5,8 @@
 
 ## 2. Posts on x.com
 
-- [x] 2.1 In `annotate` (`src/content.js`), compute the step for non-own posts when `showTint` is on and set `xh-tint xh-tint-N`, removing stale `xh-tint-*` classes; do it before the "no chips" early return. Verify: e2e step that seeds `people` with `setStoredPart` (one two-way author, one one-sided author, one old author) and checks the classes on their fake posts, and that the user's own post has none.
-- [x] 2.2 Add the tint classes to `src/content.css` (gradient layer over X's background, 4%–16% of `--xh-accent`, dim/dark overrides if needed). Verify: e2e step that a tinted key-account post keeps the blue `box-shadow` edge and has a non-empty `background-image`.
+- [x] 2.1 In `annotate` (`src/content.js`), compute the step for non-own posts when `showTint` is on and set the attribute `data-xh-tint="N"` (an attribute because X rewrites the class on hover); do it before the "no chips" early return. Verify: e2e step that seeds `people` with `setStoredPart` (one two-way author, one one-sided author, one old author) and checks the classes on their fake posts, and that the user's own post has none.
+- [x] 2.2 Add the tint rules to `src/content.css` (gradient layer over X's background, 4%–16% of `--xh-accent`, dim/dark overrides if needed). Verify: e2e step that a tinted key-account post keeps the blue `box-shadow` edge and has a non-empty `background-image`.
 - [x] 2.3 Live updates. Verify: e2e step that changes `people` for a shown author with `setStoredPart` and sees the step change without reload, and that turning `showTint` off with `updateSettings` removes all tint classes.
 
 ## 3. Settings page

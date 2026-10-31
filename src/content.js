@@ -519,9 +519,13 @@
     const own = !!me && me.toLowerCase() === info.handle.toLowerCase();
 
     const step = (!own && s.showTint) ? XH.store.tintLevel(p, s, now) : 0;
-    // Touch the classes only when the step changes; X can reuse the element for another author.
-    for (let i = 1; i <= 8; i++) article.classList.toggle("xh-tint-" + i, i === step);
-    article.classList.toggle("xh-tint", step > 0);
+    // An attribute, not a class: X rewrites the article's class on hover, which would wipe a class until the
+    // next annotate. Touch it only when the step changes; X can reuse the element for another author.
+    if (step > 0) {
+      if (article.getAttribute("data-xh-tint") !== String(step)) article.setAttribute("data-xh-tint", String(step));
+    } else if (article.hasAttribute("data-xh-tint")) {
+      article.removeAttribute("data-xh-tint");
+    }
 
     const stale = now - info.time > s.staleHours * 3600 * 1000;
 

@@ -885,16 +885,16 @@ try {
       },
     });
 
-    // Check: the two-way author's post (#fresh, alice) has xh-tint and xh-tint-8
-    await page.waitForSelector("#fresh.xh-tint.xh-tint-8", { timeout: 5000 });
-    assert.ok(await page.$("#fresh.xh-tint.xh-tint-8"));
+    // Check: the two-way author's post (#fresh, alice) has tint step 8
+    await page.waitForSelector('#fresh[data-xh-tint="8"]', { timeout: 5000 });
+    assert.ok(await page.$('#fresh[data-xh-tint="8"]'));
 
-    // The other two (#old: bob, #carol: carol) have no xh-tint
-    assert.strictEqual(await page.$("#old.xh-tint"), null);
-    assert.strictEqual(await page.$("#carol.xh-tint"), null);
+    // The other two (#old: bob, #carol: carol) have no tint
+    assert.strictEqual(await page.$("#old[data-xh-tint]"), null);
+    assert.strictEqual(await page.$("#carol[data-xh-tint]"), null);
 
     // The user's own post (#mine, me_test) has none
-    assert.strictEqual(await page.$("#mine.xh-tint"), null);
+    assert.strictEqual(await page.$("#mine[data-xh-tint]"), null);
 
     // A tinted post that is also a key account keeps its box-shadow edge and has a background-image that is not "none"
     await setStoredPart("keys", { alice: { h: "alice", t: now } });
@@ -904,16 +904,25 @@ try {
       const el = document.querySelector("#fresh");
       const cs = getComputedStyle(el);
       return {
-        hasTint: el.classList.contains("xh-tint"),
+        hasTint: el.hasAttribute("data-xh-tint"),
         hasKey: el.classList.contains("xh-key"),
         boxShadow: cs.boxShadow,
         backgroundImage: cs.backgroundImage,
       };
     });
-    assert.ok(keyStyles.hasTint, "keeps xh-tint class");
+    assert.ok(keyStyles.hasTint, "keeps the tint");
     assert.ok(keyStyles.hasKey, "has xh-key class");
     assert.ok(keyStyles.boxShadow && keyStyles.boxShadow !== "none" && keyStyles.boxShadow.includes("inset"), "keeps box-shadow edge");
     assert.ok(keyStyles.backgroundImage && keyStyles.backgroundImage !== "none", "background-image is not none");
+
+    // X rewrites the article's class on hover (React); the tint must survive without a new annotate
+    const afterClassReset = await page.evaluate(() => {
+      const el = document.querySelector("#fresh");
+      el.className = "x-hover-class";
+      return { tint: el.getAttribute("data-xh-tint"), bg: getComputedStyle(el).backgroundImage };
+    });
+    assert.strictEqual(afterClassReset.tint, "8", "tint survives a class rewrite");
+    assert.notStrictEqual(afterClassReset.bg, "none", "background still drawn after a class rewrite");
 
     // Change the two-way author's counts via setStoredPart and wait for the class to change without reload (shared 3 -> step 4)
     await setStoredPart("people", {
@@ -939,23 +948,23 @@ try {
     await page.waitForFunction(
       () => {
         const el = document.querySelector("#fresh");
-        return el && el.classList.contains("xh-tint-4") && !el.classList.contains("xh-tint-8");
+        return el && el.getAttribute("data-xh-tint") === "4";
       },
       null,
       { timeout: 5000 }
     );
-    assert.ok(await page.$("#fresh.xh-tint.xh-tint-4"));
+    assert.ok(await page.$('#fresh[data-xh-tint="4"]'));
 
-    // updateSettings({ showTint: false }) and wait for no article to have xh-tint
+    // updateSettings({ showTint: false }) and wait for no article to have a tint
     await updateSettings({ showTint: false });
-    await page.waitForFunction(() => !document.querySelector("article.xh-tint"), null, { timeout: 5000 });
-    assert.strictEqual(await page.$("article.xh-tint"), null);
+    await page.waitForFunction(() => !document.querySelector("article[data-xh-tint]"), null, { timeout: 5000 });
+    assert.strictEqual(await page.$("article[data-xh-tint]"), null);
 
     // Restore showTint true and restore people/keys to clean defaults
     await updateSettings({ showTint: true });
     await setStoredPart("keys", {});
     await setStoredPart("people", {});
-    await page.waitForFunction(() => !document.querySelector("article.xh-tint"), null, { timeout: 5000 });
+    await page.waitForFunction(() => !document.querySelector("article[data-xh-tint]"), null, { timeout: 5000 });
   });
 
   await step("duplicate warning switch turns the warning off", async () => {

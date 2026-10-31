@@ -54,19 +54,18 @@ shared 20+ gives 8; shared 1 after 120 days rounds to 0.
   `max(youLast, themLast)`), and is the only time data stored. Alternative (fade from the older side) would punish
   a relationship where one side just answered, so not chosen.
 - *Why steps, not a continuous value*: Jack asked for "the higher, the more visible" (continuous feel). Eight steps
-  look continuous to the eye, and classes avoid writing inline styles on X's nodes; also the badge cache key can
-  include the step cheaply.
+  look continuous to the eye, and an attribute per step avoids writing inline styles on X's nodes.
 
 ### Rendering: classes plus a gradient layer
 
-`annotate` sets the classes `xh-tint xh-tint-N` (N 1–8) on the article, removing old ones, before the early
+`annotate` sets the attribute `data-xh-tint="N"` (N 1–8) on the article, or removes it, before the early
 return that handles "no chips" (the tint must show even when no chip does). CSS:
 
 ```css
-article.xh-tint { background-image: linear-gradient(var(--xh-tint-c), var(--xh-tint-c)); }
-article.xh-tint-1 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 4%, transparent); }
+article[data-xh-tint] { background-image: linear-gradient(var(--xh-tint-c), var(--xh-tint-c)); }
+article[data-xh-tint="1"] { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 4%, transparent); }
 ...
-article.xh-tint-8 { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 16%, transparent); }
+article[data-xh-tint="8"] { --xh-tint-c: color-mix(in srgb, var(--xh-accent) 16%, transparent); }
 ```
 
 - `background-image` stacks on top of X's own `background-color`, so X's hover colour does not hide it.
@@ -91,8 +90,9 @@ like `showInbound` under `showSeen`. The tint ignores `showSeen` and `showInboun
   percentage if it does.
 - [Inbound undercounting makes shared counts low] → accepted; documented in README as "from what X showed in this
   browser", same as the chip.
-- [X reuses an article node for another post] → classes are recomputed on every `annotate`, and stale `xh-tint-*`
-  classes are removed before adding the new one.
+- [X reuses an article node for another post] → the attribute is recomputed on every `annotate`.
+- [X rewrites the article's `class` on hover (React), found on real X] → the tint is an attribute, not a class, so
+  it survives; an e2e step rewrites `className` and checks the tint is still drawn.
 
 ## Migration Plan
 
