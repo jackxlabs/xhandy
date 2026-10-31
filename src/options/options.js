@@ -18,6 +18,8 @@
     "unfollowPace",
     "paceMinutes",
     "quietDays",
+    "tintFull",
+    "tintHalfLife",
   ];
 
   const CHECKS = [
@@ -25,6 +27,7 @@
     "showHeat",
     "showSeen",
     "showInbound",
+    "showTint",
     "showReplies",
     "showReplied",
     "showRel",
@@ -51,6 +54,8 @@
     unfollowPace: { min: 1, max: 10000, integer: true },
     paceMinutes: { min: 5, max: 1440, integer: true },
     quietDays: { min: 1, max: 365, integer: true },
+    tintFull: { min: 2, max: 500, integer: true },
+    tintHalfLife: { min: 1, max: 365, integer: true },
   };
 
   const SECTION_KEY = "xh:opt_section";
@@ -186,6 +191,13 @@
     const showInbound = $("showInbound");
     if (showSeen && showInbound) {
       showInbound.disabled = !showSeen.checked;
+    }
+    const showTint = $("showTint");
+    const tintFull = $("tintFull");
+    const tintHalfLife = $("tintHalfLife");
+    if (showTint) {
+      if (tintFull) tintFull.disabled = !showTint.checked;
+      if (tintHalfLife) tintHalfLife.disabled = !showTint.checked;
     }
   }
 

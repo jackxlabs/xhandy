@@ -9,5 +9,11 @@ OpenSpec change `openspec/changes/ui-refresh/` stays unarchived until these are 
 2. Task 6.3: retake `docs/relations-zh.png` and `docs/heat-zh.png` on real X, then the 1280×800 store screenshots.
 3. Then archive the change (`/opsx:archive`) and delete the `ui-refresh` branch.
 
-## interaction-tint (branch `interaction-tint`, in progress)
-OpenSpec change `openspec/changes/interaction-tint/`. agy implements one task group at a time, Claude reviews.
+## interaction-tint (branch `interaction-tint`)
+OpenSpec change `openspec/changes/interaction-tint/`. Tasks 1.1 to 4.1 done (agy implemented, Claude reviewed);
+`npm test` 0 fail, e2e 93 ok, no FAIL (2026-10-31, Omarchy).
+
+Next: task 4.2, manual check on real X (light, Dim, Lights out). Check out `interaction-tint`, reload the unpacked
+extension, refresh x.com. Step 8 must keep text readable, step 1 must still show, tint stays on hover, does not
+look like X's own highlights, blue edge still visible on key accounts. Tune the percentages in `src/content.css`
+(`article.xh-tint-1` to `-8`) if needed. Then merge into main and archive the change.

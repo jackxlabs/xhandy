@@ -181,7 +181,8 @@
       .switch-row:last-of-type {
         border-bottom: none;
       }
-      .switch-row.sub {
+      .switch-row.sub,
+      .field-row.sub {
         padding-left: 20px;
       }
       .switch-label {
@@ -289,6 +290,10 @@
       .input-with-unit input[type="number"][aria-invalid="true"] {
         border-color: var(--xh-danger);
         outline: 2px solid var(--xh-danger);
+      }
+      .input-with-unit input[type="number"]:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       .input-with-unit .unit {
         color: var(--xh-muted);
@@ -525,6 +530,27 @@
               </div>
               <input id="showInbound" type="checkbox" role="switch" />
             </label>
+            <label class="switch-row">
+              <div class="switch-label">
+                <span class="switch-title" data-i18n="opt_showTint">Interaction tint (posts by people you talk with back and forth)</span>
+              </div>
+              <input id="showTint" type="checkbox" role="switch" />
+            </label>
+            <div class="field-row sub">
+              <label for="tintFull" data-i18n="opt_tintFull">Deepest tint at (interactions both ways)</label>
+              <div class="input-with-unit">
+                <input id="tintFull" type="number" min="2" max="500" />
+              </div>
+              <span class="field-error" id="err-tintFull" hidden data-i18n="opt_invalid_num">Please enter a valid number</span>
+            </div>
+            <div class="field-row sub">
+              <label for="tintHalfLife" data-i18n="opt_tintHalfLife">Tint fades by half every (days)</label>
+              <div class="input-with-unit">
+                <input id="tintHalfLife" type="number" min="1" max="365" />
+                <span class="unit" data-i18n="unit_days">days</span>
+              </div>
+              <span class="field-error" id="err-tintHalfLife" hidden data-i18n="opt_invalid_num">Please enter a valid number</span>
+            </div>
             <label class="switch-row">
               <div class="switch-label">
                 <span class="switch-title" data-i18n="opt_showReplies">Show replies and author size</span>

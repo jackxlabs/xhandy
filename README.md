@@ -10,7 +10,7 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 ## Features
 
-- **Feature switches and autosave**: every feature (heat chip, heat colouring, interaction chips, reply signals, replied mark, relationship chip, key accounts, top posts, notes, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in its own section in Options. All changes save automatically as you make them (no Save button needed). All are on by default.
+- **Feature switches and autosave**: every feature (heat chip, heat colouring, interaction chips, interaction tint, reply signals, replied mark, relationship chip, key accounts, top posts, notes, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in its own section in Options. All changes save automatically as you make them (no Save button needed). All are on by default.
 - **Notes** (`Alt+N`, or the button on profiles): keep private notes, tags and relationship stages for any account. Choose from four status presets (To reach out, In touch, Regular, Working together), up to 5 tags, and up to 500 characters of text. Posts by that account show a status chip or `#tag` next to the author's name (hover to preview the note). Manage, search and filter all notes in Options. Data is stored strictly in your browser and never leaves.
 - **Top posts** (`Alt+B`, or the button on profiles): opens X's own search for an account's best-received original posts (`from:<handle> min_faves:<N> -filter:replies`), with the threshold N chosen from their follower count; the browser's Back button returns to the profile. Helps you find winning topics and opening lines without typing search queries by hand. Turn it off in Options.
 - **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
@@ -20,6 +20,7 @@ That is the point: you get faster without anything that looks like a bot to X.
   replies, quotes and mentions they gave you, from your notifications and the posts X shows you; each counted
   once). Turn the second half off in Options. The badge sits next to the author's name and moves
   above the post text only when it does not fit, so nothing is cut off.
+- **Interaction tint**: posts by people you interact with in both directions get a light violet background, deeper with more two-way interactions (the smaller side counts), fading by half every 30 days without interaction, shown without hovering. Counts come from what X showed in this browser. Settings and switch in Options.
 - **Post heat**: views per hour since posting (`15K/h`, `🔥 950K/h`).
   Turns orange from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
   Old posts (older than 48 h) are greyed out with an "old post" mark (`694/h · old post`). A recent post with no view
@@ -117,7 +118,7 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），在别人主页点击「备注」或按 Alt+N 打开账号备注编辑器（设置待破冰、已破冰、常互动、合作中 4 种状态，添加标签和 500 字私密备忘，并在帖子上显示状态或标签角标），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒；原来互关、后来取关你的人排在最上面「最近取关了你」一栏），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，右下角统计条记录今天的点赞、回复、发帖、关注、取关数和在线时长（可自由拖拽，位置随窗口调整自适应，设置页可重置；关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算），在别人主页点击「高赞帖」或按 Alt+B 一键搜索该博主的高赞原创推文（在当前页打开，按浏览器的后退回到主页）。每个功能都可以在设置页对应的分区里开启或关闭（默认全开），改动自动保存。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，双方来回互动的作者帖子带淡紫色底色（来回互动越多底色越深，以较少一方为准，无互动每 30 天淡化一半，无需悬停直接显示，互动数来自本浏览器内 X 显示过的数据；可在设置中调节或关闭），在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），在别人主页点击「备注」或按 Alt+N 打开账号备注编辑器（设置待破冰、已破冰、常互动、合作中 4 种状态，添加标签和 500 字私密备忘，并在帖子上显示状态或标签角标），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒；原来互关、后来取关你的人排在最上面「最近取关了你」一栏），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，右下角统计条记录今天的点赞、回复、发帖、关注、取关数和在线时长（可自由拖拽，位置随窗口调整自适应，设置页可重置；关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算），在别人主页点击「高赞帖」或按 Alt+B 一键搜索该博主的高赞原创推文（在当前页打开，按浏览器的后退回到主页）。每个功能都可以在设置页对应的分区里开启或关闭（默认全开），改动自动保存。
 
 它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
 
@@ -142,6 +143,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
   - 每小时浏览量，例如 `1.5万/时` 或 `🔥 1.5万/时`。每小时 1000 以上变橙，1 万以上变红并带 🔥；超过 48 小时的帖子会变灰并标「旧帖」，没有浏览数据的近期帖子不显示热度标签。
   - 你和作者的关注关系：`⇄ 互关`、`→ 我关注` 或 `← 关注我`。双方均未关注时不显示标签。
   - 你和这个作者互动过几次、最近一次是什么时候，例如 `3次 · 今天`。对方也和你互动过的话，会显示双方的次数，例如 `我3 · 他5 · 今天`：对方给你的点赞、回复、引用和提及，来自你的通知页和 X 显示过的帖子，每条只算一次。设置里可以关掉对方那一半。
+  - **互动底色**：只要你和作者有来回双向互动，帖子就会带上一层淡紫色底色，无需悬停直接显示。双向互动次数越多底色越深（以较少一方的次数为准），若无新互动每 30 天减半淡化。互动数均来自 X 在本浏览器中显示过的内容。可在设置中调整最深门槛、减半天数或关闭。
   - 帖子已有多少回复、作者是你的几倍，例如 `💬 23 · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
   - 标签跟在作者名字后面，放不下时自动换到正文上方，不会被截断。
@@ -184,6 +186,7 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 - 统计条位置：在「常规」分区可一键重置回右下角默认位置
 - 重点账号：搜索、查看添加日期与双方最近互动、一键移除、批量粘贴添加（带不带 @ 均可），以及自定义沉寂天数阈值（默认 14 天）
 - 账号备注：搜索用户名/标签/正文、按状态筛选（待破冰、已破冰、常互动、合作中）、查看最后编辑日期、一键删除备注
+- 互动底色：达到最深底色的双向互动次数门槛（默认 20 次）以及颜色减半天数（默认 30 天）
 - 多少小时算旧帖、多少浏览量算「热」和「火」
 - 关注和取关的每日提醒上限（默认各 20 个）以及节奏提醒（默认 60 分钟内超过 10 个时提醒，窗口和数量均可调，只提醒，不拦截）
 - 防重复回复的灵敏度与比对范围

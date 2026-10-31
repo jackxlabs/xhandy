@@ -11,9 +11,9 @@
 
 ## 3. Settings page
 
-- [ ] 3.1 Add the switch and the two number fields to `#sec-badges` in `src/options/options.html`, wire them in `src/options/options.js` (settings list, ranges `tintFull` 2–500 and `tintHalfLife` 1–365 as integers, disabled while the switch is off), and add labels to `src/locales/en.js` and `src/locales/zh.js`. Verify: e2e step that the fields autosave, that 0 in "deepest at" shows the error and keeps the stored value, and that the numbers are disabled with the switch off.
+- [x] 3.1 Add the switch and the two number fields to `#sec-badges` in `src/options/options.html`, wire them in `src/options/options.js` (settings list, ranges `tintFull` 2–500 and `tintHalfLife` 1–365 as integers, disabled while the switch is off), and add labels to `src/locales/en.js` and `src/locales/zh.js`. Verify: e2e step that the fields autosave, that 0 in "deepest at" is pulled to 2 and an empty field shows the error and keeps the stored value, and that the numbers are disabled with the switch off.
 
 ## 4. Docs and checks
 
-- [ ] 4.1 Update the README feature list (English) and 中文说明 with the tint, including that inbound counts only include what X showed in this browser; add "interaction tint" to the feature-switches list. Verify: reread both sections; `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e` pass with counts recorded in the report.
+- [x] 4.1 Update the README feature list (English) and 中文说明 with the tint, including that inbound counts only include what X showed in this browser; add "interaction tint" to the feature-switches list. Verify: reread both sections; `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e` pass with counts recorded in the report.
 - [ ] 4.2 Manual check on real X (light, Dim, Lights out): tint visible but text readable at step 8, faint but visible at step 1, still visible on hover, not confused with X's own highlights, blue edge visible on key accounts. Adjust the percentages in `content.css` if needed and record the result in the review report.

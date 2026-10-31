@@ -1523,7 +1523,7 @@ try {
       // 3. Verify switches placed per feature-settings delta
       assert.ok(await p.$("#sec-general #hud"), "#hud in general");
       assert.ok(await p.$("#sec-general #topPosts"), "#topPosts in general");
-      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel"]) {
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showTint", "showReplies", "showReplied", "showRel"]) {
         assert.ok(await p.$(`#sec-badges #${id}`), `switch #${id} in badges`);
       }
       assert.ok(await p.$("#sec-rel #followWarn"), "#followWarn in rel");
@@ -1532,7 +1532,7 @@ try {
       assert.ok(await p.$("#sec-notes #localNotes"), "#localNotes in notes");
 
       // 4. Units next to number fields
-      const unitText = await p.textContent("#sec-badges .input-with-unit .unit");
+      const unitText = await p.textContent("#sec-badges .input-with-unit:has(#staleHours) .unit");
       assert.strictEqual(unitText, "hours");
 
       // 5. Verify dependent switches disable/enable based on parent
@@ -1623,6 +1623,78 @@ try {
         paceMinutes: 60,
         staleHours: 48,
       });
+    } finally {
+      await p.close();
+    }
+  });
+
+  await step("interaction tint controls in options page autosave, validate 0, and disable with switch off", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector(".opt-section");
+      await p.click('.opt-nav-item[data-section="badges"]');
+
+      // 1. Initial defaults and state
+      assert.strictEqual(await p.isChecked("#showTint"), true);
+      assert.strictEqual(await p.inputValue("#tintFull"), "20");
+      assert.strictEqual(await p.inputValue("#tintHalfLife"), "30");
+      assert.strictEqual(await p.isDisabled("#tintFull"), false);
+      assert.strictEqual(await p.isDisabled("#tintHalfLife"), false);
+
+      // 2. Autosave number inputs on change (not using updateSettings)
+      await p.fill("#tintFull", "35");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      let s = await storedPart("settings");
+      assert.strictEqual(s.tintFull, 35);
+
+      await p.fill("#tintHalfLife", "45");
+      await p.locator("#tintHalfLife").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      s = await storedPart("settings");
+      assert.strictEqual(s.tintHalfLife, 45);
+
+      // 3. Out of range is pulled into range (like every number field); an empty field shows the error
+      await p.fill("#tintFull", "0");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("tintFull").value === "2", null, { timeout: 3000 });
+      assert.strictEqual((await storedPart("settings")).tintFull, 2);
+      await p.fill("#tintFull", "");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("tintFull").getAttribute("aria-invalid") === "true", null, { timeout: 3000 });
+      assert.strictEqual(await p.$eval("#err-tintFull", (el) => el.hidden), false);
+      assert.strictEqual((await storedPart("settings")).tintFull, 2, "stored tintFull is kept when the field is empty");
+
+      // 4. Switch off disables both number inputs and autosaves showTint: false
+      await p.uncheck("#showTint");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      s = await storedPart("settings");
+      assert.strictEqual(s.showTint, false);
+      assert.strictEqual(await p.isDisabled("#tintFull"), true);
+      assert.strictEqual(await p.isDisabled("#tintHalfLife"), true);
+
+      // Switch on re-enables both number inputs
+      await p.check("#showTint");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      s = await storedPart("settings");
+      assert.strictEqual(s.showTint, true);
+      assert.strictEqual(await p.isDisabled("#tintFull"), false);
+      assert.strictEqual(await p.isDisabled("#tintHalfLife"), false);
+
+      // 5. Restore defaults via UI
+      await p.fill("#tintFull", "20");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      await p.fill("#tintHalfLife", "30");
+      await p.locator("#tintHalfLife").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      s = await storedPart("settings");
+      assert.strictEqual(s.showTint, true);
+      assert.strictEqual(s.tintFull, 20);
+      assert.strictEqual(s.tintHalfLife, 30);
     } finally {
       await p.close();
     }

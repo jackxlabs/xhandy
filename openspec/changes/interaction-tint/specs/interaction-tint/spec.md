@@ -86,8 +86,12 @@ and apply to posts on x.com without reloading. All labels SHALL be available in 
 - **WHEN** the user turns the tint switch off
 - **THEN** no post on x.com is tinted, without reloading the page
 
-#### Scenario: Invalid number
-- **WHEN** the user enters 0 or a non-number as "deepest at"
+#### Scenario: Out of range number
+- **WHEN** the user enters 0 as "deepest at"
+- **THEN** the field and the stored value become 2, the nearest allowed value, as with the page's other number fields
+
+#### Scenario: Empty number
+- **WHEN** the user clears the "deepest at" field
 - **THEN** the field shows an error and the stored value does not change
 
 #### Scenario: Import of an older export
