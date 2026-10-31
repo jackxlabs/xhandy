@@ -1,7 +1,7 @@
 ## 1. Score
 
-- [ ] 1.1 Add `showTint: true`, `tintFull: 20`, `tintHalfLife: 30` to `DEFAULTS.settings` in `src/lib/store.js`. Verify: unit test that `cleanSettings({})` returns these defaults and that a pre-change export (no tint keys) imports through `replaceAll` with defaults filled and other parts unchanged.
-- [ ] 1.2 Add the pure `tintLevel(person, settings, now)` function (steps 0–8, per design.md) next to `quietKeys` and export it. Verify: unit tests for one-sided (0), no entry (0), shared 1/3/10/20/80 today with defaults (2/4/6/8/8), same count today vs 60 days ago (today deeper), shared 1 after 120 days (0), out-of-range or non-number settings clamped, missing `in` (0).
+- [x] 1.1 Add `showTint: true`, `tintFull: 20`, `tintHalfLife: 30` to `DEFAULTS.settings` in `src/lib/store.js`. Verify: unit test that `cleanSettings({})` returns these defaults and that a pre-change export (no tint keys) imports through `replaceAll` with defaults filled and other parts unchanged.
+- [x] 1.2 Add the pure `tintLevel(person, settings, now)` function (steps 0–8, per design.md) next to `quietKeys` and export it. Verify: unit tests for one-sided (0), no entry (0), shared 1/3/10/20/80 today with defaults (2/4/6/8/8), same count today vs 60 days ago (today deeper), shared 1 after 120 days (0), out-of-range or non-number settings clamped, missing `in` (0).
 
 ## 2. Posts on x.com
 

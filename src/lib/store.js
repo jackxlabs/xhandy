@@ -40,6 +40,9 @@
       quietDays: 14, // days of inactivity before a key account is marked quiet
       topPosts: true, // open X search for an account's top posts
       localNotes: true, // private notes and tags on accounts
+      showTint: true, // tint posts by two-way interaction strength
+      tintFull: 20, // interaction count that gives the deepest tint
+      tintHalfLife: 30, // days until tint strength halves
     },
     people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
@@ -733,5 +736,38 @@
     return rows;
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys };
+  // Background tint level (step 0..8) for two-way interaction strength.
+  // shared = min(you, them); fades with time since the latest interaction.
+  function tintLevel(person, settings, now = Date.now()) {
+    if (!isObj(person)) return 0;
+    const count = (n) => (typeof n === "number" && Number.isFinite(n) && n > 0 ? n : 0);
+    const you = count(person.likes) + count(person.replies);
+    const inbound = isObj(person.in) ? person.in : null;
+    const them = inbound ? count(inbound.likes) + count(inbound.replies) + count(inbound.quotes) + count(inbound.mentions) : 0;
+    const shared = Math.min(you, them);
+    if (shared <= 0) return 0;
+
+    const rawFull = isObj(settings) && typeof settings.tintFull === "number" && Number.isFinite(settings.tintFull)
+      ? settings.tintFull
+      : 20;
+    const full = Math.min(500, Math.max(2, rawFull));
+    const depth = Math.min(1, Math.log(1 + shared) / Math.log(1 + full));
+
+    const rawHalf = isObj(settings) && typeof settings.tintHalfLife === "number" && Number.isFinite(settings.tintHalfLife)
+      ? settings.tintHalfLife
+      : 30;
+    const half = Math.min(365, Math.max(1, rawHalf));
+
+    const n = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+    const youLast = typeof person.last === "number" && Number.isFinite(person.last) && person.last > 0 ? person.last : 0;
+    const themLast = inbound && typeof inbound.last === "number" && Number.isFinite(inbound.last) && inbound.last > 0 ? inbound.last : 0;
+    const latest = Math.max(youLast, themLast);
+
+    const elapsed = Math.max(0, n - latest);
+    const fade = Math.pow(0.5, elapsed / (half * 86400000));
+
+    return Math.min(8, Math.max(0, Math.round(depth * fade * 8)));
+  }
+
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel };
 })();
