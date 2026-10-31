@@ -76,6 +76,9 @@ test("a fresh install starts from defaults", async () => {
   assert.strictEqual(s.settings.localNotes, true);
   assert.strictEqual(s.settings.hudRight, 16);
   assert.strictEqual(s.settings.hudBottom, 16);
+  assert.strictEqual(s.settings.showTint, true);
+  assert.strictEqual(s.settings.tintFull, 20);
+  assert.strictEqual(s.settings.tintHalfLife, 30);
 });
 
 test("update writes only the parts it declares", async () => {
@@ -1541,4 +1544,157 @@ test("store.quietKeys identifies quiet accounts, drops invalid handles, and coun
 
   // Non-object keys returns empty array
   assert.deepStrictEqual(store.quietKeys(null, people, 14, now), []);
+});
+
+test("old settings and pre-change export without tint settings load with defaults and keep other parts", async () => {
+  // Old settings in storage without tint keys
+  const chrome1 = fakeChrome({ "xh:v": 5, "xh:settings": { hud: true, followLimit: 25 } });
+  const s1 = await loadStore(chrome1).get();
+  assert.strictEqual(s1.settings.hud, true);
+  assert.strictEqual(s1.settings.followLimit, 25);
+  assert.strictEqual(s1.settings.showTint, true);
+  assert.strictEqual(s1.settings.tintFull, 20);
+  assert.strictEqual(s1.settings.tintHalfLife, 30);
+
+  // Pre-change export imported via replaceAll without tint keys
+  const chrome2 = fakeChrome({ "xh:v": 5 });
+  const store2 = loadStore(chrome2);
+  await store2.replaceAll({
+    settings: { hud: false, followLimit: 30 },
+    rel: { alice: { f: true, fb: true, t: 100 } },
+    sent: [{ t: 200, text: "hello", kind: "post", to: null }],
+    people: { bob: { likes: 5, replies: 2, last: 50 } },
+  });
+  const s2 = await store2.get();
+  assert.strictEqual(s2.settings.hud, false);
+  assert.strictEqual(s2.settings.followLimit, 30);
+  assert.strictEqual(s2.settings.showTint, true);
+  assert.strictEqual(s2.settings.tintFull, 20);
+  assert.strictEqual(s2.settings.tintHalfLife, 30);
+  assert.strictEqual(s2.rel.alice.f, true);
+  assert.strictEqual(s2.sent.length, 1);
+  assert.strictEqual(s2.people.bob.likes, 5);
+
+  // Non-boolean or non-number settings fall back to defaults
+  const chrome3 = fakeChrome({
+    "xh:v": 5,
+    "xh:settings": { showTint: "invalid", tintFull: NaN, tintHalfLife: "bad" },
+  });
+  const s3 = await loadStore(chrome3).get();
+  assert.strictEqual(s3.settings.showTint, true);
+  assert.strictEqual(s3.settings.tintFull, 20);
+  assert.strictEqual(s3.settings.tintHalfLife, 30);
+
+  // Stored valid values are kept
+  const chrome4 = fakeChrome({
+    "xh:v": 5,
+    "xh:settings": { showTint: false, tintFull: 40, tintHalfLife: 15 },
+  });
+  const s4 = await loadStore(chrome4).get();
+  assert.strictEqual(s4.settings.showTint, false);
+  assert.strictEqual(s4.settings.tintFull, 40);
+  assert.strictEqual(s4.settings.tintHalfLife, 15);
+});
+
+test("store.tintLevel computes steps 0..8 based on shared count, time fade, and settings", () => {
+  const store = loadStore(fakeChrome());
+  const now = 1000000000000;
+  const DAY_MS = 86400000;
+
+  // Expected steps with defaults (tintFull: 20, tintHalfLife: 30):
+  // shared 1 -> 2
+  const p1 = { likes: 1, replies: 0, last: now, in: { likes: 1, replies: 0, quotes: 0, mentions: 0, last: now } };
+  assert.strictEqual(store.tintLevel(p1, {}, now), 2);
+
+  // shared 3 -> 4
+  const p3 = { likes: 2, replies: 1, last: now, in: { likes: 1, replies: 1, quotes: 1, mentions: 0, last: now } };
+  assert.strictEqual(store.tintLevel(p3, {}, now), 4);
+
+  // shared 10 -> 6
+  const p10 = { likes: 5, replies: 5, last: now, in: { likes: 4, replies: 3, quotes: 2, mentions: 1, last: now } };
+  assert.strictEqual(store.tintLevel(p10, {}, now), 6);
+
+  // shared 20 -> 8
+  const p20 = { likes: 12, replies: 8, last: now, in: { likes: 10, replies: 5, quotes: 3, mentions: 2, last: now } };
+  assert.strictEqual(store.tintLevel(p20, {}, now), 8);
+
+  // shared 80 -> 8
+  const p80 = { likes: 50, replies: 30, last: now, in: { likes: 40, replies: 30, quotes: 5, mentions: 5, last: now } };
+  assert.strictEqual(store.tintLevel(p80, {}, now), 8);
+
+  // One-sided -> 0
+  const oneSidedOut = { likes: 20, replies: 10, last: now, in: { likes: 0, replies: 0, quotes: 0, mentions: 0, last: now } };
+  assert.strictEqual(store.tintLevel(oneSidedOut, {}, now), 0);
+
+  const oneSidedIn = { likes: 0, replies: 0, last: now, in: { likes: 15, replies: 5, quotes: 0, mentions: 0, last: now } };
+  assert.strictEqual(store.tintLevel(oneSidedIn, {}, now), 0);
+
+  // Undefined person -> 0
+  assert.strictEqual(store.tintLevel(undefined, {}, now), 0);
+  assert.strictEqual(store.tintLevel(null, {}, now), 0);
+
+  // Missing in -> 0
+  const missingIn = { likes: 10, replies: 5, last: now };
+  assert.strictEqual(store.tintLevel(missingIn, {}, now), 0);
+
+  // Shared 1 after 120 days -> 0
+  const p1Old120 = {
+    likes: 1,
+    replies: 0,
+    last: now - 120 * DAY_MS,
+    in: { likes: 1, replies: 0, quotes: 0, mentions: 0, last: now - 120 * DAY_MS },
+  };
+  assert.strictEqual(store.tintLevel(p1Old120, {}, now), 0);
+
+  // Same count today vs 60 days ago: today deeper
+  const p10Old60 = {
+    likes: 5,
+    replies: 5,
+    last: now - 60 * DAY_MS,
+    in: { likes: 5, replies: 5, quotes: 0, mentions: 0, last: now - 60 * DAY_MS },
+  };
+  const stepToday = store.tintLevel(p10, {}, now);
+  const step60Ago = store.tintLevel(p10Old60, {}, now);
+  assert.strictEqual(stepToday, 6);
+  assert.strictEqual(step60Ago, 2);
+  assert.ok(stepToday > step60Ago, "today must be deeper than 60 days ago");
+
+  // Clock skew: future latest counts as no fade
+  const futurePerson = {
+    likes: 5,
+    replies: 5,
+    last: now + 60000,
+    in: { likes: 5, replies: 5, quotes: 0, mentions: 0, last: now },
+  };
+  assert.strictEqual(store.tintLevel(futurePerson, {}, now), 6);
+
+  // Non-number counts count as 0
+  const nonNumCounts = {
+    likes: "5",
+    replies: null,
+    last: now,
+    in: { likes: 5, replies: 0, quotes: 0, mentions: 0, last: now },
+  };
+  assert.strictEqual(store.tintLevel(nonNumCounts, {}, now), 0);
+
+  // Bad settings clamped or defaulted
+  // Non-number settings fall back to defaults (full: 20, halfLife: 30) -> p10 gives 6
+  assert.strictEqual(store.tintLevel(p10, { tintFull: "bad", tintHalfLife: NaN }, now), 6);
+  assert.strictEqual(store.tintLevel(p10, null, now), 6);
+  assert.strictEqual(store.tintLevel(p10, undefined, now), 6);
+
+  // Clamping tintFull: 2..500
+  // tintFull: 1 -> clamped to 2 -> shared 1 gives step 5 (depth = ln(2)/ln(3) ≈ 0.63 -> 5.04 -> 5)
+  assert.strictEqual(store.tintLevel(p1, { tintFull: 1 }, now), 5);
+  // tintFull: 1000 -> clamped to 500 -> shared 20 gives step 4 (depth = ln(21)/ln(501) ≈ 0.49 -> 3.92 -> 4)
+  assert.strictEqual(store.tintLevel(p20, { tintFull: 1000 }, now), 4);
+
+  // Clamping tintHalfLife: 1..365
+  // tintHalfLife: 0 -> clamped to 1 day -> 60 days ago is 60 half-lives -> 0
+  assert.strictEqual(store.tintLevel(p10Old60, { tintHalfLife: 0 }, now), 0);
+  // tintHalfLife: 1000 -> clamped to 365 days -> 60 days fade is 0.5^(60/365) ≈ 0.89 -> step 6
+  assert.strictEqual(store.tintLevel(p10Old60, { tintHalfLife: 1000 }, now), 6);
+
+  // Default now parameter uses Date.now()
+  assert.strictEqual(typeof store.tintLevel(p1, {}), "number");
 });

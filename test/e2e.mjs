@@ -857,6 +857,118 @@ try {
     await updateSettings({ showSeen: true, showInbound: true });
   });
 
+  await step("interaction tint colours posts by two-way interaction and updates live", async () => {
+    const now = Date.now();
+    const dayMs = 86400000;
+
+    // Seed: one two-way author (alice: shared 20, last = now),
+    // one one-sided author (bob: outbound 20, inbound 0, last = now),
+    // one old author (carol: shared 1, last = 120 days ago)
+    await setStoredPart("people", {
+      alice: {
+        likes: 12,
+        replies: 8,
+        last: now,
+        in: { likes: 10, replies: 10, quotes: 0, mentions: 0, last: now },
+      },
+      bob: {
+        likes: 20,
+        replies: 0,
+        last: now,
+        in: { likes: 0, replies: 0, quotes: 0, mentions: 0, last: now },
+      },
+      carol: {
+        likes: 1,
+        replies: 0,
+        last: now - 120 * dayMs,
+        in: { likes: 1, replies: 0, quotes: 0, mentions: 0, last: now - 120 * dayMs },
+      },
+    });
+
+    // Check: the two-way author's post (#fresh, alice) has tint step 8
+    await page.waitForSelector('#fresh[data-xh-tint="8"]', { timeout: 5000 });
+    assert.ok(await page.$('#fresh[data-xh-tint="8"]'));
+
+    // The other two (#old: bob, #carol: carol) have no tint
+    assert.strictEqual(await page.$("#old[data-xh-tint]"), null);
+    assert.strictEqual(await page.$("#carol[data-xh-tint]"), null);
+
+    // The user's own post (#mine, me_test) has none
+    assert.strictEqual(await page.$("#mine[data-xh-tint]"), null);
+
+    // A tinted post that is also a key account keeps its box-shadow edge and has a background-image that is not "none"
+    await setStoredPart("keys", { alice: { h: "alice", t: now } });
+    await page.waitForSelector("#fresh[data-xh-key]", { timeout: 5000 });
+
+    const keyStyles = await page.evaluate(() => {
+      const el = document.querySelector("#fresh");
+      const cs = getComputedStyle(el);
+      return {
+        hasTint: el.hasAttribute("data-xh-tint"),
+        hasKey: el.hasAttribute("data-xh-key"),
+        boxShadow: cs.boxShadow,
+        backgroundImage: cs.backgroundImage,
+      };
+    });
+    assert.ok(keyStyles.hasTint, "keeps the tint");
+    assert.ok(keyStyles.hasKey, "is a key account");
+    assert.ok(keyStyles.boxShadow && keyStyles.boxShadow !== "none" && keyStyles.boxShadow.includes("inset"), "keeps box-shadow edge");
+    assert.ok(keyStyles.backgroundImage && keyStyles.backgroundImage !== "none", "background-image is not none");
+
+    // X rewrites the article's class on hover (React); the tint must survive without a new annotate
+    const afterClassReset = await page.evaluate(() => {
+      const el = document.querySelector("#fresh");
+      el.className = "x-hover-class";
+      const cs = getComputedStyle(el);
+      return { tint: el.getAttribute("data-xh-tint"), bg: cs.backgroundImage, edge: cs.boxShadow };
+    });
+    assert.strictEqual(afterClassReset.tint, "8", "tint survives a class rewrite");
+    assert.notStrictEqual(afterClassReset.bg, "none", "background still drawn after a class rewrite");
+    assert.ok(afterClassReset.edge.includes("inset"), "key-account edge still drawn after a class rewrite");
+
+    // Change the two-way author's counts via setStoredPart and wait for the class to change without reload (shared 3 -> step 4)
+    await setStoredPart("people", {
+      alice: {
+        likes: 2,
+        replies: 1,
+        last: now,
+        in: { likes: 1, replies: 2, quotes: 0, mentions: 0, last: now },
+      },
+      bob: {
+        likes: 20,
+        replies: 0,
+        last: now,
+        in: { likes: 0, replies: 0, quotes: 0, mentions: 0, last: now },
+      },
+      carol: {
+        likes: 1,
+        replies: 0,
+        last: now - 120 * dayMs,
+        in: { likes: 1, replies: 0, quotes: 0, mentions: 0, last: now - 120 * dayMs },
+      },
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector("#fresh");
+        return el && el.getAttribute("data-xh-tint") === "4";
+      },
+      null,
+      { timeout: 5000 }
+    );
+    assert.ok(await page.$('#fresh[data-xh-tint="4"]'));
+
+    // updateSettings({ showTint: false }) and wait for no article to have a tint
+    await updateSettings({ showTint: false });
+    await page.waitForFunction(() => !document.querySelector("article[data-xh-tint]"), null, { timeout: 5000 });
+    assert.strictEqual(await page.$("article[data-xh-tint]"), null);
+
+    // Restore showTint true and restore people/keys to clean defaults
+    await updateSettings({ showTint: true });
+    await setStoredPart("keys", {});
+    await setStoredPart("people", {});
+    await page.waitForFunction(() => !document.querySelector("article[data-xh-tint]"), null, { timeout: 5000 });
+  });
+
   await step("duplicate warning switch turns the warning off", async () => {
     const dupText = "Identical reply for duplicate warning switch test";
 
@@ -1108,8 +1220,8 @@ try {
     assert.strictEqual(await page.getAttribute("#fresh2 .xh-star", "aria-pressed"), "false");
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
-    assert.strictEqual(await page.$("#fresh.xh-target"), null);
-    assert.strictEqual(await page.$("#fresh2.xh-target"), null);
+    assert.strictEqual(await page.$("#fresh[data-xh-key]"), null);
+    assert.strictEqual(await page.$("#fresh2[data-xh-key]"), null);
 
     // Click star on fresh (alice)
     await page.click("#fresh .xh-star");
@@ -1119,8 +1231,8 @@ try {
     // Both posts now show the highlight; the filled star is the only key marker
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
-    assert.ok(await page.$("#fresh.xh-target"));
-    assert.ok(await page.$("#fresh2.xh-target"));
+    assert.ok(await page.$("#fresh[data-xh-key]"));
+    assert.ok(await page.$("#fresh2[data-xh-key]"));
 
     // Storage updated
     const k = await storedPart("keys");
@@ -1134,8 +1246,8 @@ try {
 
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
     assert.strictEqual(await page.$("#fresh2 .xh-chip.xh-key"), null);
-    assert.strictEqual(await page.$("#fresh.xh-target"), null);
-    assert.strictEqual(await page.$("#fresh2.xh-target"), null);
+    assert.strictEqual(await page.$("#fresh[data-xh-key]"), null);
+    assert.strictEqual(await page.$("#fresh2[data-xh-key]"), null);
 
     const kAfter = await storedPart("keys");
     assert.strictEqual(kAfter.alice, undefined);
@@ -1273,12 +1385,12 @@ try {
     await setStoredPart("keys", { alice: { h: "alice", t: Date.now() } });
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 3000 });
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
-    assert.ok(await page.$("#fresh.xh-target"));
+    assert.ok(await page.$("#fresh[data-xh-key]"));
 
     // Turn feature off
     await updateSettings({ keyAccounts: false });
     await page.waitForFunction(
-      () => !document.querySelector("#fresh .xh-star") && !document.querySelector("#fresh .xh-chip.xh-key") && !document.querySelector("#fresh.xh-target"),
+      () => !document.querySelector("#fresh .xh-star") && !document.querySelector("#fresh .xh-chip.xh-key") && !document.querySelector("#fresh[data-xh-key]"),
       null,
       { timeout: 5000 }
     );
@@ -1288,7 +1400,7 @@ try {
     await updateSettings({ keyAccounts: true });
     await page.waitForSelector('#fresh .xh-star[aria-pressed="true"]', { timeout: 5000 });
     assert.strictEqual(await page.$("#fresh .xh-chip.xh-key"), null);
-    assert.ok(await page.$("#fresh.xh-target"));
+    assert.ok(await page.$("#fresh[data-xh-key]"));
 
     await setStoredPart("keys", {});
   });
@@ -1422,7 +1534,7 @@ try {
       // 3. Verify switches placed per feature-settings delta
       assert.ok(await p.$("#sec-general #hud"), "#hud in general");
       assert.ok(await p.$("#sec-general #topPosts"), "#topPosts in general");
-      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel"]) {
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showTint", "showReplies", "showReplied", "showRel"]) {
         assert.ok(await p.$(`#sec-badges #${id}`), `switch #${id} in badges`);
       }
       assert.ok(await p.$("#sec-rel #followWarn"), "#followWarn in rel");
@@ -1431,7 +1543,7 @@ try {
       assert.ok(await p.$("#sec-notes #localNotes"), "#localNotes in notes");
 
       // 4. Units next to number fields
-      const unitText = await p.textContent("#sec-badges .input-with-unit .unit");
+      const unitText = await p.textContent("#sec-badges .input-with-unit:has(#staleHours) .unit");
       assert.strictEqual(unitText, "hours");
 
       // 5. Verify dependent switches disable/enable based on parent
@@ -1522,6 +1634,78 @@ try {
         paceMinutes: 60,
         staleHours: 48,
       });
+    } finally {
+      await p.close();
+    }
+  });
+
+  await step("interaction tint controls in options page autosave, validate 0, and disable with switch off", async () => {
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector(".opt-section");
+      await p.click('.opt-nav-item[data-section="badges"]');
+
+      // 1. Initial defaults and state
+      assert.strictEqual(await p.isChecked("#showTint"), true);
+      assert.strictEqual(await p.inputValue("#tintFull"), "20");
+      assert.strictEqual(await p.inputValue("#tintHalfLife"), "30");
+      assert.strictEqual(await p.isDisabled("#tintFull"), false);
+      assert.strictEqual(await p.isDisabled("#tintHalfLife"), false);
+
+      // 2. Autosave number inputs on change (not using updateSettings)
+      await p.fill("#tintFull", "35");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      let s = await storedPart("settings");
+      assert.strictEqual(s.tintFull, 35);
+
+      await p.fill("#tintHalfLife", "45");
+      await p.locator("#tintHalfLife").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      s = await storedPart("settings");
+      assert.strictEqual(s.tintHalfLife, 45);
+
+      // 3. Out of range is pulled into range (like every number field); an empty field shows the error
+      await p.fill("#tintFull", "0");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("tintFull").value === "2", null, { timeout: 3000 });
+      assert.strictEqual((await storedPart("settings")).tintFull, 2);
+      await p.fill("#tintFull", "");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("tintFull").getAttribute("aria-invalid") === "true", null, { timeout: 3000 });
+      assert.strictEqual(await p.$eval("#err-tintFull", (el) => el.hidden), false);
+      assert.strictEqual((await storedPart("settings")).tintFull, 2, "stored tintFull is kept when the field is empty");
+
+      // 4. Switch off disables both number inputs and autosaves showTint: false
+      await p.uncheck("#showTint");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      s = await storedPart("settings");
+      assert.strictEqual(s.showTint, false);
+      assert.strictEqual(await p.isDisabled("#tintFull"), true);
+      assert.strictEqual(await p.isDisabled("#tintHalfLife"), true);
+
+      // Switch on re-enables both number inputs
+      await p.check("#showTint");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      s = await storedPart("settings");
+      assert.strictEqual(s.showTint, true);
+      assert.strictEqual(await p.isDisabled("#tintFull"), false);
+      assert.strictEqual(await p.isDisabled("#tintHalfLife"), false);
+
+      // 5. Restore defaults via UI
+      await p.fill("#tintFull", "20");
+      await p.locator("#tintFull").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      await p.fill("#tintHalfLife", "30");
+      await p.locator("#tintHalfLife").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      s = await storedPart("settings");
+      assert.strictEqual(s.showTint, true);
+      assert.strictEqual(s.tintFull, 20);
+      assert.strictEqual(s.tintHalfLife, 30);
     } finally {
       await p.close();
     }
