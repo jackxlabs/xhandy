@@ -158,8 +158,9 @@ try {
   await step("views per hour colour the age chip: hot, warm, normal, none without data", async () => {
     // alice: 30000 views in 2 h. carol: 600 views in 10 min (counted as 30 min).
     // eve: 100 views in 15 min. dan: no view data.
-    await page.waitForFunction(() => /^🔥 15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
+    await page.waitForFunction(() => /^15K\/h/.test(document.querySelector("#fresh .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#fresh .xh-chip.xh-hot"));
+    assert.ok(await page.$("#fresh .xh-chip.xh-hot svg"));
     await page.waitForFunction(() => /^1\.2K\/h/.test(document.querySelector("#carol .xh-badge")?.textContent), null, { timeout: 5000 });
     assert.ok(await page.$("#carol .xh-chip.xh-warm"));
     await page.waitForFunction(() => /^200\/h/.test(document.querySelector("#eve .xh-badge")?.textContent), null, { timeout: 5000 });
@@ -520,6 +521,47 @@ try {
     assert.strictEqual(typeof lia.ackAt, "number");
     assert.strictEqual(typeof lia.lostAt, "number");
     assert.strictEqual(typeof lia.mAt, "number");
+    await page.keyboard.press("Escape");
+  });
+
+  await step("long display names stay on one line with ellipsis and keep panel width", async () => {
+    if (await page.$(".xh-panel[hidden]")) await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+    const widthBefore = await page.evaluate(() => Math.round(document.querySelector(".xh-panel").getBoundingClientRect().width));
+
+    const longName = "Alice With A Very Long Display Name For Testing UI"; // 50 chars
+    assert.strictEqual(longName.length, 50);
+    await page.evaluate((name) => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "long_user", name, following: true, followedBy: false }],
+            v: [],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    }, longName);
+    await page.waitForTimeout(1500); // 1s batch delay
+    await page.waitForSelector('.xh-panel a[href="/long_user"]', { timeout: 3000 });
+
+    const widthAfter = await page.evaluate(() => Math.round(document.querySelector(".xh-panel").getBoundingClientRect().width));
+    assert.strictEqual(widthAfter, widthBefore, "panel width must not change with long display names");
+
+    const rowMetrics = await page.evaluate(() => {
+      const row = document.querySelector('.xh-panel a[href="/long_user"]');
+      const user = row.querySelector(".xh-panel-user");
+      const name = row.querySelector(".xh-panel-name");
+      const rUser = user.getBoundingClientRect();
+      return {
+        userHeight: rUser.height,
+        nameScrollWidth: name.scrollWidth,
+        nameClientWidth: name.clientWidth,
+      };
+    });
+    assert.ok(rowMetrics.userHeight <= 26, `name line wrapped: height is ${rowMetrics.userHeight}`);
+    assert.ok(rowMetrics.nameScrollWidth > rowMetrics.nameClientWidth, "long display name must overflow and be truncated");
     await page.keyboard.press("Escape");
   });
 
@@ -1345,18 +1387,54 @@ try {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
-      await p.waitForSelector("section");
+      await p.waitForSelector(".opt-section");
 
-      // 1. Verify the features section heading
-      const featuresTitle = await p.textContent("section:nth-of-type(2) h2");
-      assert.match(featuresTitle, /Features/);
-
-      // 2. Verify all switches are present in the features section
-      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts", "localNotes"]) {
-        assert.ok(await p.$(`section:nth-of-type(2) #${id}`), `switch #${id} should be in features section`);
+      // 1. Verify section nav items and only one section visible at a time
+      const sections = ["general", "badges", "rel", "dup", "keys", "notes", "data"];
+      for (const sec of sections) {
+        assert.ok(await p.$(`.opt-nav-item[data-section="${sec}"]`), `nav item for ${sec} should exist`);
+        assert.ok(await p.$(`#sec-${sec}`), `section #sec-${sec} should exist`);
       }
+      assert.strictEqual(await p.getAttribute('.opt-nav-item[data-section="general"]', "aria-current"), "true");
+      assert.strictEqual(await p.$eval("#sec-general", (el) => el.hidden), false);
+      assert.strictEqual(await p.$eval("#sec-badges", (el) => el.hidden), true);
 
-      // 3. Verify dependent switches disable/enable based on parent
+      // Section switching: click badges
+      await p.click('.opt-nav-item[data-section="badges"]');
+      assert.strictEqual(await p.getAttribute('.opt-nav-item[data-section="badges"]', "aria-current"), "true");
+      assert.strictEqual(await p.$eval("#sec-badges", (el) => el.hidden), false);
+      assert.strictEqual(await p.$eval("#sec-general", (el) => el.hidden), true);
+
+      // 2. Responsive check below 700px: nav sits above section and nothing scrolls horizontally
+      if (process.env.SHOTS) {
+        await p.setViewportSize({ width: 1280, height: 800 });
+        await p.screenshot({ path: join(process.env.SHOTS, "options-1280.png") });
+      }
+      await p.setViewportSize({ width: 500, height: 800 });
+      await p.waitForTimeout(200);
+      const scrollW = await p.evaluate(() => document.documentElement.scrollWidth);
+      assert.ok(scrollW <= 500, `page must not scroll horizontally at 500px, got ${scrollW}`);
+      if (process.env.SHOTS) {
+        await p.screenshot({ path: join(process.env.SHOTS, "options-500.png") });
+      }
+      await p.setViewportSize({ width: 1280, height: 800 });
+
+      // 3. Verify switches placed per feature-settings delta
+      assert.ok(await p.$("#sec-general #hud"), "#hud in general");
+      assert.ok(await p.$("#sec-general #topPosts"), "#topPosts in general");
+      for (const id of ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel"]) {
+        assert.ok(await p.$(`#sec-badges #${id}`), `switch #${id} in badges`);
+      }
+      assert.ok(await p.$("#sec-rel #followWarn"), "#followWarn in rel");
+      assert.ok(await p.$("#sec-dup #dupWarn"), "#dupWarn in dup");
+      assert.ok(await p.$("#sec-keys #keyAccounts"), "#keyAccounts in keys");
+      assert.ok(await p.$("#sec-notes #localNotes"), "#localNotes in notes");
+
+      // 4. Units next to number fields
+      const unitText = await p.textContent("#sec-badges .input-with-unit .unit");
+      assert.strictEqual(unitText, "hours");
+
+      // 5. Verify dependent switches disable/enable based on parent
       assert.strictEqual(await p.isChecked("#showAge"), true);
       assert.strictEqual(await p.isDisabled("#showHeat"), false);
       await p.uncheck("#showAge");
@@ -1371,20 +1449,39 @@ try {
       await p.check("#showSeen");
       assert.strictEqual(await p.isDisabled("#showInbound"), false);
 
-      // 4. Change switches and pace numbers, then save
+      // 6. Autosave switches on change (no Save button)
       await p.uncheck("#showAge");
       await p.uncheck("#showSeen");
-      await p.uncheck("#dupWarn");
-      await p.uncheck("#followWarn");
-      await p.uncheck("#keyAccounts");
-      await p.fill("#followPace", "15");
-      await p.fill("#unfollowPace", "25");
-      await p.fill("#paceMinutes", "45");
-
-      await p.click("#save");
       await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
 
-      // 5. Verify saved settings in storage via storedPart
+      await p.click('.opt-nav-item[data-section="dup"]');
+      await p.uncheck("#dupWarn");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      await p.click('.opt-nav-item[data-section="rel"]');
+      await p.uncheck("#followWarn");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      await p.click('.opt-nav-item[data-section="keys"]');
+      await p.uncheck("#keyAccounts");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      // 7. Autosave numbers on blur / typing pause
+      await p.click('.opt-nav-item[data-section="rel"]');
+      await p.click("#sec-rel details.advanced summary");
+      await p.fill("#followPace", "15");
+      await p.locator("#followPace").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      await p.fill("#unfollowPace", "25");
+      await p.locator("#unfollowPace").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      await p.fill("#paceMinutes", "45");
+      await p.locator("#paceMinutes").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      // Verify saved settings in storage via storedPart
       const s = await storedPart("settings");
       assert.strictEqual(s.showAge, false);
       assert.strictEqual(s.showSeen, false);
@@ -1395,7 +1492,25 @@ try {
       assert.strictEqual(s.unfollowPace, 25);
       assert.strictEqual(s.paceMinutes, 45);
 
-      // 6. Restore default settings
+      // 8. Out-of-range value autosave: pace 2 -> 5
+      await p.fill("#paceMinutes", "2");
+      await p.locator("#paceMinutes").blur();
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+      assert.strictEqual(await p.inputValue("#paceMinutes"), "5");
+      assert.strictEqual((await storedPart("settings")).paceMinutes, 5);
+
+      // 9. Empty field: stored value kept and aria-invalid set
+      await p.click('.opt-nav-item[data-section="badges"]');
+      await p.click("#sec-badges details.advanced summary");
+      const staleBefore = (await storedPart("settings")).staleHours;
+      await p.fill("#staleHours", "");
+      await p.locator("#staleHours").blur();
+      await p.waitForTimeout(700);
+      assert.strictEqual(await p.getAttribute("#staleHours", "aria-invalid"), "true");
+      const staleAfter = (await storedPart("settings")).staleHours;
+      assert.strictEqual(staleAfter, staleBefore, "stored staleHours must be kept when input is empty");
+
+      // 10. Restore default settings
       await updateSettings({
         showAge: true,
         showSeen: true,
@@ -1405,6 +1520,7 @@ try {
         followPace: 10,
         unfollowPace: 10,
         paceMinutes: 60,
+        staleHours: 48,
       });
     } finally {
       await p.close();
@@ -1492,15 +1608,18 @@ try {
     }
   });
 
-  await step("picking a language saves at once and keeps unsaved fields", async () => {
+  await step("picking a language saves at once and keeps other fields", async () => {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
       await p.waitForSelector("#lang");
 
-      // Type unsaved inputs
-      await p.fill("#keyPaste", "test_unsaved_handle");
+      // Type into other fields first
+      await p.click("#sec-general details.advanced summary");
       await p.fill("#dailyReplyGoal", "42");
+      await p.click('.opt-nav-item[data-section="keys"]');
+      await p.fill("#keyPaste", "test_unsaved_handle");
+      await p.click('.opt-nav-item[data-section="general"]');
 
       // Pick Chinese in language select
       await p.selectOption("#lang", "zh");
@@ -1513,14 +1632,16 @@ try {
 
       const savedSettings = await storedPart("settings");
       assert.strictEqual(savedSettings.lang, "zh");
-      assert.notStrictEqual(savedSettings.dailyReplyGoal, 42);
+      // Autosave: the goal typed before switching language was saved when the field lost focus.
+      assert.strictEqual(savedSettings.dailyReplyGoal, 42);
 
       // Verify that the page re-rendered into Chinese
-      assert.strictEqual(await p.textContent("section:nth-of-type(2) h2"), "功能开关");
+      assert.strictEqual(await p.textContent("#sec-badges h2"), "帖子标记");
 
-      // Verify that the unsaved form fields are still kept
-      assert.strictEqual(await p.inputValue("#keyPaste"), "test_unsaved_handle");
+      // Verify that the other fields keep what was typed
       assert.strictEqual(await p.inputValue("#dailyReplyGoal"), "42");
+      await p.click('.opt-nav-item[data-section="keys"]');
+      assert.strictEqual(await p.inputValue("#keyPaste"), "test_unsaved_handle");
     } finally {
       await updateSettings({ lang: "auto" });
       await p.close();
@@ -1533,27 +1654,93 @@ try {
       // 1. In Chinese
       await updateSettings({ lang: "zh" });
       await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
-      await p.waitForSelector("#head th");
+      await p.waitForSelector(".today-grid");
 
-      const thTextsZh = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
-      assert.deepStrictEqual(thTextsZh, ["日期", "赞", "回复", "发帖", "关注", "取关", "在线"]);
-      assert.strictEqual(await p.textContent("#keys"), "重点账号 (Alt+K)");
-      assert.strictEqual(await p.textContent("#nfb"), "我关注了、没回关我的 (Alt+U)");
+      const todayLabelsZh = await p.$$eval(".today-label", (els) => els.map((el) => el.textContent.trim()));
+      assert.deepStrictEqual(todayLabelsZh, ["赞", "回复", "发帖", "关注", "在线"]);
+      assert.match(await p.textContent("#keys"), /重点账号/);
+      assert.match(await p.textContent("#keys"), /Alt K/);
+      assert.match(await p.textContent("#nfb"), /我关注了、没回关我的/);
+      assert.match(await p.textContent("#nfb"), /Alt U/);
       assert.match(await p.textContent("[data-i18n=pop_data]"), /数据只存在本浏览器/);
 
       // 2. In English
       await updateSettings({ lang: "en" });
       await p.reload();
-      await p.waitForSelector("#head th");
+      await p.waitForSelector(".today-grid");
 
-      const thTextsEn = await p.$$eval("#head th", (ths) => ths.map((th) => th.textContent.trim()));
-      assert.deepStrictEqual(thTextsEn, ["Day", "likes", "replies", "posts", "follows", "unfollows", "on X"]);
-      assert.strictEqual(await p.textContent("#keys"), "Key accounts (Alt+K)");
-      assert.strictEqual(await p.textContent("#nfb"), "Not following you back (Alt+U)");
+      const todayLabelsEn = await p.$$eval(".today-label", (els) => els.map((el) => el.textContent.trim()));
+      assert.deepStrictEqual(todayLabelsEn, ["likes", "replies", "posts", "follows", "on X"]);
+      assert.match(await p.textContent("#keys"), /Key accounts/);
+      assert.match(await p.textContent("#keys"), /Alt K/);
+      assert.match(await p.textContent("#nfb"), /Not following you back/);
+      assert.match(await p.textContent("#nfb"), /Alt U/);
       assert.match(await p.textContent("[data-i18n=pop_data]"), /Data stays in this browser/);
     } finally {
       await updateSettings({ lang: "auto" });
       await p.close();
+    }
+  });
+
+  await step("popup shows today's numbers and not following back count against seeded storage", async () => {
+    const d = new Date();
+    const todayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    await setStoredPart("days", {
+      [todayKey]: { likes: 12, replies: 23, posts: 4, follows: 5, seconds: 3660 },
+    });
+    await setStoredPart("rel", {
+      u1: { f: true, fb: false, t: 100 },
+      u2: { f: true, fb: false, t: 100 },
+      u3: { f: true, fb: false, t: 100 },
+      u4: { f: true, fb: false, t: 100 },
+      u5: { f: true, fb: false, t: 100 },
+      u6: { f: true, fb: false, t: 100 },
+      u7: { f: true, fb: false, t: 100 },
+      m1: { f: true, fb: true, t: 100 },
+    });
+    await setStoredPart("relMeta", { me: { handle: "me_test" } });
+    await setStoredPart("keys", {
+      qk1: { h: "qk1", t: 100 },
+      qk2: { h: "qk2", t: 100 },
+    });
+
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+      await p.waitForSelector(".today-grid");
+
+      // Verify today's numbers
+      assert.strictEqual(await p.textContent("#today-likes"), "12");
+      assert.strictEqual(await p.textContent("#today-replies"), "23");
+      assert.strictEqual(await p.textContent("#today-posts"), "4");
+      assert.strictEqual(await p.textContent("#today-follows"), "5");
+      assert.strictEqual(await p.textContent("#today-time"), "1:01");
+
+      // Verify Not following back count (7)
+      assert.strictEqual(await p.textContent("#nfb-count"), "7");
+
+      // Verify Key accounts quiet count (2)
+      assert.match(await p.textContent("#keys-count"), /2/);
+
+      // Verify 7-day chart total and bars
+      assert.strictEqual(await p.textContent("#chart-total"), "23");
+      const bars = await p.$$eval(".chart-bar", (els) => els.length);
+      assert.strictEqual(bars, 7);
+
+      // Feature switch: turning keyAccounts off hides Key accounts entry
+      await updateSettings({ keyAccounts: false });
+      await p.reload();
+      await p.waitForSelector(".today-grid");
+      assert.strictEqual(await p.$eval("#keys", (el) => el.hidden), true);
+      assert.strictEqual(await p.$eval("#nfb", (el) => el.hidden), false);
+    } finally {
+      await updateSettings({ keyAccounts: true });
+      await p.close();
+      await setStoredPart("days", {});
+      await setStoredPart("rel", {});
+      await setStoredPart("keys", {});
+      await setStoredPart("relMeta", { last: 0, scan: 0, me: { handle: null, followers: 0, id: null, t: 0 } });
     }
   });
 
@@ -1562,6 +1749,7 @@ try {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.click('.opt-nav-item[data-section="keys"]');
       await p.waitForSelector("#keyPaste");
 
       // Paste handles: @alice, bob, not a handle!
@@ -1599,6 +1787,7 @@ try {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.click('.opt-nav-item[data-section="keys"]');
       await p.waitForSelector('.key-row[data-handle="alice"] button.remove');
 
       // Click remove on alice's row without clicking Save
@@ -1630,6 +1819,7 @@ try {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.click('.opt-nav-item[data-section="data"]');
       await p.waitForFunction(() => document.getElementById("import-btn").textContent === "导入 JSON");
       assert.ok(await p.$eval("#import", (el) => el.hidden), "native file input is hidden");
 
@@ -1902,6 +2092,7 @@ try {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.click('.opt-nav-item[data-section="notes"]');
       await p.waitForSelector("#noteList .key-row", { timeout: 5000 });
       const initialCount = await p.$$eval("#noteList .key-row", (els) => els.length);
       assert.strictEqual(initialCount, 3);
@@ -1928,6 +2119,7 @@ try {
     const p = await ctx.newPage();
     try {
       await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.click('.opt-nav-item[data-section="notes"]');
       await p.waitForSelector('#noteList .key-row[data-handle="alice"]', { timeout: 5000 });
       await p.click('#noteList .key-row[data-handle="alice"] button.remove');
       await p.waitForFunction(() => !document.querySelector('#noteList .key-row[data-handle="alice"]'), null, { timeout: 3000 });
@@ -1940,6 +2132,186 @@ try {
     await page.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
     const chips = await page.$$("#fresh .xh-badge .xh-note");
     assert.strictEqual(chips.length, 0);
+  });
+
+  await step("stats bar uses a sans-serif font even when the page body has none", async () => {
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    // X leaves <body> on the browser default (serif); reproduce that, then check the bar does not inherit it.
+    const fonts = await page.evaluate(() => {
+      const prev = document.body.style.fontFamily;
+      document.body.style.fontFamily = "serif";
+      const hud = getComputedStyle(document.querySelector(".xh-hud")).fontFamily;
+      const num = getComputedStyle(document.querySelector(".xh-hud-item b")).fontFamily;
+      document.body.style.fontFamily = prev;
+      return { hud, num };
+    });
+    for (const f of [fonts.hud, fonts.num]) {
+      assert.ok(/sans-serif/.test(f) && !/^serif$/.test(f), `expected a sans-serif stack, got ${f}`);
+    }
+  });
+
+  await step("default stats bar is in bottom-right corner and clear of composer", async () => {
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    const hudBox = await page.locator(".xh-hud").boundingBox();
+    const composerBox = await page.locator("#composer").boundingBox();
+    const vp = page.viewportSize();
+    assert.ok(hudBox, "stats bar bounding box must exist");
+    assert.ok(composerBox, "composer bounding box must exist");
+
+    // Bottom-right corner: right and bottom distances within ~4px of 16px default
+    const rightDist = vp.width - (hudBox.x + hudBox.width);
+    const bottomDist = vp.height - (hudBox.y + hudBox.height);
+    assert.ok(Math.abs(rightDist - 16) <= 4, `expected right ~16px, got ${rightDist}`);
+    assert.ok(Math.abs(bottomDist - 16) <= 4, `expected bottom ~16px, got ${bottomDist}`);
+
+    // Must not overlap composer
+    const overlaps =
+      hudBox.x < composerBox.x + composerBox.width &&
+      hudBox.x + hudBox.width > composerBox.x &&
+      hudBox.y < composerBox.y + composerBox.height &&
+      hudBox.y + hudBox.height > composerBox.y;
+    assert.strictEqual(overlaps, false, "stats bar must not overlap composer");
+  });
+
+  await step("short click on stats bar does not drag or update settings", async () => {
+    const hudBoxBefore = await page.locator(".xh-hud").boundingBox();
+    const settingsBefore = await storedPart("settings");
+    const clickX = hudBoxBefore.x + hudBoxBefore.width / 2;
+    const clickY = hudBoxBefore.y + hudBoxBefore.height / 2;
+
+    await page.mouse.move(clickX, clickY);
+    await page.mouse.down();
+    await page.mouse.move(clickX + 1, clickY + 1); // 1.4px movement, under 4px threshold
+    await page.mouse.up();
+
+    const hudBoxAfter = await page.locator(".xh-hud").boundingBox();
+    assert.strictEqual(hudBoxAfter.x, hudBoxBefore.x, "HUD x should not have moved");
+    assert.strictEqual(hudBoxAfter.y, hudBoxBefore.y, "HUD y should not have moved");
+
+    const settingsAfter = await storedPart("settings");
+    assert.strictEqual(settingsAfter.hudRight, settingsBefore.hudRight, "hudRight should not change on short click");
+    assert.strictEqual(settingsAfter.hudBottom, settingsBefore.hudBottom, "hudBottom should not change on short click");
+  });
+
+  await step("dragging stats bar moves it, writes position to storage and survives reload", async () => {
+    const hudBox = await page.locator(".xh-hud").boundingBox();
+    const startX = hudBox.x + hudBox.width / 2;
+    const startY = hudBox.y + hudBox.height / 2;
+
+    // Drag towards top-left: target (80, 80)
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(80, 80, { steps: 5 });
+    await page.mouse.up();
+
+    // Verify position moved to top-left area
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-hud");
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.left <= 40 && r.top <= 120;
+    }, null, { timeout: 3000 });
+
+    const movedBox = await page.locator(".xh-hud").boundingBox();
+    assert.ok(movedBox.x <= 40, `expected HUD near left edge, got x=${movedBox.x}`);
+    assert.ok(movedBox.y <= 120, `expected HUD near top, got y=${movedBox.y}`);
+
+    // Verify stored settings written once
+    const settings = await storedPart("settings");
+    assert.ok(typeof settings.hudRight === "number" && settings.hudRight > 500, `hudRight should be large, got ${settings.hudRight}`);
+    assert.ok(typeof settings.hudBottom === "number" && settings.hudBottom > 400, `hudBottom should be large, got ${settings.hudBottom}`);
+
+    // Verify position survives reload
+    await page.reload();
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    const reloadedBox = await page.locator(".xh-hud").boundingBox();
+    assert.ok(Math.abs(reloadedBox.x - movedBox.x) <= 2, `reloaded x=${reloadedBox.x} should match moved x=${movedBox.x}`);
+    assert.ok(Math.abs(reloadedBox.y - movedBox.y) <= 2, `reloaded y=${reloadedBox.y} should match moved y=${movedBox.y}`);
+  });
+
+  await step("stats bar stays clamped inside window on resize without overwriting stored position", async () => {
+    const storedBefore = await storedPart("settings");
+    // Make window narrow
+    await page.setViewportSize({ width: 500, height: 600 });
+    await page.waitForTimeout(300);
+
+    const clampedBox = await page.locator(".xh-hud").boundingBox();
+    assert.ok(clampedBox.x >= 8, `HUD left edge ${clampedBox.x} should be >= 8`);
+    assert.ok(clampedBox.x + clampedBox.width <= 500, `HUD right edge should be inside viewport`);
+
+    // Stored settings must NOT have been changed by resize clamping
+    const storedAfter = await storedPart("settings");
+    assert.strictEqual(storedAfter.hudRight, storedBefore.hudRight, "resize must not overwrite stored hudRight");
+    assert.strictEqual(storedAfter.hudBottom, storedBefore.hudBottom, "resize must not overwrite stored hudBottom");
+
+    // Restore viewport size
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(300);
+  });
+
+  await step("stats bar position syncs across tabs via storage.onChanged", async () => {
+    const page2 = await ctx.newPage();
+    try {
+      await page2.goto("https://x.com/home");
+      await page2.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+
+      // Page 1 drags the bar to a new position
+      await page.bringToFront();
+      const hud1 = await page.locator(".xh-hud").boundingBox();
+      const startX = hud1.x + hud1.width / 2;
+      const startY = hud1.y + hud1.height / 2;
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX + 120, startY + 80, { steps: 5 });
+      await page.mouse.up();
+
+      // Wait for page 2 to pick up the new position via storage.onChanged without reloading page 2
+      const targetBox1 = await page.locator(".xh-hud").boundingBox();
+      await page2.waitForFunction((expectedX) => {
+        const hud = document.querySelector(".xh-hud");
+        if (!hud) return false;
+        return Math.abs(hud.getBoundingClientRect().x - expectedX) <= 3;
+      }, targetBox1.x, { timeout: 5000 });
+
+      const box2 = await page2.locator(".xh-hud").boundingBox();
+      assert.ok(Math.abs(box2.x - targetBox1.x) <= 3, `page2 x=${box2.x} should match page1 x=${targetBox1.x}`);
+      assert.ok(Math.abs(box2.y - targetBox1.y) <= 3, `page2 y=${box2.y} should match page1 y=${targetBox1.y}`);
+    } finally {
+      await page2.close();
+      // Reset position back to default 16 / 16
+      await updateSettings({ hudRight: 16, hudBottom: 16 });
+    }
+  });
+
+  await step("stats bar reset position in settings writes 16/16 and open tab moves back without reload", async () => {
+    await page.bringToFront();
+    // Move stats bar in page
+    await updateSettings({ hudRight: 350, hudBottom: 250 });
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-hud");
+      return el && el.style.right === "350px" && el.style.bottom === "250px";
+    }, null, { timeout: 4000 });
+
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await p.waitForSelector("#hudReset");
+      await p.click("#hudReset");
+      await p.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      const s = await storedPart("settings");
+      assert.strictEqual(s.hudRight, 16);
+      assert.strictEqual(s.hudBottom, 16);
+
+      // Verify open page moved bar back without reload
+      await page.waitForFunction(() => {
+        const el = document.querySelector(".xh-hud");
+        return el && el.style.right === "16px" && el.style.bottom === "16px";
+      }, null, { timeout: 5000 });
+    } finally {
+      await p.close();
+      await updateSettings({ hudRight: 16, hudBottom: 16 });
+    }
   });
 } finally {
   await ctx.close();

@@ -15,7 +15,7 @@ and it makes no network requests of its own.
 Everything below is kept in your browser's extension storage (`chrome.storage.local`) on your own device.
 It is not synced to other devices and is never sent anywhere.
 
-- **Settings** you choose on the Options page (feature switches, limits, thresholds, accounts to highlight).
+- **Settings** you choose on the Options page (feature switches, limits, thresholds, accounts to highlight, and the stats bar position).
 - **Daily counts**: likes, replies, posts, follows, unfollows and time spent on X, per day.
 - **Recent follow and unfollow times**: timestamps of up to 100 recent follows and 100 recent unfollows,
   dropped after 24 hours, used only to remind you when you follow or unfollow too fast within a short window.

@@ -19,6 +19,8 @@
       dupWindow: 50, // compare against the last N sent texts
       repeatShort: 3, // warn when the same short text was sent this many times
       hud: true,
+      hudRight: 16,
+      hudBottom: 16,
       dailyReplyGoal: 0, // 0 = no goal
       showRel: true, // follow relationship in post badges
       followLimit: 20, // soft daily follow limit: warn above this, never block
@@ -688,5 +690,48 @@
     await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote };
+  // Accounts followed by the user that do not follow back.
+  // Returns [[handle, relEntry], ...] sorted alphabetically by handle.
+  function notFollowingBack(rel, meHandle) {
+    if (!isObj(rel)) return [];
+    const me = typeof meHandle === "string" ? meHandle.trim().toLowerCase().replace(/^@/, "") : "";
+    const rows = [];
+    for (const [h, r] of Object.entries(rel)) {
+      if (!isObj(r) || !r.f || r.fb) continue;
+      if (!isHandle(h) || h.toLowerCase() === me) continue;
+      rows.push([h, r]);
+    }
+    return rows.sort(([a], [b]) => a.localeCompare(b));
+  }
+
+  // Key accounts sorted by last interaction time ascending (quietest first).
+  // Returns [{ h, entry, youLast, themLast, latest, isQuiet }, ...].
+  function quietKeys(keys, people, quietDays = 14, now = Date.now()) {
+    if (!isObj(keys)) return [];
+    const pTable = isObj(people) ? people : {};
+    const days = typeof quietDays === "number" && Number.isFinite(quietDays) && quietDays > 0 ? quietDays : 14;
+    const n = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+    const quietThresholdMs = days * 86400000;
+
+    const rows = [];
+    for (const [h, entry] of Object.entries(keys)) {
+      if (!isHandle(h)) continue;
+      const cleanEntry = isObj(entry) ? entry : { h, t: 0 };
+      const p = pTable[h.toLowerCase()];
+      const youLast = (p && typeof p.last === "number" && Number.isFinite(p.last)) ? p.last : 0;
+      const themLast = (p && p.in && typeof p.in.last === "number" && Number.isFinite(p.in.last)) ? p.in.last : 0;
+      const latest = Math.max(youLast, themLast);
+      const isQuiet = !latest || n - latest >= quietThresholdMs;
+      rows.push({ h, entry: cleanEntry, youLast, themLast, latest, isQuiet });
+    }
+
+    rows.sort((a, b) => {
+      if (a.latest !== b.latest) return a.latest - b.latest;
+      return a.h.localeCompare(b.h);
+    });
+
+    return rows;
+  }
+
+  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys };
 })();

@@ -2,8 +2,59 @@
   const { store, LANGS } = globalThis.XH;
   const XH = globalThis.XH;
   const $ = (id) => document.getElementById(id);
-  const NUMS = ["staleHours", "heatWarm", "heatHot", "dupThreshold", "dupWindow", "repeatShort", "dailyReplyGoal", "relStaleDays", "followLimit", "unfollowLimit", "followPace", "unfollowPace", "paceMinutes", "quietDays"];
-  const CHECKS = ["showAge", "showHeat", "showSeen", "showInbound", "showReplies", "showReplied", "showRel", "dupWarn", "followWarn", "hud", "keyAccounts", "topPosts", "localNotes"];
+
+  const NUMS = [
+    "staleHours",
+    "heatWarm",
+    "heatHot",
+    "dupThreshold",
+    "dupWindow",
+    "repeatShort",
+    "dailyReplyGoal",
+    "relStaleDays",
+    "followLimit",
+    "unfollowLimit",
+    "followPace",
+    "unfollowPace",
+    "paceMinutes",
+    "quietDays",
+  ];
+
+  const CHECKS = [
+    "showAge",
+    "showHeat",
+    "showSeen",
+    "showInbound",
+    "showReplies",
+    "showReplied",
+    "showRel",
+    "dupWarn",
+    "followWarn",
+    "hud",
+    "keyAccounts",
+    "topPosts",
+    "localNotes",
+  ];
+
+  const RANGE_TABLE = {
+    staleHours: { min: 1, max: 10000, integer: true },
+    heatWarm: { min: 0, max: 10000000, integer: false },
+    heatHot: { min: 0, max: 10000000, integer: false },
+    dupThreshold: { min: 0, max: 1, integer: false },
+    dupWindow: { min: 1, max: 1000, integer: true },
+    repeatShort: { min: 1, max: 100, integer: true },
+    dailyReplyGoal: { min: 0, max: 10000, integer: true },
+    relStaleDays: { min: 1, max: 3650, integer: true },
+    followLimit: { min: 1, max: 10000, integer: true },
+    unfollowLimit: { min: 1, max: 10000, integer: true },
+    followPace: { min: 1, max: 10000, integer: true },
+    unfollowPace: { min: 1, max: 10000, integer: true },
+    paceMinutes: { min: 5, max: 1440, integer: true },
+    quietDays: { min: 1, max: 365, integer: true },
+  };
+
+  const SECTION_KEY = "xh:opt_section";
+  const VALID_SECTIONS = ["general", "badges", "rel", "dup", "keys", "notes", "data"];
 
   let lastRelMeta = null;
   let lastRelCount = 0;
@@ -13,6 +64,73 @@
   let keyQuery = "";
   let noteQuery = "";
   let noteFilterStatus = "";
+  let savedTimer = null;
+  const inputDebounceTimers = {};
+
+  function getStoredSection() {
+    try {
+      const val = sessionStorage.getItem(SECTION_KEY);
+      return VALID_SECTIONS.includes(val) ? val : "general";
+    } catch (_) {
+      return "general";
+    }
+  }
+
+  function storeSection(name) {
+    try {
+      sessionStorage.setItem(SECTION_KEY, name);
+    } catch (_) {}
+  }
+
+  function switchSection(secName) {
+    const targetId = "sec-" + secName;
+    const targetEl = $(targetId);
+    if (!targetEl) return;
+
+    document.querySelectorAll(".opt-section").forEach((sec) => {
+      sec.hidden = sec.id !== targetId;
+    });
+
+    document.querySelectorAll(".opt-nav-item").forEach((btn) => {
+      const isCurrent = btn.dataset.section === secName;
+      if (isCurrent) {
+        btn.setAttribute("aria-current", "true");
+        btn.classList.add("active");
+      } else {
+        btn.removeAttribute("aria-current");
+        btn.classList.remove("active");
+      }
+    });
+
+    storeSection(secName);
+  }
+
+  function checkHash() {
+    const hash = (location.hash || "").replace(/^#/, "");
+    if (!hash) return;
+    const secName = hash.replace(/^sec-/, "");
+    if (VALID_SECTIONS.includes(secName)) {
+      switchSection(secName);
+      return;
+    }
+    const target = document.getElementById(hash);
+    if (target) {
+      const parentSec = target.closest(".opt-section");
+      if (parentSec) {
+        const sName = parentSec.id.replace(/^sec-/, "");
+        if (VALID_SECTIONS.includes(sName)) switchSection(sName);
+      }
+    }
+  }
+
+  document.querySelectorAll(".opt-nav-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sec = btn.dataset.section;
+      if (sec) switchSection(sec);
+    });
+  });
+
+  window.addEventListener("hashchange", checkHash);
 
   function applyI18n() {
     document.documentElement.lang = XH.lang === "zh" ? "zh-CN" : "en";
@@ -30,6 +148,7 @@
 
   function renderLangSelect(chosen) {
     const sel = $("lang");
+    if (!sel) return;
     const currentVal = chosen !== undefined ? chosen : sel.value || "auto";
     sel.replaceChildren();
 
@@ -48,16 +167,91 @@
   }
 
   function renderRelStatus() {
+    const relStatusEl = $("relStatus");
+    if (!relStatusEl) return;
     const last = lastRelMeta && lastRelMeta.last;
     const mins = last ? Math.round((Date.now() - last) / 60000) : null;
-    $("relStatus").textContent = last
+    relStatusEl.textContent = last
       ? XH.t("opt_rel_known", { n: lastRelCount, mins })
       : XH.t("opt_rel_none");
   }
 
   function syncDisabled() {
-    $("showHeat").disabled = !$("showAge").checked;
-    $("showInbound").disabled = !$("showSeen").checked;
+    const showAge = $("showAge");
+    const showHeat = $("showHeat");
+    if (showAge && showHeat) {
+      showHeat.disabled = !showAge.checked;
+    }
+    const showSeen = $("showSeen");
+    const showInbound = $("showInbound");
+    if (showSeen && showInbound) {
+      showInbound.disabled = !showSeen.checked;
+    }
+  }
+
+  function updateSwitchAria(el) {
+    if (el) {
+      el.setAttribute("aria-checked", String(el.checked));
+    }
+  }
+
+  function showSaved() {
+    const statusEl = $("status");
+    if (!statusEl) return;
+    statusEl.textContent = XH.t("opt_saved");
+    if (savedTimer) clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => {
+      statusEl.textContent = "";
+    }, 1500);
+  }
+
+  async function saveSetting(key, value) {
+    let finalVal = value;
+    const rule = RANGE_TABLE[key];
+    if (rule) {
+      if (typeof finalVal !== "number" || !Number.isFinite(finalVal)) return;
+      finalVal = Math.max(rule.min, Math.min(rule.max, finalVal));
+      if (rule.integer) finalVal = Math.round(finalVal);
+      const el = $(key);
+      if (el && Number(el.value) !== finalVal) {
+        el.value = finalVal;
+      }
+    }
+
+    await store.update(["settings"], (s) => {
+      s.settings[key] = finalVal;
+    });
+
+    showSaved();
+  }
+
+  function markFieldInvalid(key, el, invalid) {
+    const errEl = $("err-" + key);
+    if (invalid) {
+      el.setAttribute("aria-invalid", "true");
+      if (errEl) {
+        errEl.hidden = false;
+        el.setAttribute("aria-errormessage", "err-" + key);
+      }
+    } else {
+      el.removeAttribute("aria-invalid");
+      el.removeAttribute("aria-errormessage");
+      if (errEl) errEl.hidden = true;
+    }
+  }
+
+  async function handleNumberCommit(key, el) {
+    if (inputDebounceTimers[key]) {
+      clearTimeout(inputDebounceTimers[key]);
+      inputDebounceTimers[key] = null;
+    }
+    const raw = el.value.trim();
+    if (raw === "" || Number.isNaN(Number(raw))) {
+      markFieldInvalid(key, el, true);
+      return;
+    }
+    markFieldInvalid(key, el, false);
+    await saveSetting(key, Number(raw));
   }
 
   function renderKeyAccountsList() {
@@ -227,23 +421,32 @@
     renderNotesList();
 
     for (const k of NUMS) {
-      if ($(k)) $(k).value = s[k];
+      if ($(k)) {
+        $(k).value = s[k];
+        markFieldInvalid(k, $(k), false);
+      }
     }
     for (const k of CHECKS) {
-      if ($(k)) $(k).checked = s[k];
+      if ($(k)) {
+        $(k).checked = !!s[k];
+        updateSwitchAria($(k));
+      }
     }
     syncDisabled();
 
     lastRelCount = Object.keys(all.rel || {}).length;
     lastRelMeta = all.relMeta;
     renderRelStatus();
+
+    checkHash();
+    if (!location.hash) {
+      switchSection(getStoredSection());
+    }
   }
 
   $("lang").addEventListener("change", async (e) => {
     const lang = e.target.value;
-    await store.update(["settings"], (s) => {
-      s.settings.lang = lang;
-    });
+    await saveSetting("lang", lang);
     XH.setLang(XH.resolveLang(lang, navigator.language));
     applyI18n();
     renderLangSelect(lang);
@@ -252,8 +455,52 @@
     renderRelStatus();
   });
 
-  $("showAge").addEventListener("change", syncDisabled);
-  $("showSeen").addEventListener("change", syncDisabled);
+  for (const k of CHECKS) {
+    const el = $(k);
+    if (!el) continue;
+    el.addEventListener("change", async () => {
+      syncDisabled();
+      updateSwitchAria(el);
+      await saveSetting(k, el.checked);
+    });
+  }
+
+  for (const k of NUMS) {
+    const el = $(k);
+    if (!el) continue;
+
+    el.addEventListener("input", () => {
+      if (inputDebounceTimers[k]) {
+        clearTimeout(inputDebounceTimers[k]);
+        inputDebounceTimers[k] = null;
+      }
+      const raw = el.value.trim();
+      if (raw === "" || Number.isNaN(Number(raw))) {
+        markFieldInvalid(k, el, true);
+        return;
+      }
+      markFieldInvalid(k, el, false);
+      inputDebounceTimers[k] = setTimeout(() => {
+        inputDebounceTimers[k] = null;
+        handleNumberCommit(k, el);
+      }, 600);
+    });
+
+    el.addEventListener("change", () => {
+      handleNumberCommit(k, el);
+    });
+  }
+
+  const hudResetBtn = $("hudReset");
+  if (hudResetBtn) {
+    hudResetBtn.addEventListener("click", async () => {
+      await store.update(["settings"], (s) => {
+        s.settings.hudRight = 16;
+        s.settings.hudBottom = 16;
+      });
+      showSaved();
+    });
+  }
 
   $("keySearch").addEventListener("input", (e) => {
     keyQuery = e.target.value.trim().replace(/^@/, "").toLowerCase();
@@ -316,29 +563,6 @@
     }
   });
 
-  $("save").addEventListener("click", async () => {
-    await store.update(["settings"], (s) => {
-      for (const k of NUMS) {
-        if (!$(k)) continue;
-        const v = Number($(k).value);
-        if (Number.isFinite(v)) {
-          if (k === "paceMinutes") {
-            s.settings[k] = Math.max(5, Math.min(1440, Math.round(v)));
-          } else if (k === "quietDays") {
-            s.settings[k] = Math.max(1, Math.min(365, Math.round(v)));
-          } else {
-            s.settings[k] = v;
-          }
-        }
-      }
-      for (const k of CHECKS) {
-        if ($(k)) s.settings[k] = $(k).checked;
-      }
-    });
-    $("status").textContent = XH.t("opt_saved");
-    setTimeout(() => ($("status").textContent = ""), 1500);
-  });
-
   $("export").addEventListener("click", async () => {
     const data = await store.get();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -363,11 +587,14 @@
     }
   });
 
-  $("reset").addEventListener("click", async () => {
-    if (!confirm(XH.t("opt_reset_confirm"))) return;
-    await store.reset();
-    await load();
-  });
+  const clearBtn = $("clear") || $("reset");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", async () => {
+      if (!confirm(XH.t("opt_reset_confirm"))) return;
+      await store.reset();
+      await load();
+    });
+  }
 
   store.onChange((all) => {
     if (all && all.notes) {

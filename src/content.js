@@ -184,7 +184,7 @@
           ? existingTop.nextSibling === target || (existingNote && existingTop.nextSibling === existingNote)
           : existingTop.parentNode === target;
         if (existingTop.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-          existingTop.textContent = t("top_btn");
+          existingTop.replaceChildren(XH.icon("flame", 16), document.createTextNode(t("top_btn")));
           existingTop.setAttribute("aria-label", t("top_label", { h: handle }));
         } else {
           existingTop.remove();
@@ -196,7 +196,7 @@
         topBtn.className = "xh-top";
         topBtn.type = "button";
         topBtn.dataset.h = handle.toLowerCase();
-        topBtn.textContent = t("top_btn");
+        topBtn.replaceChildren(XH.icon("flame", 16), document.createTextNode(t("top_btn")));
         topBtn.setAttribute("aria-label", t("top_label", { h: handle }));
         topBtn.addEventListener(
           "click",
@@ -229,7 +229,7 @@
         ? existingNote.nextSibling === target
         : existingNote.parentNode === target;
       if (existingNote.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-        existingNote.textContent = t("note_btn");
+        existingNote.replaceChildren(XH.icon("note", 16), document.createTextNode(t("note_btn")));
         existingNote.setAttribute("aria-label", t("note_title") + " @" + handle);
       } else {
         existingNote.remove();
@@ -241,7 +241,7 @@
       noteBtn.className = "xh-note-btn";
       noteBtn.type = "button";
       noteBtn.dataset.h = handle.toLowerCase();
-      noteBtn.textContent = t("note_btn");
+      noteBtn.replaceChildren(XH.icon("note", 16), document.createTextNode(t("note_btn")));
       noteBtn.setAttribute("aria-label", t("note_title") + " @" + handle);
       noteBtn.addEventListener(
         "click",
@@ -525,7 +525,7 @@
         chips.push(["stale", text]);
       } else if (rate != null) {
         const heat = rate >= s.heatHot ? "hot" : rate >= s.heatWarm ? "warm" : "age";
-        const text = (heat === "hot" ? "🔥 " : "") + t("per_hour", { n: XH.compact(rate) });
+        const text = t("per_hour", { n: XH.compact(rate) });
         chips.push([heat, text]);
       }
     }
@@ -541,7 +541,7 @@
     if (!own && s.localNotes && S.notes) {
       const note = S.notes[info.handle.toLowerCase()];
       if (note) {
-        let label = "📝";
+        let label = "";
         if (note.s && XH.store.NOTE_STATUS.includes(note.s)) {
           label = t("note_s_" + note.s);
         } else if (Array.isArray(note.tags) && note.tags.length > 0) {
@@ -609,7 +609,13 @@
       const nodes = chips.map(([kind, text, title]) => {
         const c = document.createElement("span");
         c.className = "xh-chip xh-" + kind;
-        c.textContent = text;
+        if (kind === "hot") {
+          c.append(XH.icon("flame", 12), document.createTextNode(text));
+        } else if (kind === "note" && !text) {
+          c.append(XH.icon("note", 12));
+        } else {
+          c.textContent = text;
+        }
         if (title) c.title = title;
         return c;
       });
@@ -619,7 +625,7 @@
         star.className = "xh-star";
         star.setAttribute("aria-pressed", isKey ? "true" : "false");
         star.setAttribute("aria-label", t(isKey ? "key_remove" : "key_add"));
-        star.textContent = isKey ? "★" : "☆";
+        star.append(XH.icon("star", 14));
         star.addEventListener(
           "click",
           (e) => {
@@ -852,7 +858,7 @@
     }
     dupEl.replaceChildren();
     const h = document.createElement("strong");
-    h.textContent = "⚠ " + title;
+    h.append(XH.icon("warn", 16), document.createTextNode(" " + title));
     const b = document.createElement("div");
     b.textContent = body;
     dupEl.append(h, b);
@@ -910,6 +916,102 @@
   // ---------- 6. HUD and time on X ----------
 
   let hudEl = null;
+  let hudDrag = null;
+
+  function clampHud(r, b, w, h) {
+    const maxR = Math.max(8, window.innerWidth - w - 8);
+    const maxB = Math.max(8, window.innerHeight - h - 8);
+    return [Math.min(Math.max(8, r), maxR), Math.min(Math.max(8, b), maxB)];
+  }
+
+  function applyHudPosition() {
+    if (!hudEl || !S || !S.settings || hudEl.hidden) return;
+    if (hudDrag && hudDrag.dragging) return;
+    const r = typeof S.settings.hudRight === "number" ? S.settings.hudRight : 16;
+    const b = typeof S.settings.hudBottom === "number" ? S.settings.hudBottom : 16;
+    const rect = hudEl.getBoundingClientRect();
+    const w = rect.width || hudEl.offsetWidth || 200;
+    const h = rect.height || hudEl.offsetHeight || 32;
+    const [clampedR, clampedB] = clampHud(r, b, w, h);
+    hudEl.style.right = clampedR + "px";
+    hudEl.style.bottom = clampedB + "px";
+  }
+
+  function initHudDrag() {
+    hudEl.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || hudDrag) return;
+      // Start from the position we set, not the box: the entrance animation may still be moving it.
+      const curR = parseFloat(hudEl.style.right) || 16;
+      const curB = parseFloat(hudEl.style.bottom) || 16;
+      hudDrag = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startRight: curR,
+        startBottom: curB,
+        currentRight: curR,
+        currentBottom: curB,
+        dragging: false,
+      };
+      try {
+        hudEl.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    });
+
+    hudEl.addEventListener("pointermove", (e) => {
+      if (!hudDrag || hudDrag.pointerId !== e.pointerId) return;
+      const dx = e.clientX - hudDrag.startX;
+      const dy = e.clientY - hudDrag.startY;
+      if (!hudDrag.dragging) {
+        if (Math.hypot(dx, dy) < 4) return;
+        hudDrag.dragging = true;
+        hudEl.classList.add("xh-dragging");
+      }
+      e.preventDefault();
+      const rawR = hudDrag.startRight - dx;
+      const rawB = hudDrag.startBottom - dy;
+      const rect = hudEl.getBoundingClientRect();
+      const w = rect.width || hudEl.offsetWidth || 200;
+      const h = rect.height || hudEl.offsetHeight || 32;
+      const [r, b] = clampHud(rawR, rawB, w, h);
+      hudDrag.currentRight = Math.round(r);
+      hudDrag.currentBottom = Math.round(b);
+      hudEl.style.right = hudDrag.currentRight + "px";
+      hudEl.style.bottom = hudDrag.currentBottom + "px";
+    });
+
+    hudEl.addEventListener("pointerup", (e) => {
+      if (!hudDrag || hudDrag.pointerId !== e.pointerId) return;
+      try {
+        if (hudEl.hasPointerCapture && hudEl.hasPointerCapture(e.pointerId)) {
+          hudEl.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+      const wasDragging = hudDrag.dragging;
+      const finalRight = hudDrag.currentRight;
+      const finalBottom = hudDrag.currentBottom;
+      hudEl.classList.remove("xh-dragging");
+      hudDrag = null;
+      if (wasDragging) {
+        store.update(["settings"], (s) => {
+          s.settings.hudRight = finalRight;
+          s.settings.hudBottom = finalBottom;
+        });
+      }
+    });
+
+    hudEl.addEventListener("pointercancel", (e) => {
+      if (!hudDrag || hudDrag.pointerId !== e.pointerId) return;
+      try {
+        if (hudEl.hasPointerCapture && hudEl.hasPointerCapture(e.pointerId)) {
+          hudEl.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+      hudEl.classList.remove("xh-dragging");
+      hudDrag = null;
+      applyHudPosition();
+    });
+  }
 
   function renderHud() {
     if (!S) return;
@@ -920,6 +1022,7 @@
     if (!hudEl) {
       hudEl = document.createElement("div");
       hudEl.className = "xh-hud";
+      initHudDrag();
       document.body.appendChild(hudEl);
     }
     hudEl.title = t("hud_hint");
@@ -967,6 +1070,7 @@
       );
     }
     hudEl.hidden = false;
+    applyHudPosition();
   }
 
   // Fade the stats bar while scrolling so it never sits on top of what you are reading.
@@ -974,13 +1078,15 @@
   window.addEventListener(
     "scroll",
     () => {
-      if (!hudEl) return;
+      if (!hudEl || (hudDrag && hudDrag.dragging)) return;
       hudEl.classList.add("xh-scrolling");
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => hudEl.classList.remove("xh-scrolling"), 1000);
     },
     { passive: true }
   );
+
+  window.addEventListener("resize", applyHudPosition, { passive: true });
 
   const TICK = 15;
   setInterval(() => {
@@ -1001,7 +1107,9 @@
       toastEl.setAttribute("role", "status");
       document.body.appendChild(toastEl);
     }
-    toastEl.textContent = text;
+    toastEl.replaceChildren();
+    if (kind === "warn") toastEl.append(XH.icon("warn", 16));
+    toastEl.append(document.createTextNode(text));
     toastEl.dataset.kind = kind;
     toastEl.hidden = false;
     clearTimeout(toastTimer);
@@ -1467,17 +1575,54 @@
     return e;
   }
 
+  const AVATAR_COLORS = [
+    "#6366f1",
+    "#8b5cf6",
+    "#ec4899",
+    "#f43f5e",
+    "#ea580c",
+    "#d97706",
+    "#059669",
+    "#0d9488",
+    "#0284c7",
+    "#2563eb",
+    "#7c3aed",
+    "#db2777",
+  ];
+
+  function avatarColor(handle) {
+    let hash = 0;
+    const str = String(handle || "");
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  }
+
+  function makeAvatar(handle, name) {
+    const initial = (name || handle || "?").trim().charAt(0).toUpperCase() || "?";
+    const av = el("div", "xh-panel-avatar", initial);
+    av.setAttribute("aria-hidden", "true");
+    av.style.backgroundColor = avatarColor(handle);
+    return av;
+  }
+
   function buildPanel() {
     panelEl = el("aside", "xh-panel");
     panelEl.hidden = true;
     panelEl.setAttribute("aria-label", t("nfb_title"));
     const head = el("header", "xh-panel-head");
     const title = el("h2", "xh-panel-title");
-    const close = el("button", "xh-panel-close", "×");
+    const close = el("button", "xh-panel-close");
     close.type = "button";
     close.title = close.ariaLabel = t("nfb_close");
+    close.append(XH.icon("close", 16));
     close.addEventListener("click", () => togglePanel(false));
     head.append(title, close);
+
+    const searchWrap = el("div", "xh-panel-search-wrap");
+    searchWrap.append(XH.icon("search", 14));
     const search = el("input", "xh-panel-search");
     search.type = "search";
     search.placeholder = t("nfb_search");
@@ -1485,7 +1630,9 @@
       panelQuery = search.value.trim().replace(/^@/, "").toLowerCase();
       renderPanel(true);
     });
-    panelEl.append(head, el("div", "xh-panel-info"), search, el("ol", "xh-panel-list"), el("footer", "xh-panel-foot"));
+    searchWrap.append(search);
+
+    panelEl.append(head, el("div", "xh-panel-info"), searchWrap, el("ol", "xh-panel-list"), el("footer", "xh-panel-foot"));
     // Keep X's single-key shortcuts (j, k, l, r…) from firing while typing in the search box.
     // Alt shortcuts (Alt+K, Alt+U, Alt+H) and Escape are allowed through.
     panelEl.addEventListener("keydown", (e) => {
@@ -1527,9 +1674,7 @@
     const me = (myHandle() || "").toLowerCase();
     // isHandle: each row links to "/" + handle, so a stored "/evil.com" must never become "//evil.com".
     const all = Object.entries(S.rel).filter(([h, r]) => r && r.f && h !== me && store.isHandle(h));
-    const rows = all
-      .filter(([, r]) => !r.fb)
-      .sort(([a], [b]) => a.localeCompare(b));
+    const rows = store.notFollowingBack(S.rel, me);
     const matches = ([h, r]) => !panelQuery || h.includes(panelQuery) || (r.n || "").toLowerCase().includes(panelQuery);
     // Mutuals who stopped following back and haven't been dismissed go on top, newest first.
     const isRecent = ([, r]) => r.lostAt != null && !r.ackAt;
@@ -1550,7 +1695,7 @@
     if (!force && panelEl.dataset.key === key) return;
     panelEl.dataset.key = key;
 
-    panelEl.querySelector(".xh-panel-title").replaceChildren(t("nfb_title"), el("span", "xh-panel-count", rows.length));
+    panelEl.querySelector(".xh-panel-title").replaceChildren(t("nfb_title"), el("span", "xh-panel-count", String(rows.length)));
 
     const info = panelEl.querySelector(".xh-panel-info");
     const [before, after] = t("nfb_hint", { link: "\u0000" }).split("\u0000");
@@ -1562,7 +1707,11 @@
     info.replaceChildren(p1, p2);
     // If X stops sending "followed_by", every account would look like it doesn't follow back.
     const mutual = all.length - rows.length;
-    if (all.length >= 20 && mutual === 0) info.append(el("p", "xh-panel-warn", "⚠ " + t("nfb_suspect", { n: all.length })));
+    if (all.length >= 20 && mutual === 0) {
+      const warnP = el("p", "xh-panel-warn");
+      warnP.append(XH.icon("warn", 14), document.createTextNode(" " + t("nfb_suspect", { n: all.length })));
+      info.append(warnP);
+    }
 
     const list = panelEl.querySelector(".xh-panel-list");
     list.replaceChildren();
@@ -1577,14 +1726,21 @@
         if (r.mAt != null) meta.push(t("nfb_was", { ago: XH.ago(r.mAt, now) }));
         const p = S.people[h];
         if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
-        a.append(
+
+        const av = makeAvatar(h, r.n);
+        const body = el("div", "xh-panel-body");
+        const user = el("div", "xh-panel-user");
+        user.append(
           el("span", "xh-panel-name", r.n || h),
-          el("span", "xh-panel-handle", "@" + h),
-          el("span", "xh-panel-meta", meta.join(" · "))
+          el("span", "xh-panel-handle", "@" + h)
         );
-        const dismiss = el("button", "xh-panel-dismiss", "×");
+        body.append(user, el("span", "xh-panel-meta", meta.join(" · ")));
+        a.append(av, body);
+
+        const dismiss = el("button", "xh-panel-dismiss");
         dismiss.type = "button";
         dismiss.title = dismiss.ariaLabel = t("nfb_dismiss", { h });
+        dismiss.append(XH.icon("close", 14));
         dismiss.addEventListener("click", () => {
           store.update(["rel"], (s) => {
             if (s.rel[h]) s.rel[h].ackAt = Date.now();
@@ -1600,13 +1756,20 @@
         const li = el("li");
         const a = el("a", "xh-panel-row");
         a.href = "/" + h;
-        const name = el("span", "xh-panel-name", r.n || h);
-        const handle = el("span", "xh-panel-handle", "@" + h);
         const meta = [t("nfb_seen", { ago: XH.ago(r.t, now) })];
         if (now - r.t > S.settings.relStaleDays * 86400000) meta[0] += t("rel_stale");
         const p = S.people[h];
         if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
-        a.append(name, handle, el("span", "xh-panel-meta", meta.join(" · ")));
+
+        const av = makeAvatar(h, r.n);
+        const body = el("div", "xh-panel-body");
+        const user = el("div", "xh-panel-user");
+        user.append(
+          el("span", "xh-panel-name", r.n || h),
+          el("span", "xh-panel-handle", "@" + h)
+        );
+        body.append(user, el("span", "xh-panel-meta", meta.join(" · ")));
+        a.append(av, body);
         li.append(a);
         return li;
       })
@@ -1616,34 +1779,28 @@
       list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_more", { n: PANEL_MAX, total: matching.length })));
     }
 
-    panelEl.querySelector(".xh-panel-foot").textContent = t("nfb_footer", {
+    const foot = panelEl.querySelector(".xh-panel-foot");
+    foot.replaceChildren();
+    const footText = el("div", "xh-panel-foot-text", t("nfb_footer", {
       n: today.unfollows || 0,
       limit: S.settings.unfollowLimit,
-    });
+    }));
+    const footBar = el("div", "xh-panel-foot-bar");
+    const footFill = el("div", "xh-panel-foot-fill");
+    const unfollowLimit = S.settings.unfollowLimit || 20;
+    const unfollowRatio = Math.min(1, Math.max(0, (today.unfollows || 0) / unfollowLimit));
+    footFill.style.width = Math.round(unfollowRatio * 100) + "%";
+    if (unfollowRatio >= 1) footFill.dataset.state = "warn";
+    footBar.append(footFill);
+    foot.append(footText, footBar);
   }
 
   function renderKeysPanel(force) {
     panelEl.setAttribute("aria-label", t("key_panel_title"));
     const now = Date.now();
     const quietDays = (S.settings && S.settings.quietDays) || 14;
-    const quietThresholdMs = quietDays * 86400000;
 
-    const all = Object.entries(S.keys || {})
-      .filter(([h]) => store.isHandle(h))
-      .map(([h, entry]) => {
-        const p = S.people[h];
-        const youLast = (p && p.last) || 0;
-        const themLast = (p && p.in && p.in.last) || 0;
-        const latest = Math.max(youLast, themLast);
-        const isQuiet = !latest || now - latest >= quietThresholdMs;
-        return { h, entry, youLast, themLast, latest, isQuiet };
-      });
-
-    all.sort((a, b) => {
-      if (a.latest !== b.latest) return a.latest - b.latest;
-      return a.h.localeCompare(b.h);
-    });
-
+    const all = store.quietKeys(S.keys, S.people, quietDays, now);
     const quietCount = all.filter((item) => item.isQuiet).length;
 
     const matching = all.filter(
@@ -1676,17 +1833,23 @@
         a.href = "/" + item.h;
         const displayH = item.entry.h || item.h;
         const nameText = (S.rel && S.rel[item.h] && S.rel[item.h].n) || displayH;
+
+        const av = makeAvatar(item.h, nameText);
+        const body = el("div", "xh-panel-body");
+        const user = el("div", "xh-panel-user");
         const name = el("span", "xh-panel-name", nameText);
         if (item.isQuiet) {
           name.append(el("span", "xh-quiet-mark", t("key_quiet")));
         }
         const handle = el("span", "xh-panel-handle", "@" + displayH);
+        user.append(name, handle);
 
         const youStr = item.youLast ? XH.ago(item.youLast, now) : t("key_never");
         const themStr = item.themLast ? XH.ago(item.themLast, now) : t("key_never");
         const meta = el("span", "xh-panel-meta", t("key_both_last", { you: youStr, them: themStr }));
 
-        a.append(name, handle, meta);
+        body.append(user, meta);
+        a.append(av, body);
         li.append(a);
         return li;
       })
@@ -1700,7 +1863,8 @@
       list.append(el("li", "xh-panel-muted xh-panel-empty", t("nfb_more", { n: PANEL_MAX, total: matching.length })));
     }
 
-    panelEl.querySelector(".xh-panel-foot").textContent = t("key_panel_footer", { days: quietDays });
+    const foot = panelEl.querySelector(".xh-panel-foot");
+    foot.replaceChildren(el("div", "xh-panel-foot-text", t("key_panel_footer", { days: quietDays })));
   }
 
   // The toolbar popup's button opens the panel in this tab.
