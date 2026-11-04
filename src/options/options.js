@@ -296,6 +296,7 @@
       const displayH = entry.h || h;
       link.href = "https://x.com/" + displayH;
       link.target = "_blank";
+      link.rel = "noopener";
       link.textContent = "@" + displayH;
 
       const p = allPeople[h];
@@ -585,11 +586,15 @@
     URL.revokeObjectURL(a.href);
   });
 
+  const MAX_IMPORT_BYTES = 50 * 1048576;
   $("import-btn").addEventListener("click", () => $("import").click());
   $("import").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     e.target.value = "";
-    if (!file || !confirm(XH.t("opt_import_confirm"))) return;
+    if (!file) return;
+    // An export holds at most a few MB; anything far bigger is not one, and parsing it would hang the page.
+    if (file.size > MAX_IMPORT_BYTES) return alert(XH.t("opt_import_too_big", { mb: MAX_IMPORT_BYTES / 1048576 }));
+    if (!confirm(XH.t("opt_import_confirm"))) return;
     try {
       await store.replaceAll(JSON.parse(await file.text()));
       await load();

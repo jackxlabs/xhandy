@@ -184,6 +184,7 @@
     opt_import_confirm: "Importing replaces all current Xhandy data with this file. Export a backup first if you might need it. Continue?",
     opt_imported: "Imported",
     opt_invalid_file: "Invalid file: {msg}",
+    opt_import_too_big: "This file is larger than {mb} MB, so it isn't an Xhandy export. Nothing was imported.",
     opt_reset: "Delete all data",
     opt_reset_confirm: "Delete all Xhandy data in this browser?",
     pop_today: "Today",

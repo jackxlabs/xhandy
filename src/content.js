@@ -424,13 +424,13 @@
     delBtn.type = "button";
     delBtn.className = "xh-note-del";
     delBtn.textContent = t("note_del");
-    delBtn.addEventListener("click", () => doSave(true));
+    delBtn.addEventListener("click", (e) => e.isTrusted && doSave(true));
 
     const saveBtn = document.createElement("button");
     saveBtn.type = "button";
     saveBtn.className = "xh-note-save";
     saveBtn.textContent = t("note_save");
-    saveBtn.addEventListener("click", () => doSave(false));
+    saveBtn.addEventListener("click", (e) => e.isTrusted && doSave(false));
 
     actions.appendChild(delBtn);
     actions.appendChild(saveBtn);
@@ -638,6 +638,7 @@
         star.addEventListener(
           "click",
           (e) => {
+            if (!e.isTrusted) return;
             e.preventDefault();
             e.stopPropagation();
             // Read the author when clicked, not when the star was made, in case the element was reused.
@@ -801,9 +802,11 @@
     return !!el.closest('input, textarea, [contenteditable="true"], [role="textbox"]');
   }
 
+  // Page scripts can fire fake clicks and keys; only the user's own ones count or change anything.
   document.addEventListener(
     "click",
     (e) => {
+      if (!e.isTrusted) return;
       const el = e.target.closest(
         [SEL.like, SEL.unlike, SEL.reply, SEL.send].join(",")
       );
@@ -827,6 +830,7 @@
   document.addEventListener(
     "keydown",
     (e) => {
+      if (!e.isTrusted) return;
       if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyH") {
         e.preventDefault();
         store.update(["settings"], (s) => (s.settings.hud = !s.settings.hud));
@@ -948,6 +952,7 @@
 
   function initHudDrag() {
     hudEl.addEventListener("pointerdown", (e) => {
+      if (!e.isTrusted) return;
       if (e.button !== 0 || hudDrag) return;
       // Start from the position we set, not the box: the entrance animation may still be moving it.
       const curR = parseFloat(hudEl.style.right) || 16;
@@ -1208,7 +1213,8 @@
       pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null");
       sessionStorage.removeItem(PENDING_KEY);
     } catch (_) {}
-    if (!pending || Date.now() - pending.t > 30000) return;
+    // sessionStorage belongs to x.com, so page scripts can write this too.
+    if (!pending || !store.isHandle(pending.handle) || !(Date.now() - pending.t <= 30000)) return;
     if (location.pathname.split("/")[1].toLowerCase() !== pending.handle.toLowerCase()) return;
     const button = await waitForButton(pending.handle, 8000);
     if (button) armButton(pending.handle, button, true);
@@ -1220,6 +1226,7 @@
   document.addEventListener(
     "click",
     (e) => {
+      if (!e.isTrusted) return;
       const btn = e.target.closest(SEL.followBtn);
       if (!btn || !followTarget || followTarget.button !== btn) return;
       btn.classList.remove("xh-follow-focus");
@@ -1233,6 +1240,7 @@
   document.addEventListener(
     "keydown",
     (e) => {
+      if (!e.isTrusted) return;
       if (e.key === "F" && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !isTyping(e.target)) {
         e.preventDefault();
         startFollow();
@@ -1750,7 +1758,8 @@
         dismiss.type = "button";
         dismiss.title = dismiss.ariaLabel = t("nfb_dismiss", { h });
         dismiss.append(XH.icon("close", 14));
-        dismiss.addEventListener("click", () => {
+        dismiss.addEventListener("click", (e) => {
+          if (!e.isTrusted) return;
           store.update(["rel"], (s) => {
             if (s.rel[h]) s.rel[h].ackAt = Date.now();
           });

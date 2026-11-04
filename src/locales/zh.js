@@ -184,6 +184,7 @@
     opt_import_confirm: "导入会用这个文件替换当前的全部数据，需要的话请先导出备份。继续吗？",
     opt_imported: "已导入",
     opt_invalid_file: "文件无效：{msg}",
+    opt_import_too_big: "这个文件超过 {mb} MB，不是 Xhandy 导出的文件，没有导入。",
     opt_reset: "清空数据",
     opt_reset_confirm: "确定清空本浏览器里的全部数据？",
     pop_today: "今日",

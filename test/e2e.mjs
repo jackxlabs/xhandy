@@ -243,6 +243,12 @@ try {
     await page.fill(box, "");
   });
 
+  await step("clicks faked by a page script are not counted", async () => {
+    await page.evaluate(() => document.querySelector("#fresh [data-testid=like]").click());
+    await page.waitForTimeout(500);
+    assert.strictEqual(await page.textContent(".xh-hud [data-k=likes] b"), "1");
+  });
+
   await step("nested composer text is recorded once", async () => {
     const count = await page.evaluate(() => document.querySelectorAll('[data-testid^="tweetTextarea_"]').length);
     assert.strictEqual(count, 3, "fixture has 3 nested elements");
