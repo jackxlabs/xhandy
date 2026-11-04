@@ -198,6 +198,27 @@ try {
   const box = '[data-testid="tweetTextarea_0"]';
   const text = "This is a great idea, I use n8n for the same kind of automation";
 
+  await step("a remounted post has its badge in the first frame and doesn't grow later", async () => {
+    // Going back makes X remount a list at a saved position; a post that grows afterwards makes it jump.
+    const r = await page.evaluate(() => new Promise((res) => {
+      const src = document.querySelector("#fresh");
+      const clone = src.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.querySelectorAll(".xh-badge").forEach((n) => n.remove());
+      src.before(clone);
+      requestAnimationFrame(() => {
+        const first = clone.getBoundingClientRect().height;
+        const badge = !!clone.querySelector(".xh-badge");
+        setTimeout(() => {
+          const last = clone.getBoundingClientRect().height;
+          clone.remove();
+          res({ badge, growth: last - first });
+        }, 600);
+      });
+    }));
+    assert.deepStrictEqual(r, { badge: true, growth: 0 });
+  });
+
   await step("sending a reply counts as a reply to that author", async () => {
     await page.click("#fresh [data-testid=reply]");
     await page.fill(box, text);
@@ -443,6 +464,17 @@ try {
     await page.waitForFunction(() => /Alt\+← back/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
     await page.keyboard.press("Alt+KeyH"); // stats bar was hidden by an earlier step
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "3", null, { timeout: 3000 });
+  });
+
+  await step("an idle profile page doesn't keep rewriting our buttons", async () => {
+    await page.waitForSelector("button.xh-top");
+    const n = await page.evaluate(() => new Promise((res) => {
+      let count = 0;
+      const mo = new MutationObserver((ms) => (count += ms.length));
+      mo.observe(document.body, { childList: true, subtree: true });
+      setTimeout(() => { mo.disconnect(); res(count); }, 1500);
+    }));
+    assert.strictEqual(n, 0);
   });
 
   await step("extension never fakes mouse or pointer events", async () => {

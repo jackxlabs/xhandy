@@ -184,7 +184,8 @@
           ? existingTop.nextSibling === target || (existingNote && existingTop.nextSibling === existingNote)
           : existingTop.parentNode === target;
         if (existingTop.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-          existingTop.replaceChildren(XH.icon("flame", 16), document.createTextNode(t("top_btn")));
+          // Only on a language change: rewriting it every time would wake the page observer, forever.
+          if (existingTop.textContent !== t("top_btn")) existingTop.replaceChildren(XH.icon("flame", 16), document.createTextNode(t("top_btn")));
           existingTop.setAttribute("aria-label", t("top_label", { h: handle }));
         } else {
           existingTop.remove();
@@ -229,7 +230,7 @@
         ? existingNote.nextSibling === target
         : existingNote.parentNode === target;
       if (existingNote.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-        existingNote.replaceChildren(XH.icon("note", 16), document.createTextNode(t("note_btn")));
+        if (existingNote.textContent !== t("note_btn")) existingNote.replaceChildren(XH.icon("note", 16), document.createTextNode(t("note_btn")));
         existingNote.setAttribute("aria-label", t("note_title") + " @" + handle);
       } else {
         existingNote.remove();
@@ -1897,9 +1898,22 @@
   // ---------- wiring ----------
 
   let annotateTimer = null;
-  new MutationObserver(() => {
+  new MutationObserver((records) => {
     clearTimeout(annotateTimer);
     annotateTimer = setTimeout(annotateAll, 250);
+    if (!S) return;
+    // New posts get their badge now, before the frame is drawn. Going back makes X remount a list at a
+    // saved position; a post that grows after X has measured it makes X's list jump.
+    const fresh = new Set();
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node.nodeType !== 1 || node.closest(".xh-badge")) continue;
+        const article = node.closest(SEL.tweet);
+        if (article) fresh.add(article);
+        else node.querySelectorAll(SEL.tweet).forEach((a) => fresh.add(a));
+      }
+    }
+    fresh.forEach(annotate);
   }).observe(document.body, { childList: true, subtree: true });
 
   store.onChange((s) => {
