@@ -179,6 +179,8 @@
     opt_save: "Save",
     opt_saved: "Saved",
     opt_sec_data: "Data",
+    opt_data_disclosure: "Xhandy reads the X pages you open and your own actions on them (likes, replies and posts, follows, what you type in the reply box), and stores counts, relationships, your recent reply text and your notes in this browser. Nothing is sent anywhere.",
+    opt_privacy_link: "Privacy policy",
     opt_export: "Export JSON",
     opt_import: "Import JSON",
     opt_import_confirm: "Importing replaces all current Xhandy data with this file. Export a backup first if you might need it. Continue?",

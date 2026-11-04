@@ -179,6 +179,8 @@
     opt_save: "保存",
     opt_saved: "已保存",
     opt_sec_data: "数据",
+    opt_data_disclosure: "Xhandy 会读取你打开的 X 页面和你自己的操作（点赞、回复和发帖、关注、在回复框里输入的内容），并把统计数字、关注关系、你最近发过的回复原文和你写的备注存在这个浏览器里，不会发送到任何地方。",
+    opt_privacy_link: "隐私政策",
     opt_export: "导出 JSON",
     opt_import: "导入 JSON",
     opt_import_confirm: "导入会用这个文件替换当前的全部数据，需要的话请先导出备份。继续吗？",
