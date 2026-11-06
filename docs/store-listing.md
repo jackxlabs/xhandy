@@ -143,16 +143,10 @@ https://github.com/jackxlabs/xhandy/blob/main/PRIVACY.md
 
 ## Test instructions tab (for the reviewer)
 
+Leave the username and password empty. The notes field holds 500 characters.
+
 ```
-No account or credentials are provided: the extension works with any X account and has no account of its own.
-
-1. Sign in to x.com with any account and open the home timeline.
-2. Posts show small chips next to the author's name; the stats bar is in the bottom-right corner.
-3. Alt+U opens the "not following you back" panel, Alt+K the key accounts panel.
-4. Select a post with j/k and press Shift+F: focus moves to the author's Follow button. The extension does not click it; the user presses Enter.
-5. The toolbar icon opens the popup; Options has every feature switch, and export, import and delete under Data.
-
-src/page-hook.js runs in the page's world (world: MAIN) to clone X's own API responses. It reads them and passes the result to the content script. It never changes them and makes no requests.
+No test account: works with any X account, nothing of its own. Sign in to x.com, open Home: posts show chips by the author's name, stats bar bottom-right. Alt+U: not-following-back panel. Alt+K: key accounts. Select a post with j/k, press Shift+F: focus moves to Follow; the extension never clicks. Toolbar icon: popup. Options: switches, export, import, delete. src/page-hook.js (MAIN world) only reads clones of X's API responses; it changes nothing and makes no requests.
 ```
 
 ## Screenshots
