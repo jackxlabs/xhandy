@@ -7,8 +7,7 @@ OpenSpec change `openspec/changes/ui-refresh/` stays unarchived until these are 
 
 ## v0.6.1 (store update)
 v0.6.0 is live on the Chrome Web Store (confirmed 2026-11-09): https://chromewebstore.google.com/detail/xhandy/ddchjfknionekeplnehokjbngoeccaan
-v0.6.1 = the notifications-list shift fix (`226cc3e`) + store install and migration steps in README and `docs/release-template.md`.
-1. After Jack OKs: commit, `npm run pack`, push `origin`, then (Jack's go) push `public` and `gh release create v0.6.1 dist/xhandy-0.6.1.zip -R jackxlabs/xhandy --notes-file <notes>` (regenerate notes with `scripts/release-notes.sh`).
-2. Upload `dist/xhandy-0.6.1-store.zip` in the developer dashboard (Jack).
-3. Tell existing unpacked users to export, install from the store, import, and remove the old copy.
-4. Screenshots: take more, with an English UI and less blur, and replace the two `docs/*-zh.png`, then finish ui-refresh task 6.3 above.
+2026-11-09: v0.6.1 committed (`9e0f0ea`), pushed to `origin` and `public`, GitHub Release v0.6.1 out, store package uploaded (`npm run cws -- upload`, SUCCEEDED).
+1. Not yet submitted for review: `npm run cws -- publish` was blocked by the permission check; Jack runs it (or clicks submit in the dashboard). Then `npm run cws -- status` shows it under submittedItemRevisionStatus.
+2. Tell existing unpacked users to export, install from the store, import, and remove the old copy.
+3. Screenshots: take more, with an English UI and less blur, and replace the two `docs/*-zh.png`, then finish ui-refresh task 6.3 above.
