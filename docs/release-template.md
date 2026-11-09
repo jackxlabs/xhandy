@@ -1,10 +1,14 @@
-> **下载：** 点下面 Assets 里的 `xhandy-{{version}}.zip`（不是 Source code）。English below.
+> **推荐从 [Chrome 应用商店](https://chromewebstore.google.com/detail/xhandy/ddchjfknionekeplnehokjbngoeccaan)安装**，会自动更新。想用解压版的，点下面 Assets 里的 `xhandy-{{version}}.zip`（不是 Source code）。English below.
 
 ## 本版更新
 
 {{changes_zh}}
 
-## 安装（第一次用）
+## 从解压版换到商店版
+
+商店版的扩展 ID 不一样，读不到解压版的数据：先在旧版的设置页导出数据，从[商店](https://chromewebstore.google.com/detail/xhandy/ddchjfknionekeplnehokjbngoeccaan)安装后在新版的设置页导入，再到 `chrome://extensions` 删掉旧版，免得两个同时运行、重复计数。
+
+## 解压安装（第一次用）
 
 1. 下载下面的 `xhandy-{{version}}.zip` 并解压，得到一个 `xhandy` 文件夹。**把它放在一个以后不会动的位置**（比如「文档」里），浏览器每次都从这里加载。
 2. 在 Chrome、Edge 或 Brave 的地址栏打开 `chrome://extensions`，打开右上角的**开发者模式**。
@@ -54,11 +58,13 @@ Xhandy 不会替你点击、输入、发送或关注任何东西，数据只存�
 
 ## English
 
-**Download** `xhandy-{{version}}.zip` from Assets below (not "Source code").
+**Install** from the [Chrome Web Store](https://chromewebstore.google.com/detail/xhandy/ddchjfknionekeplnehokjbngoeccaan) (updates by itself), or download `xhandy-{{version}}.zip` from Assets below (not "Source code") to install unpacked.
+
+**Moving to the store version:** export your data in the old version's Options, install from the store, import it in the new version's Options, then remove the old one so they don't both count.
 
 **What's new:** {{changes_en}}
 
-**Install:** unzip it somewhere it can stay, open `chrome://extensions` (Chrome, Edge, Brave), turn on **Developer mode**, click **Load unpacked** and choose the `xhandy` folder.
+**Install unpacked:** unzip it somewhere it can stay, open `chrome://extensions` (Chrome, Edge, Brave), turn on **Developer mode**, click **Load unpacked** and choose the `xhandy` folder.
 **Update:** unzip the new version over the same folder and click reload on Xhandy. Don't move the folder: your data is tied to its path.
 
 **Use:** posts get badges for views per hour (🔥 when hot, old posts marked stale), your follow relationship with the author (hidden when neither follows the other), how often you've interacted (both ways, `you 3 · them 5`, or `1× · 2d ago`), the reply count and size ratio (`💬 23 · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Alt+B` opens an author's top posts search, `Alt+N` opens the note editor, `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).

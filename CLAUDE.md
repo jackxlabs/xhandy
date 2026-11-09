@@ -40,5 +40,6 @@ CHROMIUM=/usr/bin/chromium npm run e2e     # 在真实 Chromium 里加载扩展�
 - 版本号在 `manifest.json`。商店描述在 `_locales/en/messages.json` 和 `_locales/zh_CN/messages.json`，中英文都要有，各不超过 132 字符，来源是 `brand/brand.yaml` 的 `bios.chrome_web_store`。提交信息用 `vX.Y.Z: 改了什么` 的格式。
 - 用户界面上的功能有变化时，同步更新 README 的功能列表（英文）和「中文说明」一节。
 - 公开仓库是 `jackxlabs/xhandy`（remote `public`），日常开发推 `origin`（私有）。Jack 说可以发布时才推 `public`。
-- 发布给用户：`npm run pack` 从 HEAD 打出 `dist/xhandy-<版本>.zip`（只含扩展需要的文件），然后在公开仓库建 Release 并附上这个 zip：`gh release create v<版本> dist/xhandy-<版本>.zip -R jackxlabs/xhandy --notes-file <说明>`。说明用 `scripts/release-notes.sh <版本> "<中文更新>" "<英文更新>"` 从 `docs/release-template.md` 生成：下载页（releases/latest）是分享出去的链接，每个版本的说明都要带完整的安装、更新和使用方法，不能只写改了什么。功能或快捷键变了，同步改模板。README 的安装说明指向 Releases，下载次数从 Release 附件统计。
+- 发布给用户：`npm run pack` 从 HEAD 打出 `dist/xhandy-<版本>.zip`（只含扩展需要的文件），然后在公开仓库建 Release 并附上这个 zip：`gh release create v<版本> dist/xhandy-<版本>.zip -R jackxlabs/xhandy --notes-file <说明>`。说明用 `scripts/release-notes.sh <版本> "<中文更新>" "<英文更新>"` 从 `docs/release-template.md` 生成：下载页（releases/latest）是分享出去的链接，每个版本的说明都要带完整的安装、更新和使用方法，不能只写改了什么。功能或快捷键变了，同步改模板。README 的安装说明先推荐商店，解压安装指向 Releases；解压版的下载次数从 Release 附件统计。
+- 商店（2026-11-09 起已上架）：`npm run cws -- status` 查商店现状（只读），`npm run cws -- upload` 上传 `dist/xhandy-<版本>-store.zip`，`npm run cws -- publish` 提交审核、过审后自动发布。用的是 hq 共用的 Google 服务账号，ID 和密钥路径在 `.env`（已忽略，变量见 `scripts/cws.mjs` 开头）。上传和提交会公开给所有用户，每次都先问 Jack。商店介绍文字和截图仍在开发者后台改。
 - 本地以「加载已解压的扩展程序」安装。扩展 ID 由文件夹路径决定，搬目录会换 ID，原来的数据就读不到了。要搬的话先在设置页导出，搬完再导入。

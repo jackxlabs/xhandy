@@ -21,3 +21,6 @@ brand/build/patterns/*.png
 # local agent state (memory for this repo stays local, see hq MEMORY_LOCAL_ONLY)
 .claude/settings.local.json
 .agents/memory/
+
+# local credentials and IDs for scripts/cws.mjs (Chrome Web Store API)
+.env

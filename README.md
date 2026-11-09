@@ -19,7 +19,8 @@ That is the point: you get faster without anything that looks like a bot to X.
   Once the author has interacted with you too, the chip shows both sides: `you 3 · them 5 · today` (likes,
   replies, quotes and mentions they gave you, from your notifications and the posts X shows you; each counted
   once). Turn the second half off in Options. The badge sits next to the author's name and moves
-  above the post text only when it does not fit, so nothing is cut off.
+  above the post text when it does not fit. When a list shows a post again (going back, scrolling back),
+  the badge keeps the place it had, so the list doesn't jump; chips added since then may be cut off.
 - **Interaction tint**: posts by people you interact with in both directions get a light violet background, deeper with more two-way interactions (the smaller side counts), fading by half every 30 days without interaction, shown without hovering. Counts come from what X showed in this browser. Settings and switch in Options.
 - **Post heat**: views per hour since posting (`15K/h`, `🔥 950K/h`).
   Turns orange from 1,000/h and red with 🔥 from 10,000/h, so you can see at a glance which posts are worth joining.
@@ -65,7 +66,15 @@ That is the point: you get faster without anything that looks like a bot to X.
 X's own shortcuts already cover navigation and actions (`j`/`k`, `l` like, `r` reply, `t` repost, `?` for the list),
 and Xhandy adds `Alt+S` (star/unstar selected post's author), `Alt+B` (top posts search), `Alt+N` (edit note), `Alt+K` (key accounts panel), `Alt+U` (not following you back panel), `Shift+F` (follow assistant), and `Alt+H` (toggle stats bar).
 
-## Install (unpacked)
+## Install
+
+Install Xhandy from the [Chrome Web Store](https://chromewebstore.google.com/detail/xhandy/ddchjfknionekeplnehokjbngoeccaan). It works in Chrome, Edge and Brave, and updates by itself.
+
+**Moving from the unpacked version:** the store version has a different extension ID, so it can't see the old
+version's data. In the old version's Options, export your data; install from the store; import the file in the
+new version's Options; then remove the old one in `chrome://extensions`, or both will badge and count every post.
+
+### Install unpacked (optional)
 
 1. Download `xhandy-<version>.zip` from the [latest release](https://github.com/jackxlabs/xhandy/releases/latest) and unzip it.
    Put the `xhandy` folder somewhere it can stay: Chrome loads it from there every time.
@@ -103,7 +112,6 @@ If you use GitHub, [issues](https://github.com/jackxlabs/xhandy/issues) work too
 
 ## Roadmap
 
-- Next: a Chrome Web Store listing, so installing and updating take one click.
 - Never: auto-follow, auto-reply, auto-like, bulk actions, or posting anything you haven't read and confirmed.
 
 ## Development
@@ -126,6 +134,12 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 
 ### 安装
 
+到 [Chrome 应用商店](https://chromewebstore.google.com/detail/xhandy/ddchjfknionekeplnehokjbngoeccaan)安装，Chrome、Edge、Brave 都能用，之后会自动更新。
+
+**原来用解压版的：** 商店版的扩展 ID 不一样，读不到原来的数据。先在旧版的设置页导出数据，再从商店安装，在新版的设置页导入，最后到 `chrome://extensions` 删掉旧版。不删的话两个会同时运行，每条帖子都会重复标记、重复计数。
+
+#### 解压安装（可选）
+
 1. 到 [Releases 页面](https://github.com/jackxlabs/xhandy/releases/latest)下载最新的 `xhandy-版本号.zip` 并解压，得到一个 `xhandy` 文件夹。把它放在一个以后不会动的位置，浏览器每次都从这里加载。
 2. 在 Chrome、Edge 或 Brave 的地址栏打开 `chrome://extensions`，打开右上角的**开发者模式**。
 3. 点**加载已解压的扩展程序**，选择 `xhandy` 文件夹（里面有 `manifest.json` 的那一层）。
@@ -146,7 +160,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
   - **互动底色**：只要你和作者有来回双向互动，帖子就会带上一层淡紫色底色，无需悬停直接显示。双向互动次数越多底色越深（以较少一方的次数为准），若无新互动每 30 天减半淡化。互动数均来自 X 在本浏览器中显示过的内容。可在设置中调整最深门槛、减半天数或关闭。
   - 帖子已有多少回复、作者是你的几倍，例如 `💬 23 · 12×`（作者比你大 2 倍以上才显示倍数），方便挑回复了能被看到的帖子。
   - 你已经回复过的帖子标 `✓ 已回复`，在别的设备上回复的，只要 X 在这个浏览器里显示过你的回复，也会标出来。
-  - 标签跟在作者名字后面，放不下时自动换到正文上方，不会被截断。
+  - 标签跟在作者名字后面，放不下时自动换到正文上方。同一个列表里再次显示同一条帖子时（比如返回、滚回来），标签位置保持不变，免得列表跳动；这之后新加的标签放不下时会被截掉一部分。
 
   这些标签都用 X 本来就发给浏览器的数据，可以在设置里分别关掉。自己的帖子只显示热度和回复数，不显示关注关系和互动次数。
 
