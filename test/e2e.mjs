@@ -219,6 +219,38 @@ try {
     assert.deepStrictEqual(r, { badge: true, growth: 0 });
   });
 
+  await step("a post shown again keeps its badge where it was, even if the badge no longer fits there", async () => {
+    // After replying, coming back to a list shows the post with a longer badge ("replied"). X restores the
+    // list with the heights it remembers, so the post must not get taller than it was.
+    await page.waitForSelector('#fresh [data-testid="User-Name"] .xh-badge');
+    const r = await page.evaluate(() => new Promise((res) => {
+      const src = document.querySelector("#fresh");
+      const clone = src.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.querySelectorAll(".xh-badge").forEach((n) => n.remove());
+      // Like #narrow: the badge that fitted before doesn't fit in the name row now.
+      clone.style.width = "150px";
+      clone.querySelector('[data-testid="User-Name"]').style.overflow = "hidden";
+      src.before(clone);
+      requestAnimationFrame(() => {
+        const first = clone.getBoundingClientRect().height;
+        setTimeout(() => {
+          const b = clone.querySelector(".xh-badge");
+          const star = b.querySelector(".xh-star");
+          const out = {
+            inNameRow: !!b.closest('[data-testid="User-Name"]') && !b.classList.contains("xh-badge-row"),
+            growth: clone.getBoundingClientRect().height - first,
+            // The star must stay visible inside the cut-off badge, so it can still be clicked.
+            starVisible: !star || star.getBoundingClientRect().right <= b.getBoundingClientRect().right + 1,
+          };
+          clone.remove();
+          res(out);
+        }, 600);
+      });
+    }));
+    assert.deepStrictEqual(r, { inNameRow: true, growth: 0, starVisible: true });
+  });
+
   await step("sending a reply counts as a reply to that author", async () => {
     await page.click("#fresh [data-testid=reply]");
     await page.fill(box, text);

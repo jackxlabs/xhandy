@@ -93,6 +93,11 @@
   margin: 2px 0 6px;
   overflow: visible;
 }
+/* A badge kept in a name row it no longer fits (see placements in content.js): the star stays clickable. */
+.xh-badge.xh-badge-clip .xh-star {
+  order: -1;
+  margin-left: 0;
+}
 .xh-chip {
   display: inline-flex;
   align-items: center;

@@ -543,6 +543,10 @@
         chips.push([heat, text]);
       }
     }
+    // Right after the heat chip: a badge kept in a full name row (see fitQueue) cuts off the end first.
+    if (s.showReplied && S.replied && S.replied[info.id]) {
+      chips.push(["replied", t("replied")]);
+    }
     const rel = !own && s.showRel && S.rel[info.handle.toLowerCase()];
     if (rel && (rel.f || rel.fb)) {
       const key = rel.f && rel.fb ? "mutual" : rel.f ? "following" : "follower";
@@ -591,9 +595,6 @@
         chips.push(["replies", XH.replyChip(rep, own ? undefined : authorFollowers.get(info.id), mine)]);
       }
     }
-    if (s.showReplied && S.replied && S.replied[info.id]) {
-      chips.push(["replied", t("replied")]);
-    }
 
     const showStar = !!(s.keyAccounts && !own);
     let badge = article.querySelector(":scope .xh-badge");
@@ -604,14 +605,23 @@
     }
     const key = JSON.stringify([info.id, chips, isKey, showStar]);
     const host = article.querySelector(SEL.userName) || info.anchor.parentElement;
+    let mounted = false;
     if (!badge) {
       badge = document.createElement("span");
       badge.className = "xh-badge";
       host.appendChild(badge);
+      mounted = true;
     } else if (badge.dataset.post !== info.id) {
       // X can reuse a post's element for another post: start again in the name row.
-      badge.classList.remove("xh-badge-row");
+      badge.classList.remove("xh-badge-row", "xh-badge-clip");
       host.appendChild(badge);
+      mounted = true;
+    }
+    if (mounted) {
+      // Shown in this list before: take the place it had then, so the post is as tall as X remembers it.
+      const prev = placements.get(placeKey(info.id));
+      if (prev) badge.dataset.lock = prev;
+      else delete badge.dataset.lock;
     }
     badge.dataset.post = info.id;
     if (badge.dataset.key !== key) {
@@ -651,6 +661,7 @@
         nodes.push(star);
       }
       badge.replaceChildren(...nodes);
+      if (badge.dataset.lock === "row") placeAsRow(article, badge); // now, before the frame is drawn
       queueFit(article, badge);
     }
     // An attribute, not a class: X rewrites the article's class on hover.
@@ -677,6 +688,14 @@
   // badge would be cut off. When it doesn't fit, it moves to its own row, where chips wrap. It never moves
   // back while showing the same post, so it can't flip between the two places. Checks run once per frame,
   // all measurements first and all moves after, so a busy timeline doesn't force a layout per post.
+  //
+  // Where each post's badge ended up is remembered per page. When X shows the post again (going back to a
+  // list, scrolling it back into view), the badge takes that place even if it has grown meanwhile, e.g.
+  // "replied" after the user replied: X restores the list with the heights it remembers, and a post that
+  // is taller now makes the list jump. A badge kept in the name row then cuts off its last chips; the star
+  // moves to the front so it can still be clicked.
+  const placements = new Map(); // page path + post id -> "inline" | "row"; memory only
+  const placeKey = (id) => location.pathname + " " + id;
   const fitQueue = new Map(); // badge -> article
   function queueFit(article, badge) {
     if (!fitQueue.size) requestAnimationFrame(runFits);
@@ -684,13 +703,34 @@
   }
   function runFits() {
     const tooWide = [];
+    const done = [];
     for (const [badge, article] of fitQueue) {
-      if (badge.isConnected && !badge.classList.contains("xh-badge-row") && badge.scrollWidth > badge.clientWidth + 1) {
+      if (!badge.isConnected) continue;
+      const row = badge.classList.contains("xh-badge-row");
+      const over = !row && badge.scrollWidth > badge.clientWidth + 1;
+      if (badge.dataset.lock === "inline") {
+        done.push([badge, () => badge.classList.toggle("xh-badge-clip", over)]);
+      } else if (over) {
         tooWide.push([article, badge]);
+      } else {
+        done.push([badge, null]);
       }
     }
     fitQueue.clear();
-    for (const [article, badge] of tooWide) placeAsRow(article, badge);
+    for (const [article, badge] of tooWide) {
+      placeAsRow(article, badge);
+      done.push([badge, null]);
+    }
+    for (const [badge, apply] of done) {
+      if (apply) apply();
+      const key = placeKey(badge.dataset.post);
+      placements.delete(key); // keep the Map in arrival order so the oldest go first
+      placements.set(key, badge.classList.contains("xh-badge-row") ? "row" : "inline");
+    }
+    for (const key of placements.keys()) {
+      if (placements.size <= MAX_VIEWS) break;
+      placements.delete(key);
+    }
   }
 
   function annotateAll() {
