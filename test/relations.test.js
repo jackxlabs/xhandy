@@ -8,7 +8,7 @@ test("collects every user with relationship info, however deeply nested", () => 
   assert.deepStrictEqual(Object.keys(byHandle).sort(), [
     "ad_frank", "alert_gina", "alice", "bob", "quoted_dave", "video_erin",
   ]);
-  assert.deepStrictEqual(byHandle.alice, { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true });
+  assert.deepStrictEqual(byHandle.alice, { handle: "alice", name: "Alice", id: "1", following: true, followedBy: true, followers: 5000 });
   assert.strictEqual(byHandle.bob.following, false);
   assert.strictEqual(byHandle.bob.followedBy, true);
   assert.strictEqual(byHandle.quoted_dave.following, true);

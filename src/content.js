@@ -26,6 +26,7 @@
   const replyCounts = new Map(); // post id -> replies count; memory only
   const authorFollowers = new Map(); // post id -> author followers count; memory only
   const handleFollowers = new Map(); // handle (lowercase) -> author followers count; memory only
+  const postTimes = new Map(); // post id -> created_at (ms); memory only
   const MAX_VIEWS = 5000;
   // Memory-only maps stay in arrival order: setting a key moves it to the end, and the oldest go first.
   function remember(map, key, value) {
@@ -1355,6 +1356,188 @@
     flushMe();
   }
 
+  function recordDailyFollowers(followers) {
+    if (!S?.settings?.review || typeof followers !== "number" || !Number.isInteger(followers) || followers < 0) return;
+    const k = store.dayKey();
+    const stored = S.days && S.days[k] ? S.days[k].followers : undefined;
+    if (stored === followers) return;
+    if (S) {
+      if (!S.days) S.days = {};
+      if (!S.days[k]) S.days[k] = { likes: 0, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 0 };
+      S.days[k].followers = followers;
+    }
+    store.update(["days"], (s) => {
+      store.today(s).followers = followers;
+    });
+  }
+
+  let minePending = {};
+  let mineTimer = null;
+  let mineLastWrite = 0;
+
+  function scheduleMineFlush() {
+    if (mineTimer) return;
+    const elapsed = Date.now() - mineLastWrite;
+    const wait = Math.max(0, 10000 - elapsed);
+    mineTimer = setTimeout(() => {
+      mineTimer = null;
+      flushMine();
+    }, wait);
+  }
+
+  function flushMine() {
+    if (!S?.settings?.review) {
+      minePending = {};
+      return;
+    }
+    const batch = minePending;
+    minePending = {};
+    const ids = Object.keys(batch);
+    if (!ids.length) return;
+
+    mineLastWrite = Date.now();
+    store.update(["mine"], (s) => {
+      for (const id of ids) {
+        const updateRec = batch[id];
+        const existing = s.mine[id];
+        if (!existing) {
+          s.mine[id] = updateRec;
+        } else {
+          for (const [k, v] of Object.entries(updateRec)) {
+            if (["pt", "pf", "mf", "ph"].includes(k) && existing[k] != null) continue;
+            existing[k] = v;
+          }
+        }
+      }
+      store.capMine(s.mine);
+    });
+  }
+
+  function queueMineRecord(id, updateData) {
+    if (!S?.settings?.review || !store.isId(id)) return;
+    if (!S.mine) S.mine = {};
+    const existing = S.mine[id];
+    let changed = false;
+
+    if (!existing) {
+      S.mine[id] = { ...updateData };
+      minePending[id] = { ...updateData };
+      changed = true;
+    } else {
+      const merged = { ...existing };
+      for (const [k, v] of Object.entries(updateData)) {
+        if (v === undefined) continue;
+        if (["pt", "pf", "mf", "ph"].includes(k) && existing[k] != null) continue;
+        if (existing[k] !== v) {
+          merged[k] = v;
+          changed = true;
+        }
+      }
+      if (changed) {
+        S.mine[id] = merged;
+        minePending[id] = merged;
+      }
+    }
+
+    if (changed) {
+      scheduleMineFlush();
+    }
+  }
+
+  function recordOwnCreated(entry) {
+    if (!S?.settings?.review || !entry || !entry.ok || !entry.id) return;
+    // Continuing your own thread is a post, not a reply to someone.
+    const isReply = entry.kind === "reply" && !(entry.to && isMe(entry.to));
+    const k = isReply ? "r" : "p";
+    const t = typeof entry.at === "number" && Number.isFinite(entry.at) ? entry.at : Date.now();
+    const updateData = { k, t };
+    if (isReply && entry.to) updateData.to = entry.to;
+    if (entry.text) updateData.x = Array.from(entry.text).slice(0, 80).join("");
+
+    if (isReply && entry.inReplyTo) {
+      const parentId = entry.inReplyTo;
+      if (postTimes.has(parentId)) {
+        updateData.pt = postTimes.get(parentId);
+      }
+      if (authorFollowers.has(parentId)) {
+        updateData.pf = authorFollowers.get(parentId);
+      }
+      const mf = S?.relMeta?.me?.followers;
+      if (typeof mf === "number" && mf > 0) {
+        updateData.mf = mf;
+      }
+      const pv = views.get(parentId);
+      const pt = updateData.pt;
+      if (pv && typeof pv.n === "number" && typeof pv.at === "number" && typeof pt === "number") {
+        const hours = Math.max(0.5, (pv.at - pt) / 3600000);
+        const rate = pv.n / hours;
+        if (Number.isFinite(rate) && rate >= 0) {
+          updateData.ph = rate;
+        }
+      }
+    }
+
+    queueMineRecord(entry.id, updateData);
+  }
+
+  function recordOwnResponse(p, receiveTime = Date.now()) {
+    if (!S?.settings?.review || !p || !p.id) return;
+    const existing = S?.mine?.[p.id];
+    // Without X's creation time there is nothing true to record: no guessed dates.
+    if (!existing && typeof p.at !== "number") return;
+    const isReply = existing ? existing.k === "r" : Boolean(p.inReplyTo) && !(p.to && isMe(p.to));
+    const k = isReply ? "r" : "p";
+    const updateData = {};
+
+    if (!existing) {
+      updateData.k = k;
+      updateData.t = p.at;
+      if (p.to) updateData.to = p.to;
+      if (p.text) updateData.x = p.text;
+    } else {
+      if (existing.k == null) updateData.k = k;
+      if (existing.t == null && typeof p.at === "number") updateData.t = p.at;
+      if (existing.to == null && p.to) updateData.to = p.to;
+      if (existing.x == null && p.text) updateData.x = p.text;
+    }
+
+    let statsChanged = false;
+    if (typeof p.views === "number") {
+      updateData.v = p.views;
+      if (!existing || existing.v !== p.views) statsChanged = true;
+    }
+    if (typeof p.likes === "number") {
+      updateData.l = p.likes;
+      if (!existing || existing.l !== p.likes) statsChanged = true;
+    }
+    if (typeof p.replies === "number") {
+      updateData.r = p.replies;
+      if (!existing || existing.r !== p.replies) statsChanged = true;
+    }
+
+    if (statsChanged) {
+      updateData.u = receiveTime;
+    }
+
+    if (isReply && p.inReplyTo) {
+      const parentId = p.inReplyTo;
+      if ((!existing || existing.pt == null) && postTimes.has(parentId)) {
+        updateData.pt = postTimes.get(parentId);
+      }
+      if ((!existing || existing.pf == null) && authorFollowers.has(parentId)) {
+        updateData.pf = authorFollowers.get(parentId);
+      }
+      if (!existing || existing.mf == null) {
+        const mf = S?.relMeta?.me?.followers;
+        if (typeof mf === "number" && mf > 0) {
+          updateData.mf = mf;
+        }
+      }
+    }
+
+    queueMineRecord(p.id, updateData);
+  }
+
   const noInbound = () => ({ likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 });
   const INBOUND_FIELD = { like: "likes", reply: "replies", quote: "quotes", mention: "mentions" };
   function countInbound(counter, kind, at) {
@@ -1433,6 +1616,8 @@
           clearPending();
         } else if (entry.ok === true) {
           recordSend(Date.now(), entry.text, entry.kind, entry.to);
+          // Only a confirmation the user's own send is waiting for: a forged one finds no pending send.
+          if (entry.id) recordOwnCreated(entry);
           if (entry.inReplyTo) {
             recordReplied(entry.inReplyTo, Date.now());
           }
@@ -1454,11 +1639,13 @@
           remember(authorFollowers, p.id, p.authorFollowers);
           if (p.author) remember(handleFollowers, p.author.toLowerCase(), p.authorFollowers);
         }
-        if (meLower && p.author && p.author.toLowerCase() === meLower && p.inReplyTo) {
-          recordReplied(p.inReplyTo, payload.at || Date.now());
+        if (typeof p.at === "number") remember(postTimes, p.id, p.at);
+        if (meLower && p.author && p.author.toLowerCase() === meLower) {
+          if (p.inReplyTo) recordReplied(p.inReplyTo, payload.at || Date.now());
+          recordOwnResponse(p, payload.at || Date.now());
         }
       }
-      [views, replyCounts, authorFollowers, handleFollowers].forEach((m) => trim(m));
+      [views, replyCounts, authorFollowers, handleFollowers, postTimes].forEach((m) => trim(m));
       clearTimeout(annotateTimer);
       annotateTimer = setTimeout(annotateAll, 250);
     }
@@ -1470,6 +1657,9 @@
           : ((S && S.relMeta && S.relMeta.me && S.relMeta.me.followers) || 0);
         const id = meUser.id || (S && S.relMeta && S.relMeta.me && S.relMeta.me.id) || null;
         scheduleMe({ handle: meUser.handle, followers, id, t: Date.now() });
+        if (typeof meUser.followers === "number") {
+          recordDailyFollowers(meUser.followers);
+        }
       }
     }
     if (!users.length) return;

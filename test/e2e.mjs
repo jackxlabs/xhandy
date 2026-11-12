@@ -122,7 +122,9 @@ try {
           create_tweet: {
             tweet_results: {
               result: {
+                rest_id: to === "bob" ? "556" : "555",
                 legacy: {
+                  created_at: "Wed Nov 11 12:00:00 +0000 2026",
                   full_text,
                   display_text_range: [toCodePoints, toCodePoints + textCodePoints],
                   in_reply_to_status_id_str: to === "bob" ? "222" : "111",
@@ -2781,6 +2783,254 @@ try {
     // Close panel
     await page.keyboard.press("Escape");
     await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 3000 });
+  });
+
+  await step("recording own posts from confirmations and responses with 10s batching (reply-review 4.1)", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+
+    // Ensure review is enabled
+    await updateSettings({ review: true, lang: "en" });
+
+    // 1. Sending a reply creates a record with to, pt, pf, ph
+    // Make sure we have follower count in relMeta.me for me_test
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "me_test", followers: 3800 }],
+            v: [{ id: "111", views: 30000, replies: 10, author: "alice", authorFollowers: 5000, at: 1762855200000 }],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(500);
+
+    // Send a reply to #fresh (alice, post 111)
+    await page.click("#fresh [data-testid=reply]");
+    const box = '[data-testid="tweetTextarea_0"]';
+    await page.fill(box, "Interesting insight on automation");
+    await page.click('[data-testid="tweetButton"]');
+
+    // Wait for the 10-second batch to persist to storage
+    let mine = null;
+    const startWait = Date.now();
+    while (Date.now() - startWait < 15000) {
+      mine = await storedPart("mine");
+      if (mine && mine["555"]) break;
+      await page.waitForTimeout(500);
+    }
+
+    assert.ok(mine && mine["555"], "expected record 555 in mine");
+    const rec555 = mine["555"];
+    assert.strictEqual(rec555.k, "r");
+    assert.strictEqual(rec555.to, "alice");
+    assert.strictEqual(rec555.x, "Interesting insight on automation");
+    assert.strictEqual(rec555.pt, 1762855200000);
+    assert.strictEqual(rec555.pf, 5000);
+    assert.strictEqual(rec555.mf, 3800);
+    assert.ok(typeof rec555.ph === "number" && rec555.ph > 0, "ph should be views per hour");
+    assert.strictEqual(rec555.v, undefined, "views should be absent initially");
+    assert.strictEqual(rec555.l, undefined, "likes should be absent initially");
+
+    // 2. A later response with views and likes updates v, l, u and leaves context untouched
+    const resTime = Date.now();
+    await page.evaluate((at) => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [{ id: "555", author: "me_test", views: 340, likes: 2, inReplyTo: "111" }],
+            f: [],
+            at,
+          }),
+        })
+      );
+    }, resTime);
+
+    // Wait for batch write (at most 10s)
+    const startWaitUpdate = Date.now();
+    while (Date.now() - startWaitUpdate < 15000) {
+      mine = await storedPart("mine");
+      if (mine && mine["555"] && mine["555"].v === 340) break;
+      await page.waitForTimeout(500);
+    }
+
+    const updated555 = mine["555"];
+    assert.strictEqual(updated555.v, 340);
+    assert.strictEqual(updated555.l, 2);
+    assert.strictEqual(typeof updated555.u, "number");
+    assert.strictEqual(updated555.pt, 1762855200000, "pt untouched");
+    assert.strictEqual(updated555.pf, 5000, "pf untouched");
+    assert.strictEqual(updated555.mf, 3800, "mf untouched");
+    assert.strictEqual(updated555.ph, rec555.ph, "ph untouched");
+    assert.strictEqual(updated555.to, "alice", "to untouched");
+
+    // 3. An own reply never seen being sent gets a record without ph
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [
+              {
+                id: "888",
+                author: "me_test",
+                inReplyTo: "111",
+                to: "alice",
+                text: "reply written elsewhere",
+                views: 50,
+                likes: 1,
+                at: 1762856000000,
+              },
+            ],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    const startWait888 = Date.now();
+    while (Date.now() - startWait888 < 15000) {
+      mine = await storedPart("mine");
+      if (mine && mine["888"]) break;
+      await page.waitForTimeout(500);
+    }
+
+    const rec888 = mine["888"];
+    assert.ok(rec888, "expected record 888 in mine");
+    assert.strictEqual(rec888.k, "r");
+    assert.strictEqual(rec888.v, 50);
+    assert.strictEqual(rec888.l, 1);
+    assert.strictEqual(rec888.to, "alice");
+    assert.strictEqual(rec888.x, "reply written elsewhere");
+    assert.strictEqual(rec888.pt, 1762855200000);
+    assert.strictEqual(rec888.pf, 5000);
+    assert.strictEqual(rec888.mf, 3800);
+    assert.strictEqual(rec888.ph, undefined, "ph must never be set from timeline responses");
+
+    // 4. Posts by others create nothing
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [{ id: "999", author: "carol", views: 9999, likes: 500 }],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(1000);
+    mine = await storedPart("mine");
+    assert.strictEqual(mine["999"], undefined, "post by another author must not be recorded");
+
+    // 5. With review off nothing is written
+    await updateSettings({ review: false });
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [],
+            v: [{ id: "777", author: "me_test", views: 100, likes: 5 }],
+            c: [{ ok: true, id: "778", at: Date.now(), kind: "reply", text: "off", to: "alice", inReplyTo: "111" }],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(1000);
+    mine = await storedPart("mine");
+    assert.strictEqual(mine["777"], undefined, "no response record when review off");
+    assert.strictEqual(mine["778"], undefined, "no confirmation record when review off");
+
+    // Restore review setting and language
+    await updateSettings({ review: true, lang: "en" });
+  });
+
+  await step("storing daily follower snapshots and replacing same-day count (growth-record 4.2)", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    await updateSettings({ review: true, lang: "en" });
+
+    const p = await ctx.newPage();
+    let todayKey = "";
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      todayKey = await p.evaluate(() => {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      });
+    } finally {
+      await p.close();
+    }
+
+    // 1. First sighting of the day sets today's follower count
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "me_test", followers: 1204 }],
+            v: [],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(1000);
+    let days = await storedPart("days");
+    assert.strictEqual(days?.[todayKey]?.followers, 1204, "today's followers should be 1204");
+
+    // 2. Later response on same day replaces it
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "me_test", followers: 1210 }],
+            v: [],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(1000);
+    days = await storedPart("days");
+    assert.strictEqual(days?.[todayKey]?.followers, 1210, "today's followers should be updated to 1210");
+
+    // 3. Review off: does not set or update follower count
+    await updateSettings({ review: false });
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "me_test", followers: 1300 }],
+            v: [],
+            f: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+
+    await page.waitForTimeout(1000);
+    days = await storedPart("days");
+    assert.strictEqual(days?.[todayKey]?.followers, 1210, "today's followers should remain 1210 when review is off");
+
+    // Restore setting
+    await updateSettings({ review: true, lang: "en" });
   });
 } finally {
   await ctx.close();

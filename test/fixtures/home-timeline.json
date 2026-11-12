@@ -51,11 +51,16 @@
                 "followed_by": true,
                 "following": true,
                 "muting": false
+               },
+               "relationship_counts": {
+                "followers": 5000
                }
               }
              }
             },
             "legacy": {
+             "created_at": "Wed Nov 11 10:00:00 +0000 2026",
+             "favorite_count": 42,
              "full_text": "post 111"
             },
             "quoted_status_result": {

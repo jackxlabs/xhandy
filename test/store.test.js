@@ -278,6 +278,50 @@ test("cleanRelations validates confirmation entries in c", () => {
   ]);
 });
 
+test("cleanRelations validates id and at on confirmation entries in c", () => {
+  const store = loadStore(fakeChrome());
+  const r = store.cleanRelations(JSON.stringify({
+    c: [
+      { ok: true, id: "101", at: 1700000000000, kind: "reply", text: "great point", to: "alice" },
+      { ok: true, id: "102", at: 0, kind: "post", text: "fresh post" },
+      { ok: true, id: "not-an-id", at: 1700000000000, kind: "reply", text: "bad id", to: "alice" },
+      { ok: true, id: "103", at: "not-a-number", kind: "reply", text: "bad at", to: "alice" },
+      { ok: true, id: "104", at: NaN, kind: "reply", text: "nan at", to: "alice" },
+    ],
+    at: 10,
+  }));
+  assert.deepStrictEqual(r.c, [
+    { ok: true, id: "101", at: 1700000000000, kind: "reply", text: "great point", to: "alice", inReplyTo: null },
+    { ok: true, id: "102", at: 0, kind: "post", text: "fresh post", to: null, inReplyTo: null },
+    // NaN becomes null in JSON: the entry stays, without a time.
+    { ok: true, id: "104", kind: "reply", text: "nan at", to: "alice", inReplyTo: null },
+  ]);
+});
+
+test("cleanRelations validates review fields likes, at, to, text in v", () => {
+  const store = loadStore(fakeChrome());
+  const longText = "a".repeat(120);
+  const r = store.cleanRelations(JSON.stringify({
+    v: [
+      { id: "100", views: 500, likes: 25, at: 1700000000000, to: "alice", text: "short text" },
+      { id: "101", likes: 0, at: 0, text: longText },
+      { id: "201", likes: -1 },
+      { id: "202", likes: 2.5 },
+      { id: "203", likes: "10" },
+      { id: "204", at: -100 },
+      { id: "205", at: "yesterday" },
+      { id: "206", to: "bad/handle" },
+      { id: "207", text: 12345 },
+    ],
+    at: 20,
+  }));
+
+  assert.deepStrictEqual(r.v, [
+    { id: "100", views: 500, likes: 25, at: 1700000000000, to: "alice", text: "short text" },
+    { id: "101", likes: 0, at: 0, text: "a".repeat(80) },
+  ]);
+});
+
 test("cleanRelations validates new post fields and user followers", () => {
   const store = loadStore(fakeChrome());
 

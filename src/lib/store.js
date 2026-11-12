@@ -485,6 +485,10 @@
       if (x.author != null && !isHandle(x.author)) continue;
       if (x.authorFollowers != null && !isNonNegInt(x.authorFollowers)) continue;
       if (x.inReplyTo != null && !isId(x.inReplyTo)) continue;
+      if (x.likes != null && !isNonNegInt(x.likes)) continue;
+      if (x.at != null && !(typeof x.at === "number" && Number.isFinite(x.at) && x.at >= 0)) continue;
+      if (x.to != null && !isHandle(x.to)) continue;
+      if (x.text != null && typeof x.text !== "string") continue;
 
       const post = { id: x.id };
       if (isNonNegInt(x.views)) post.views = x.views;
@@ -492,6 +496,10 @@
       if (isHandle(x.author)) post.author = x.author;
       if (isNonNegInt(x.authorFollowers)) post.authorFollowers = x.authorFollowers;
       if (isId(x.inReplyTo)) post.inReplyTo = x.inReplyTo;
+      if (isNonNegInt(x.likes)) post.likes = x.likes;
+      if (typeof x.at === "number" && Number.isFinite(x.at) && x.at >= 0) post.at = x.at;
+      if (isHandle(x.to)) post.to = x.to;
+      if (typeof x.text === "string") post.text = chars(x.text).slice(0, 80).join("");
       v.push(post);
     }
     const f = (Array.isArray(p.f) ? p.f : [])
@@ -512,15 +520,20 @@
         typeof x.text === "string" &&
         x.text.length <= MAX_TEXT &&
         (x.to == null || isHandle(x.to)) &&
-        (x.inReplyTo == null || isId(x.inReplyTo))
+        (x.inReplyTo == null || isId(x.inReplyTo)) &&
+        (x.id == null || isId(x.id)) &&
+        (x.at == null || (typeof x.at === "number" && Number.isFinite(x.at)))
       ) {
-        c.push({
+        const item = {
           ok: true,
           kind: x.kind,
           text: x.text,
           to: isHandle(x.to) ? x.to : null,
           inReplyTo: isId(x.inReplyTo) ? x.inReplyTo : null,
-        });
+        };
+        if (isId(x.id)) item.id = x.id;
+        if (typeof x.at === "number" && Number.isFinite(x.at)) item.at = x.at;
+        c.push(item);
       }
     }
     const n = [];

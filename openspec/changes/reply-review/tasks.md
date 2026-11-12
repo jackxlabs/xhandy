@@ -13,12 +13,12 @@
 
 ## 3. Review functions
 
-- [ ] 3.1 Create `src/lib/review.js` with `median`, `groups`, `topReplies`, `week`, `growth` as in design.md decision 4, and add it to `manifest.json` before `src/content.js` (`scripts/pack.sh` packs all of `src/`, so it needs no change). Verify: unit tests covering every scenario in `specs/reply-review/spec.md` "What gets seen" and `specs/growth-record/spec.md` "Growth shown in the Review view" (clear difference, too few, fresh replies, no clear difference, negative delay ignored, gaps, one snapshot).
+- [x] 3.1 Create `src/lib/review.js` with `median`, `groups`, `topReplies`, `week`, `growth` as in design.md decision 4, and add it to `manifest.json` before `src/content.js` (`scripts/pack.sh` packs all of `src/`, so it needs no change). Verify: unit tests covering every scenario in `specs/reply-review/spec.md` "What gets seen" and `specs/growth-record/spec.md` "Growth shown in the Review view" (clear difference, too few, fresh replies, no clear difference, negative delay ignored, gaps, one snapshot).
 
 ## 4. Recording on x.com
 
-- [ ] 4.1 In `src/content.js`, add the `postTimes` memory map and record own posts from create confirmations and from responses as in design.md decision 3, batched to one `store.update(["mine"], …)` per 10 seconds and skipped when nothing changed. Verify: e2e steps on the fake timeline (extend `test/fixtures/` responses with invented data): sending a reply creates a record with `to`, `pt`, `pf`, `ph`; a later response with views and likes updates `v`, `l`, `u` and leaves context untouched; an own reply never seen being sent gets a record without `ph`; posts by others create nothing; with `review` off nothing is written.
-- [ ] 4.2 Store today's follower count in `days` when X sends the signed-in account's count, only when it differs from the stored value. Verify: e2e step that a response carrying the user's follower count sets `days[today].followers`, a second response replaces it, and with `review` off it is not set.
+- [x] 4.1 In `src/content.js`, add the `postTimes` memory map and record own posts from create confirmations and from responses as in design.md decision 3, batched to one `store.update(["mine"], …)` per 10 seconds and skipped when nothing changed. Verify: e2e steps on the fake timeline (extend `test/fixtures/` responses with invented data): sending a reply creates a record with `to`, `pt`, `pf`, `ph`; a later response with views and likes updates `v`, `l`, `u` and leaves context untouched; an own reply never seen being sent gets a record without `ph`; posts by others create nothing; with `review` off nothing is written.
+- [x] 4.2 Store today's follower count in `days` when X sends the signed-in account's count, only when it differs from the stored value. Verify: e2e step that a response carrying the user's follower count sets `days[today].followers`, a second response replaces it, and with `review` off it is not set.
 
 ## 5. Review view
 
