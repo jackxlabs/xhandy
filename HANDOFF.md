@@ -33,5 +33,7 @@ v0.7.0 = side panel stays open across page loads, follower and following counts 
 (Alt+R) with reply performance and daily follower snapshots. Both OpenSpec changes archived
 (`2026-11-12-panel-stay-and-counts`, `2026-11-12-reply-review`). Jack checked on real X: list stays in place,
 counts show, Review opens. 141 unit tests and 109 e2e steps pass.
-1. Not checked yet: Alt+R (and Alt+U / Alt+K / Alt+H) while typing on macOS; comparing Review numbers with X's own
+1. GitHub Release v0.7.0 published (`https://github.com/jackxlabs/xhandy/releases/tag/v0.7.0`).
+2. Package uploaded to Chrome Web Store and submitted for review 2026-11-12 via `npm run cws -- publish` (PENDING_REVIEW, publishes automatically after approval).
+3. Not checked yet: Alt+R (and Alt+U / Alt+K / Alt+H) while typing on macOS; comparing Review numbers with X's own
    after a few days of data.

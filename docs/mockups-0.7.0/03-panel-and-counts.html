@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1600px;
+    height: 900px;
+    background: #090b10;
+    color: #f3f4f6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC", sans-serif;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 56px 72px;
+  }
+
+  /* Background Glows */
+  .bg-glow-1 {
+    position: absolute;
+    top: -150px;
+    left: -150px;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, rgba(6, 182, 212, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-glow-2 {
+    position: absolute;
+    top: 100px;
+    right: -100px;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-glow-3 {
+    position: absolute;
+    bottom: -150px;
+    left: 400px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Brand Header */
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 10;
+  }
+  .brand-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .brand-icon-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #ec4899 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+  }
+  .brand-icon-tile svg {
+    width: 26px;
+    height: 26px;
+    color: #ffffff;
+  }
+  .brand-name {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .version-pill {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    color: #c4b5fd;
+    padding: 4px 12px;
+    border-radius: 100px;
+  }
+  .badge-tag {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 16px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge-tag span.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+  }
+
+  /* Content Container */
+  .main-content {
+    display: flex;
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    margin: 24px 0;
+    align-items: center;
+    gap: 52px;
+  }
+
+  /* Typography */
+  .title-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .headline {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+  }
+  .headline-gradient {
+    background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 50%, #f472b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subheadline {
+    font-size: 19px;
+    line-height: 1.5;
+    color: #94a3b8;
+    max-width: 580px;
+  }
+
+  .feature-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .feature-pill-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 16px;
+    color: #e2e8f0;
+  }
+  .feature-pill-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c4b5fd;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  /* Mockup Frame */
+  .mockup-window {
+    background: #0f141c;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(139, 92, 246, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .window-header {
+    height: 36px;
+    background: #161b24;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .window-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .window-dot.red { background: #ef4444; }
+  .window-dot.yellow { background: #f59e0b; }
+  .window-dot.green { background: #10b981; }
+  .window-title {
+    margin-left: 12px;
+    font-size: 12px;
+    color: #64748b;
+    font-family: monospace;
+  }
+
+  /* X Native Badges */
+  .xh-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    line-height: 1.4;
+  }
+  .xh-chip-heat-hot {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .xh-chip-rel-mutual {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .xh-chip-touch {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+
+  /* Footer Bar */
+  .footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 18px;
+    font-size: 14px;
+    color: #64748b;
+  }
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .footer-link-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+  .footer-kbd {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #cbd5e1;
+  }
+
+
+.mockup-window {
+  width: 780px;
+  height: 630px;
+}
+.mockup-body {
+  display: flex;
+  height: calc(100% - 36px);
+  background: #000000;
+}
+.x-feed-mock {
+  flex: 1;
+  border-right: 1px solid #2f3336;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.user-card-mock {
+  background: #16181c;
+  border: 1px solid #2f3336;
+  border-radius: 12px;
+  padding: 16px;
+}
+.user-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.user-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.avatar-mock {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #334155;
+}
+.follow-btn-mock {
+  background: #eff3f4;
+  color: #0f1419;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 100px;
+}
+
+.x-panel-mock {
+  width: 440px;
+  background: #0f1419;
+  border-left: 1px solid #2f3336;
+  display: flex;
+  flex-direction: column;
+}
+.panel-head {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2f3336;
+}
+.panel-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #e7e9ea;
+}
+.panel-meta {
+  font-size: 13px;
+  color: #71767b;
+}
+
+.panel-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.panel-user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #16181c;
+  border: 1px solid #2f3336;
+  border-radius: 10px;
+}
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #334155, #1e293b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #94a3b8;
+}
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.user-name-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e7e9ea;
+}
+.user-handle {
+  font-size: 13px;
+  color: #71767b;
+}
+.user-counts-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(6, 182, 212, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 2px;
+  font-family: monospace;
+}
+.user-rel-hint {
+  font-size: 11px;
+  color: #f43f5e;
+}
+
+.state-kept-banner {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 14px;
+}
+</style>
+</head>
+<body>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+  <div class="bg-grid"></div>
+
+  <div class="brand-bar">
+    <div class="brand-logo-wrap">
+      <div class="brand-icon-tile"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill="currentColor" d="M23.89 16.17L24.11 15.83C34.56 22.65 46.23 30.38 50 43C53.77 30.38 65.44 22.65 75.89 15.83L76.11 16.17C73.43 17.98 70.97 19.99 68.85 22.46C62.18 30.23 61.05 39.66 61 49.48C60.95 59.62 61.95 69.50 68.85 77.54C70.97 80.01 73.43 82.02 76.11 83.83L75.89 84.17C65.44 77.35 53.77 69.62 50 57C46.23 69.62 34.56 77.35 24.11 84.17L23.89 83.83C26.57 82.02 29.03 80.01 31.15 77.54C38.05 69.50 39.05 59.62 39 49.48C38.95 39.66 37.82 30.23 31.15 22.46C29.03 19.99 26.57 17.98 23.89 16.17Z"/>
+</svg></div>
+      <div class="brand-name">Xhandy <span class="version-pill">v0.7.0</span></div>
+    </div>
+    <div class="badge-tag">
+      <span class="dot"></span>
+      体验与细节革新
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="title-area">
+      <div class="eyebrow">🚀 WORKFLOW & PERSISTENCE</div>
+      <h1 class="headline">
+        侧边栏常驻 · <br>
+        <span class="headline-gradient">粉丝数透视一览</span>
+      </h1>
+      <p class="subheadline">
+        清理「未回关」账号再也不用反复点开主页。点进主页、后退、刷新页面，侧边栏保持打开且保留原滚动位置。
+      </p>
+
+      <div class="feature-pills">
+        <div class="feature-pill-item">
+          <div class="feature-pill-icon">⇄</div>
+          <div><strong>刷新/跳转不丢失</strong>：侧边栏状态与滚动进度全自动记忆跨页面留存</div>
+        </div>
+        <div class="feature-pill-item">
+          <div class="feature-pill-icon">👥</div>
+          <div><strong>粉丝/关注数一览</strong>：列表直接显示 <code>28.4k 关注者 · 420 关注中</code></div>
+        </div>
+        <div class="feature-pill-item">
+          <div class="feature-pill-icon">🎯</div>
+          <div><strong>精准清理断连</strong>：一眼区分「行业巨号未回关」还是「低粉沉睡死号」</div>
+        </div>
+        <div class="feature-pill-item">
+          <div class="feature-pill-icon">⚡</div>
+          <div><strong>极速快捷操作</strong>：按键 <kbd class="footer-kbd">Alt+U</kbd> 瞬间唤起，按 <kbd class="footer-kbd">Shift+F</kbd> 聚焦关注按钮</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mockup Window -->
+    <div class="mockup-window">
+      <div class="window-header">
+        <div class="window-dot red"></div>
+        <div class="window-dot yellow"></div>
+        <div class="window-dot green"></div>
+        <div class="window-title">x.com / Not Following You Back (Alt+U)</div>
+      </div>
+      <div class="mockup-body">
+        <div class="x-feed-mock">
+          <div style="font-size: 13px; color: #71767b; margin-bottom: 2px;">个人主页已打开，侧边栏依然就绪：</div>
+          <div class="user-card-mock">
+            <div class="user-card-header">
+              <div class="user-card-left">
+                <div class="avatar-mock" style="background:#06b6d4;"></div>
+                <div>
+                  <div style="font-size: 15px; font-weight: bold; color: #fff;">Alex Chen</div>
+                  <div style="font-size: 12px; color: #71767b;">@alex_builder</div>
+                </div>
+              </div>
+              <div class="follow-btn-mock">正在关注</div>
+            </div>
+            <div style="margin-top: 12px; font-size: 13px; color: #94a3b8; line-height: 1.4;">
+              Building micro-SaaS tools. Writing about automation and indie hacking.
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 14px; font-size: 13px; color: #71767b;">
+              <div><strong style="color:#fff;">420</strong> 正在关注</div>
+              <div><strong style="color:#fff;">28.4k</strong> 关注者</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="x-panel-mock">
+          <div class="panel-head">
+            <div class="panel-title">没回关我 (42 人)</div>
+            <div class="panel-meta">Alt+U</div>
+          </div>
+
+          <div class="state-kept-banner">
+            <span>✓</span> 跨页面/刷新已常驻，原位保留
+          </div>
+
+          <div class="panel-list">
+            <div class="panel-user-row">
+              <div class="user-avatar" style="background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff;">AC</div>
+              <div class="user-info">
+                <div class="user-name-line">
+                  <span class="user-name">Alex Chen</span>
+                  <span class="user-rel-hint">曾是互关 · 3天前取消</span>
+                </div>
+                <div class="user-handle">@alex_builder</div>
+                <div><span class="user-counts-pill">28.4k 关注者 · 420 关注中</span></div>
+              </div>
+            </div>
+
+            <div class="panel-user-row">
+              <div class="user-avatar" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: #fff;">ST</div>
+              <div class="user-info">
+                <div class="user-name-line">
+                  <span class="user-name">Sarah Tech</span>
+                  <span style="font-size: 11px; color: #71767b;">已关注 14 天</span>
+                </div>
+                <div class="user-handle">@sarahtech_ai</div>
+                <div><span class="user-counts-pill">5.1k 关注者 · 1.8k 关注中</span></div>
+              </div>
+            </div>
+
+            <div class="panel-user-row">
+              <div class="user-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff;">DN</div>
+              <div class="user-info">
+                <div class="user-name-line">
+                  <span class="user-name">DevNotes</span>
+                  <span style="font-size: 11px; color: #71767b;">已关注 30 天</span>
+                </div>
+                <div class="user-handle">@devnotes_daily</div>
+                <div><span class="user-counts-pill">890 关注者 · 920 关注中</span></div>
+              </div>
+            </div>
+
+            <div class="panel-user-row">
+              <div class="user-avatar" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff;">CW</div>
+              <div class="user-info">
+                <div class="user-name-line">
+                  <span class="user-name">CryptoWhale</span>
+                  <span style="font-size: 11px; color: #38bdf8;">行业头部大号</span>
+                </div>
+                <div class="user-handle">@cryptowhale_x</div>
+                <div><span class="user-counts-pill">120k 关注者 · 85 关注中</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div>关注助手仅负责聚焦关注按钮，按回车确认的是你本人 · 绝不自动点击</div>
+    <div class="footer-links">
+      <div class="footer-link-item"><span class="footer-kbd">Shift+F</span> 聚焦关注按钮</div>
+      <div class="footer-link-item"><span class="footer-kbd">Alt+U</span> 开关未回关列表</div>
+    </div>
+  </div>
+</body>
+</html>

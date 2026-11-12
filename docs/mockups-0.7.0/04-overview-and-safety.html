@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1600px;
+    height: 900px;
+    background: #090b10;
+    color: #f3f4f6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC", sans-serif;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 56px 72px;
+  }
+
+  /* Background Glows */
+  .bg-glow-1 {
+    position: absolute;
+    top: -150px;
+    left: -150px;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, rgba(6, 182, 212, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-glow-2 {
+    position: absolute;
+    top: 100px;
+    right: -100px;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-glow-3 {
+    position: absolute;
+    bottom: -150px;
+    left: 400px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Brand Header */
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 10;
+  }
+  .brand-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .brand-icon-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #ec4899 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+  }
+  .brand-icon-tile svg {
+    width: 26px;
+    height: 26px;
+    color: #ffffff;
+  }
+  .brand-name {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .version-pill {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    color: #c4b5fd;
+    padding: 4px 12px;
+    border-radius: 100px;
+  }
+  .badge-tag {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 16px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge-tag span.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+  }
+
+  /* Content Container */
+  .main-content {
+    display: flex;
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    margin: 24px 0;
+    align-items: center;
+    gap: 52px;
+  }
+
+  /* Typography */
+  .title-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .headline {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+  }
+  .headline-gradient {
+    background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 50%, #f472b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subheadline {
+    font-size: 19px;
+    line-height: 1.5;
+    color: #94a3b8;
+    max-width: 580px;
+  }
+
+  .feature-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .feature-pill-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 16px;
+    color: #e2e8f0;
+  }
+  .feature-pill-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c4b5fd;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  /* Mockup Frame */
+  .mockup-window {
+    background: #0f141c;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(139, 92, 246, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .window-header {
+    height: 36px;
+    background: #161b24;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .window-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .window-dot.red { background: #ef4444; }
+  .window-dot.yellow { background: #f59e0b; }
+  .window-dot.green { background: #10b981; }
+  .window-title {
+    margin-left: 12px;
+    font-size: 12px;
+    color: #64748b;
+    font-family: monospace;
+  }
+
+  /* X Native Badges */
+  .xh-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    line-height: 1.4;
+  }
+  .xh-chip-heat-hot {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .xh-chip-rel-mutual {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .xh-chip-touch {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+
+  /* Footer Bar */
+  .footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 18px;
+    font-size: 14px;
+    color: #64748b;
+  }
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .footer-link-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+  .footer-kbd {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #cbd5e1;
+  }
+
+
+.main-content {
+  flex-direction: column;
+  gap: 28px;
+  align-items: stretch;
+}
+
+.top-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.features-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.matrix-card {
+  background: rgba(15, 20, 28, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.matrix-icon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.matrix-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.icon-1 { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+.icon-2 { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+.icon-3 { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+.icon-4 { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+.matrix-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff;
+}
+.matrix-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.principles-banner {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.principle-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.principle-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+.principle-circle.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.principle-text h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.principle-text p {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.install-methods {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.install-btn {
+  background: #fff;
+  color: #000;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.install-btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+  <div class="bg-glow-3"></div>
+  <div class="bg-grid"></div>
+
+  <div class="brand-bar">
+    <div class="brand-logo-wrap">
+      <div class="brand-icon-tile"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill="currentColor" d="M23.89 16.17L24.11 15.83C34.56 22.65 46.23 30.38 50 43C53.77 30.38 65.44 22.65 75.89 15.83L76.11 16.17C73.43 17.98 70.97 19.99 68.85 22.46C62.18 30.23 61.05 39.66 61 49.48C60.95 59.62 61.95 69.50 68.85 77.54C70.97 80.01 73.43 82.02 76.11 83.83L75.89 84.17C65.44 77.35 53.77 69.62 50 57C46.23 69.62 34.56 77.35 24.11 84.17L23.89 83.83C26.57 82.02 29.03 80.01 31.15 77.54C38.05 69.50 39.05 59.62 39 49.48C38.95 39.66 37.82 30.23 31.15 22.46C29.03 19.99 26.57 17.98 23.89 16.17Z"/>
+</svg></div>
+      <div class="brand-name">Xhandy <span class="version-pill">v0.7.0</span></div>
+    </div>
+    <div class="badge-tag">
+      <span class="dot"></span>
+      专为手动起号创作者设计
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="top-hero">
+      <div class="title-area">
+        <div class="eyebrow">🛡️ PHILOSOPHY & CAPABILITIES</div>
+        <h1 class="headline" style="font-size: 42px;">
+          顺手提示 · <span class="headline-gradient">绝不越界代操作</span>
+        </h1>
+        <p class="subheadline" style="font-size: 18px;">
+          告别黑产挂机机器人。Xhandy 将热度、关系与数据复盘自然融合在原生页面中，让你的每一条手工互动都更有杀伤力。
+        </p>
+      </div>
+
+      <div class="install-methods">
+        <div class="install-btn">
+          <span>🛍️</span> Chrome 应用商店官方已上架
+        </div>
+        <div class="install-btn secondary">
+          <span>🐙</span> GitHub 开源仓库 (MIT)
+        </div>
+      </div>
+    </div>
+
+    <!-- Matrix -->
+    <div class="features-matrix">
+      <div class="matrix-card">
+        <div class="matrix-icon-row">
+          <div class="matrix-icon icon-1">🔥</div>
+          <span class="xh-chip xh-chip-heat-hot">1.5万/时</span>
+        </div>
+        <div class="matrix-title">实时热度测速</div>
+        <div class="matrix-desc">每小时浏览量动态计算，&gt;1000 变橙，&gt;1万 标红带 🔥，超过 48 小时自动置灰防挖坟。</div>
+      </div>
+
+      <div class="matrix-card">
+        <div class="matrix-icon-row">
+          <div class="matrix-icon icon-2">⇄</div>
+          <span class="xh-chip xh-chip-rel-mutual">⇄ 互关</span>
+        </div>
+        <div class="matrix-title">关系与互动深度</div>
+        <div class="matrix-desc">帖子旁直显互关/单向关注、互动频次（我3·他5）；特别关注星标、沉默账号预警。</div>
+      </div>
+
+      <div class="matrix-card">
+        <div class="matrix-icon-row">
+          <div class="matrix-icon icon-3">📊</div>
+          <span class="xh-chip" style="background:#2563eb;color:#fff;">Alt+R</span>
+        </div>
+        <div class="matrix-title">效果复盘 (Alt+R)</div>
+        <div class="matrix-desc">回复浏览与点赞归因分析、黄金时机/体量推荐、每日粉丝增长走势曲线图。</div>
+      </div>
+
+      <div class="matrix-card">
+        <div class="matrix-icon-row">
+          <div class="matrix-icon icon-4">🛡️</div>
+          <span class="xh-chip" style="background:rgba(16,185,129,0.2);color:#34d399;">软上限保护</span>
+        </div>
+        <div class="matrix-title">防风控与软上限</div>
+        <div class="matrix-desc">智能防重复回复相似度提醒；每日关注、取关设定安全软上限提醒，杜绝像机器人。</div>
+      </div>
+    </div>
+
+    <!-- Three Rules -->
+    <div class="principles-banner">
+      <div class="principle-item">
+        <div class="principle-circle">✕</div>
+        <div class="principle-text">
+          <h4>绝不替你操作</h4>
+          <p>不点击、不输入、不自动关注、不自动发帖</p>
+        </div>
+      </div>
+
+      <div class="principle-item">
+        <div class="principle-circle">✕</div>
+        <div class="principle-text">
+          <h4>默认不联网外发</h4>
+          <p>0 第三方统计、0 远程代码，只克隆 X 本地响应</p>
+        </div>
+      </div>
+
+      <div class="principle-item">
+        <div class="principle-circle green">✓</div>
+        <div class="principle-text">
+          <h4>数据 100% 存在本地</h4>
+          <p>存储于浏览器 local storage，支持随时导入导出</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div>开源地址：github.com/jackxlabs/xhandy · 反馈私信 @JackHuang47</div>
+    <div class="footer-links">
+      <div class="footer-link-item"><span class="footer-kbd">Alt+R</span> 效果复盘</div>
+      <div class="footer-link-item"><span class="footer-kbd">Alt+U</span> 没回关我</div>
+      <div class="footer-link-item"><span class="footer-kbd">Alt+K</span> 沉默重点</div>
+      <div class="footer-link-item"><span class="footer-kbd">Alt+B</span> 爆款搜索</div>
+      <div class="footer-link-item"><span class="footer-kbd">Shift+F</span> 聚焦关注</div>
+    </div>
+  </div>
+</body>
+</html>
