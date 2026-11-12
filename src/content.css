@@ -965,6 +965,138 @@ button.xh-note-save:hover {
 .xh-panel-foot-fill[data-state="warn"] {
   background: var(--xh-warn);
 }
+
+/* ---- Review view (Alt+R) ---- */
+
+.xh-rev-summary {
+  display: flex;
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+.xh-rev-stat {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--xh-chip);
+}
+.xh-rev-stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--xh-num);
+  font-variant-numeric: tabular-nums;
+}
+.xh-rev-stat-label {
+  font-size: 11px;
+  color: var(--xh-muted);
+  margin-top: 2px;
+}
+.xh-rev-growth {
+  display: flex;
+  gap: 12px;
+  margin: 4px 0 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.xh-rev-growth-item {
+  font-weight: 600;
+}
+.xh-rev-growth-note {
+  margin: 4px 0 8px;
+}
+.xh-rev-chart-wrap {
+  margin: 8px 0 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--xh-chip);
+}
+svg.xh-rev-chart {
+  display: block;
+  width: 100%;
+  height: 80px;
+  overflow: visible;
+}
+.xh-chart-bar {
+  fill: var(--xh-accent);
+  opacity: 0.35;
+}
+.xh-chart-bar.has-replies {
+  opacity: 0.8;
+}
+.xh-chart-line {
+  fill: none;
+  stroke: var(--xh-num);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.xh-chart-dot {
+  fill: var(--xh-num);
+}
+.xh-rev-dim {
+  margin-bottom: 8px;
+}
+.xh-rev-dim-title {
+  padding: 4px 8px;
+  color: var(--xh-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.xh-rev-group-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.xh-rev-group-row:hover {
+  background: var(--xh-chip);
+}
+.xh-rev-group-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.xh-rev-best {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  color: var(--xh-ok);
+  background: var(--xh-ok-bg);
+}
+.xh-rev-val {
+  font-variant-numeric: tabular-nums;
+}
+.xh-rev-reply-item {
+  margin-bottom: 2px;
+}
+.xh-rev-reply-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.xh-rev-text {
+  color: var(--xh-fg);
+  font-size: 12px;
+  margin: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.xh-rev-reply-meta {
+  color: var(--xh-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .xh-panel {
     animation: none;

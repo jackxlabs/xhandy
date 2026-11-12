@@ -1253,6 +1253,11 @@
         if (S && S.settings && S.settings.keyAccounts) {
           togglePanel(null, "keys");
         }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyR" && !isTyping(e.target)) {
+        e.preventDefault();
+        if (S && S.settings && S.settings.review) {
+          togglePanel(null, "review");
+        }
       } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyS" && !isTyping(e.target)) {
         e.preventDefault();
         if (S && S.settings && S.settings.keyAccounts) {
@@ -1742,10 +1747,10 @@
 
   const PANEL_MAX = 300;
   const PANEL_STORAGE_KEY = "xh:panel";
-  const PANEL_MODES = new Set(["nfb", "keys"]);
+  const PANEL_MODES = new Set(["nfb", "keys", "review"]);
   let panelEl = null;
   let panelQuery = "";
-  let panelMode = "nfb"; // "nfb" or "keys"
+  let panelMode = "nfb"; // "nfb", "keys", or "review"
 
   function readPanel() {
     try {
@@ -1802,6 +1807,10 @@
     const saved = readPanel();
     if (!saved) return;
     if (saved.m === "keys" && (!S || !S.settings || !S.settings.keyAccounts)) {
+      clearPanel();
+      return;
+    }
+    if (saved.m === "review" && (!S || !S.settings || !S.settings.review)) {
       clearPanel();
       return;
     }
@@ -1943,11 +1952,13 @@
       if (search) search.value = "";
       if (open == null) open = true;
     }
+    const searchWrap = panelEl.querySelector(".xh-panel-search-wrap");
+    if (searchWrap) searchWrap.hidden = (panelMode === "review");
     const show = open == null ? panelEl.hidden : open;
     panelEl.hidden = !show;
     if (show) {
       renderPanel(true);
-      if (focus) {
+      if (focus && panelMode !== "review") {
         panelEl.querySelector(".xh-panel-search").focus({ preventScroll: true });
       }
       savePanel();
@@ -1964,8 +1975,12 @@
       panelLang = XH.lang;
       force = true;
     }
+    const searchWrap = panelEl.querySelector(".xh-panel-search-wrap");
+    if (searchWrap) searchWrap.hidden = (panelMode === "review");
     if (panelMode === "keys") {
       renderKeysPanel(force);
+    } else if (panelMode === "review") {
+      renderReviewPanel(force);
     } else {
       renderNfbPanel(force);
     }
@@ -2141,11 +2156,249 @@
     foot.replaceChildren(el("div", "xh-panel-foot-text", t("key_panel_footer", { days: quietDays })));
   }
 
+  function renderReviewPanel(force) {
+    panelEl.setAttribute("aria-label", t("rev_title"));
+    panelEl.querySelector(".xh-panel-title").replaceChildren(t("rev_title"));
+
+    const searchWrap = panelEl.querySelector(".xh-panel-search-wrap");
+    if (searchWrap) searchWrap.hidden = true;
+
+    const now = Date.now();
+    const mine = S.mine || {};
+    const days = S.days || {};
+    const hasRecords = Object.keys(mine).length > 0;
+
+    const w = XH.review.week(mine, now);
+    const g = XH.review.growth(days, now);
+    const grps = XH.review.groups(mine, S.settings, now);
+    const topReps = XH.review.topReplies(mine, now, 10);
+
+    let lastReceived = 0;
+    for (const r of Object.values(mine)) {
+      if (r && typeof r.u === "number" && r.u > lastReceived) {
+        lastReceived = r.u;
+      }
+    }
+
+    const key = JSON.stringify([
+      "review",
+      Object.keys(mine).length,
+      lastReceived,
+      w,
+      g.d7,
+      g.d30,
+      topReps.map((r) => [r.id, r.v, r.l]),
+      S.settings?.review,
+      myHandle(),
+    ]);
+    if (!force && panelEl.dataset.key === key) return;
+    panelEl.dataset.key = key;
+
+    // Info header: summary stats, growth, SVG chart
+    const info = panelEl.querySelector(".xh-panel-info");
+    info.replaceChildren();
+
+    const summary = el("div", "xh-rev-summary");
+    const statReplies = el("div", "xh-rev-stat");
+    statReplies.append(
+      el("div", "xh-rev-stat-num", XH.compact(w.n)),
+      el("div", "xh-rev-stat-label", t("rev_7d_replies"))
+    );
+    const statMedian = el("div", "xh-rev-stat");
+    statMedian.append(
+      el("div", "xh-rev-stat-num", w.median != null ? XH.compact(w.median) : "-"),
+      el("div", "xh-rev-stat-label", t("rev_7d_median"))
+    );
+    summary.append(statReplies, statMedian);
+    info.append(summary);
+
+    const fmtChange = (n) => (n > 0 ? "+" + XH.compact(n) : XH.compact(n));
+    if (g.d7 != null || g.d30 != null) {
+      const growthDiv = el("div", "xh-rev-growth");
+      if (g.d7 != null) {
+        growthDiv.append(el("span", "xh-rev-growth-item", t("rev_growth_7d", { n: fmtChange(g.d7) })));
+      }
+      if (g.d30 != null) {
+        growthDiv.append(el("span", "xh-rev-growth-item", t("rev_growth_30d", { n: fmtChange(g.d30) })));
+      }
+      info.append(growthDiv);
+    } else {
+      info.append(el("div", "xh-panel-muted xh-rev-growth-note", t("rev_growth_few_days")));
+    }
+
+    const chartWrap = el("div", "xh-rev-chart-wrap");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "xh-rev-chart");
+    svg.setAttribute("viewBox", "0 0 300 80");
+    svg.setAttribute("aria-hidden", "true");
+
+    const maxReplies = Math.max(1, ...g.series.map((s) => s.replies || 0));
+    for (let i = 0; i < 30; i++) {
+      const entry = g.series[i];
+      const rCount = entry.replies || 0;
+      const barHeight = rCount > 0 ? Math.max(3, Math.round((rCount / maxReplies) * 50)) : 1;
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("class", "xh-chart-bar" + (rCount > 0 ? " has-replies" : ""));
+      rect.setAttribute("x", String(i * 10 + 2));
+      rect.setAttribute("y", String(75 - barHeight));
+      rect.setAttribute("width", "6");
+      rect.setAttribute("height", String(barHeight));
+      rect.setAttribute("rx", "1");
+      const titleEl = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      titleEl.textContent = `${entry.day}: ${rCount} ${t("hud_replies")}`;
+      rect.appendChild(titleEl);
+      svg.appendChild(rect);
+    }
+
+    const snapshots = g.series.map((s, idx) => ({ ...s, idx })).filter((s) => s.followers !== null);
+    if (snapshots.length >= 1) {
+      const fVals = snapshots.map((s) => s.followers);
+      const minF = Math.min(...fVals);
+      const maxF = Math.max(...fVals);
+      const fRange = maxF - minF;
+
+      const getY = (val) => {
+        if (fRange <= 0) return 40;
+        return 60 - Math.round(((val - minF) / fRange) * 45);
+      };
+
+      const segments = [];
+      let curSeg = [];
+      for (let i = 0; i < 30; i++) {
+        const entry = g.series[i];
+        if (entry.followers !== null) {
+          const cx = i * 10 + 5;
+          const cy = getY(entry.followers);
+          curSeg.push({ cx, cy, day: entry.day, val: entry.followers });
+        } else {
+          if (curSeg.length) {
+            segments.push(curSeg);
+            curSeg = [];
+          }
+        }
+      }
+      if (curSeg.length) segments.push(curSeg);
+
+      for (const seg of segments) {
+        if (seg.length >= 2) {
+          const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+          polyline.setAttribute("class", "xh-chart-line");
+          polyline.setAttribute("points", seg.map((p) => `${p.cx},${p.cy}`).join(" "));
+          svg.appendChild(polyline);
+        }
+        for (const pt of seg) {
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("class", "xh-chart-dot");
+          circle.setAttribute("cx", String(pt.cx));
+          circle.setAttribute("cy", String(pt.cy));
+          circle.setAttribute("r", seg.length === 1 ? "2.5" : "1.5");
+          const cTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+          cTitle.textContent = `${pt.day}: ${XH.compact(pt.val)}`;
+          circle.appendChild(cTitle);
+          svg.appendChild(circle);
+        }
+      }
+    }
+    chartWrap.appendChild(svg);
+    info.append(chartWrap);
+
+    // List: groups and top replies
+    const list = panelEl.querySelector(".xh-panel-list");
+    list.replaceChildren();
+
+    if (!hasRecords) {
+      list.append(el("li", "xh-panel-muted xh-panel-empty", t("rev_empty_hint")));
+    } else {
+      list.append(el("li", "xh-panel-section", t("rev_what_gets_seen")));
+
+      const dimKeys = ["delay", "size", "heat"];
+      for (const dim of dimKeys) {
+        const dimContainer = el("li", "xh-rev-dim");
+        dimContainer.append(el("div", "xh-rev-dim-title", t("rev_dim_" + dim)));
+        for (const grp of grps[dim]) {
+          const row = el("div", "xh-rev-group-row");
+          const left = el("div", "xh-rev-group-name");
+          left.append(document.createTextNode(t("rev_grp_" + grp.id)));
+          if (grp.best) {
+            left.append(el("span", "xh-rev-best", t("rev_best")));
+          }
+          const right = el("span", "xh-rev-val");
+          if (grp.median !== null) {
+            const b = el("b", null, XH.compact(grp.median));
+            const muted = el("span", "xh-panel-muted", ` (${grp.n})`);
+            right.append(b, muted);
+          } else {
+            right.className += " xh-panel-muted";
+            right.textContent = `${grp.n} · ${t("rev_few_replies")}`;
+          }
+          row.append(left, right);
+          dimContainer.append(row);
+        }
+        list.append(dimContainer);
+      }
+
+      if (topReps.length) {
+        list.append(el("li", "xh-panel-section", t("rev_top_replies")));
+        const me = myHandle();
+        for (const r of topReps) {
+          const li = el("li", "xh-rev-reply-item");
+          const a = el("a", "xh-panel-row xh-rev-reply-link");
+          a.href = `/${me || "i"}/status/${r.id}`;
+
+          const body = el("div", "xh-panel-body");
+          const userRow = el("div", "xh-panel-user");
+          if (r.to) {
+            userRow.append(el("span", "xh-panel-handle", "@" + r.to));
+          }
+          userRow.append(el("span", "xh-panel-meta", XH.ago(r.t, now)));
+          body.append(userRow);
+
+          if (r.x) {
+            body.append(el("div", "xh-rev-text", r.x));
+          }
+
+          const metaRow = el("div", "xh-rev-reply-meta");
+          const viewsPart = `${XH.compact(r.v)} ${t("rev_views")}`;
+          // Likes X never sent are unknown, not zero.
+          metaRow.textContent = typeof r.l === "number" ? `${viewsPart} · ${XH.compact(r.l)} ${t("rev_likes")}` : viewsPart;
+          body.append(metaRow);
+
+          a.append(makeAvatar(r.to || me || "?", r.to || me), body);
+          li.append(a);
+          list.append(li);
+        }
+      }
+    }
+
+    // Foot: last-updated and Replies tab link
+    const foot = panelEl.querySelector(".xh-panel-foot");
+    foot.replaceChildren();
+
+    const pUpdated = el("p", "xh-panel-foot-text");
+    if (lastReceived > 0) {
+      pUpdated.textContent = t("rev_updated", { ago: XH.ago(lastReceived, now) });
+    } else {
+      pUpdated.textContent = t("rev_not_updated");
+    }
+    foot.append(pUpdated);
+
+    const me = myHandle();
+    if (me) {
+      const pLink = el("p", "xh-panel-foot-text xh-panel-muted");
+      const [before, after] = t("rev_replies_hint", { link: "\u0000" }).split("\u0000");
+      const a = el("a", "xh-rev-replies-link", t("rev_replies_link"));
+      a.href = `/${me}/with_replies`;
+      pLink.append(before || "", a, after || "");
+      foot.append(pLink);
+    }
+  }
+
   // The toolbar popup's button opens the panel in this tab.
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg && msg.type === "xh-panel") {
       const mode = msg.mode || "nfb";
       if (mode === "keys" && (!S || !S.settings || !S.settings.keyAccounts)) return;
+      if (mode === "review" && (!S || !S.settings || !S.settings.review)) return;
       togglePanel(true, mode);
     }
   });
@@ -2176,6 +2429,7 @@
     if (s && s.settings) XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
     if (!s.settings.dupWarn) hideDup();
     if (panelMode === "keys" && s.settings && !s.settings.keyAccounts) togglePanel(false);
+    if (panelMode === "review" && s.settings && !s.settings.review) togglePanel(false);
     if (!s.settings.localNotes) closeNoteEditor();
     annotateAll();
     renderHud();

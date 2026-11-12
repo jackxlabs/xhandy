@@ -29,6 +29,10 @@
   }
 
   // Chevrons on entry rows
+  const reviewChevron = document.getElementById("review-chevron");
+  if (reviewChevron) {
+    reviewChevron.replaceChildren(XH.icon("chevron", 14));
+  }
   const keysChevron = document.getElementById("keys-chevron");
   if (keysChevron) {
     keysChevron.replaceChildren(XH.icon("chevron", 14));
@@ -165,9 +169,13 @@
     const keysEntry = document.getElementById("keys");
     if (keysEntry) keysEntry.hidden = true;
   }
+  if (s.settings && s.settings.review === false) {
+    const reviewEntry = document.getElementById("review");
+    if (reviewEntry) reviewEntry.hidden = true;
+  }
 
   // Click handlers: each row opens its panel in the active X tab.
-  for (const mode of ["nfb", "keys"]) {
+  for (const mode of ["review", "keys", "nfb"]) {
     const row = document.getElementById(mode);
     if (!row) continue;
     row.addEventListener("click", async () => {

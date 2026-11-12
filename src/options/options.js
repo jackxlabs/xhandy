@@ -36,6 +36,7 @@
     "hud",
     "keyAccounts",
     "topPosts",
+    "review",
     "localNotes",
   ];
 

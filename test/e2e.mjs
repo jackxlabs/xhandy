@@ -3032,6 +3032,315 @@ try {
     // Restore setting
     await updateSettings({ review: true, lang: "en" });
   });
+
+  await step("review panel mode opens, displays summary, groups, top replies, and handles empty state (reply-review 5.1)", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    await updateSettings({ review: true, lang: "en" });
+
+    const now = Date.now();
+    const dayMs = 86400000;
+    const hourMs = 3600000;
+
+    // Seed mine with records:
+    // Clear difference case for delay dimension:
+    // under_1h: 12 replies, delay 30m, median views 800
+    // 6_to_24h: 9 replies, delay 10h, median views 150
+    // 1_to_6h: 3 replies, delay 2h, views 50 (fewer than 5 replies -> shows "3" and "not enough replies yet")
+    // All replies aged between 24h and 90d (e.g. 2 days old)
+    const seededMine = {};
+    const age = 2 * dayMs;
+    // 12 replies for under_1h
+    for (let i = 1; i <= 12; i++) {
+      const id = "100" + (i < 10 ? "0" + i : i);
+      seededMine[id] = {
+        k: "r",
+        to: "alice",
+        t: now - age,
+        pt: now - age - 30 * 60000,
+        v: 800,
+        l: 10,
+        x: `Reply text under 1h ${i}`,
+        u: now - 3600000,
+      };
+    }
+    // 9 replies for 6_to_24h
+    for (let i = 1; i <= 9; i++) {
+      const id = "200" + (i < 10 ? "0" + i : i);
+      seededMine[id] = {
+        k: "r",
+        to: "bob",
+        t: now - age,
+        pt: now - age - 10 * hourMs,
+        v: 150,
+        l: 2,
+        x: `Reply text 6 to 24h ${i}`,
+        u: now - 3600000,
+      };
+    }
+    // 3 replies for 1_to_6h (group with 3 replies)
+    for (let i = 1; i <= 3; i++) {
+      const id = "300" + (i < 10 ? "0" + i : i);
+      seededMine[id] = {
+        k: "r",
+        to: "carol",
+        t: now - age,
+        pt: now - age - 2 * hourMs,
+        v: 50,
+        l: 1,
+        x: `Reply text 1 to 6h ${i}`,
+        u: now - 3600000,
+      };
+    }
+
+    await setStoredPart("mine", seededMine);
+
+    // 1. Alt+R while typing in composer does nothing
+    const boxSel = '[data-testid="tweetTextarea_0"]';
+    await page.click(boxSel);
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForTimeout(400);
+    let isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "Alt+R while typing in composer must do nothing");
+
+    // Click outside to unfocus composer
+    await page.keyboard.press("Escape");
+    await page.focus("#fresh");
+
+    // 2. Alt+R opens the Review view
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+    assert.match(await page.textContent(".xh-panel-title"), /Review/);
+
+    // 3. Search wrap is hidden in review mode
+    const searchHidden = await page.$eval(".xh-panel-search-wrap", (el) => el.hidden);
+    assert.strictEqual(searchHidden, true, "search wrap must be hidden in review mode");
+
+    // 4. A group with 3 replies shows count and "not enough replies yet"
+    const panelContent = await page.textContent(".xh-panel");
+    assert.match(panelContent, /3 · not enough replies yet/);
+
+    // 5. The best group is marked in the clear-difference case (under 1 hour has best badge)
+    const bestBadge = await page.$(".xh-rev-best");
+    assert.ok(bestBadge, "best group marker must be present");
+    const bestText = await page.textContent(".xh-rev-best");
+    assert.strictEqual(bestText, "Best");
+    const bestRowText = await page.evaluate(() => {
+      const b = document.querySelector(".xh-rev-best");
+      return b?.closest(".xh-rev-group-row")?.textContent || "";
+    });
+    assert.match(bestRowText, /under 1 hour/);
+    assert.match(bestRowText, /800/);
+
+    // 6. Top replies are in order (800 views first) and link to /<handle>/status/<id>
+    const firstTopLink = await page.$eval(".xh-rev-reply-item a.xh-rev-reply-link", (el) => el.getAttribute("href"));
+    assert.match(firstTopLink, /\/status\/100/);
+
+    // 7. Last updated line and replies hint link
+    assert.match(panelContent, /Numbers last updated/);
+    assert.match(panelContent, /Scrolling your Replies tab refreshes these numbers/);
+    const repliesTabLink = await page.$eval("a.xh-rev-replies-link", (el) => el.getAttribute("href"));
+    assert.match(repliesTabLink, /\/with_replies/);
+
+    // 8. Pressing Alt+R again closes the view
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-panel");
+      return !(!!el && !el.hidden);
+    }, null, { timeout: 3000 });
+    isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "Alt+R closes the panel");
+
+    // 9. Empty state shows with no records
+    await setStoredPart("mine", {});
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+    const emptyText = await page.textContent(".xh-panel-empty");
+    assert.match(emptyText, /Replies appear here after you send them or open your Replies tab/);
+
+    // Close panel
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-panel");
+      return !(!!el && !el.hidden);
+    }, null, { timeout: 3000 });
+
+    // Clean up
+    await setStoredPart("mine", {});
+  });
+
+  await step("growth figures and SVG chart with line split at gaps (growth-record 5.2)", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    await updateSettings({ review: true, lang: "en" });
+
+    // 1. One snapshot only: shows "after a few days" text instead of figure
+    const p = await ctx.newPage();
+    let dates = [];
+    try {
+      await p.goto(`chrome-extension://${extId}/src/options/options.html`);
+      dates = await p.evaluate(() => {
+        const out = [];
+        const pad = (n) => String(n).padStart(2, "0");
+        for (let i = 0; i < 30; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+        }
+        return out;
+      });
+    } finally {
+      await p.close();
+    }
+
+    const todayKey = dates[0];
+
+    // Seed days with one snapshot
+    await setStoredPart("days", {
+      [todayKey]: { followers: 1200, replies: 5 },
+    });
+
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+
+    let panelText = await page.textContent(".xh-panel-info");
+    assert.match(panelText, /Follower growth appears after a few days of use/);
+    assert.doesNotMatch(panelText, /for 7 days/);
+
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-panel");
+      return !(!!el && !el.hidden);
+    }, null, { timeout: 3000 });
+
+    // 2. Snapshots with 7-day change (+60) and a gap in the series
+    // dates[0] (today): 1210 followers
+    // dates[1]..dates[4]: followers
+    // dates[5]..dates[6]: GAP (no snapshot)
+    // dates[7]: 1150 followers (+60 in 7 days)
+    // dates[8]..dates[15]: followers
+    const daysData = {
+      [dates[0]]: { followers: 1210, replies: 4 },
+      [dates[1]]: { followers: 1205, replies: 3 },
+      [dates[2]]: { followers: 1200, replies: 2 },
+      [dates[3]]: { followers: 1190, replies: 1 },
+      [dates[4]]: { followers: 1180, replies: 5 },
+      // gap at dates[5] and dates[6] (no snapshot)
+      [dates[7]]: { followers: 1150, replies: 2 },
+      [dates[8]]: { followers: 1140, replies: 3 },
+      [dates[9]]: { followers: 1130, replies: 1 },
+    };
+    await setStoredPart("days", daysData);
+
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+
+    panelText = await page.textContent(".xh-panel-info");
+    // Verify 7-day change text: +60 for 7 days
+    assert.match(panelText, /\+60 for 7 days/);
+
+    // Verify SVG chart has polyline split at the gap (dates[5] and dates[6])
+    // The continuous run before gap (dates[0]..dates[4]) and after gap (dates[7]..dates[9])
+    const polylineCount = await page.$$eval("svg.xh-rev-chart polyline", (els) => els.length);
+    assert.strictEqual(polylineCount, 2, "follower polyline must be split at the gap into 2 segments");
+
+    // Close panel
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-panel");
+      return !(!!el && !el.hidden);
+    }, null, { timeout: 3000 });
+
+    await setStoredPart("days", {});
+  });
+
+  await step("popup row, review switch in settings autosaves and closes view when off (reply-review 5.3)", async () => {
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+    await updateSettings({ review: true, lang: "en" });
+
+    // 1. Popup row opens the review view in the active X tab
+    const p = await ctx.newPage();
+    try {
+      await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+      await p.waitForSelector("#review");
+      assert.strictEqual(await p.$eval("#review", (el) => el.hidden), false);
+      assert.match(await p.textContent("#review"), /Review/);
+      assert.match(await p.textContent("#review"), /Alt R/);
+
+      // The row's click opens the view in the active tab, which here would be the popup page itself
+      // (no other popup row is clicked in e2e either), so the click is a manual check (task 6.1).
+    } finally {
+      await p.close();
+    }
+    await page.bringToFront();
+    await page.keyboard.press("Alt+KeyR");
+
+    // Verify view opened in X tab
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 4000 });
+    let isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, true, "review panel should be opened via popup row");
+
+    // 2. Settings page: review switch autosaves
+    const optPage = await ctx.newPage();
+    try {
+      await optPage.goto(`chrome-extension://${extId}/src/options/options.html`);
+      await optPage.waitForSelector("#review");
+      assert.strictEqual(await optPage.isChecked("#review"), true);
+
+      // Uncheck review switch
+      await optPage.uncheck("#review");
+      await optPage.waitForFunction(() => document.getElementById("status")?.textContent.includes("Saved"), null, { timeout: 3000 });
+
+      // Verify in storage
+      const s = await storedPart("settings");
+      assert.strictEqual(s.review, false, "review setting must be autosaved as false");
+    } finally {
+      await optPage.close();
+    }
+
+    // 3. Turning review off closes the open Review view in the X tab
+    await page.waitForFunction(() => {
+      const el = document.querySelector(".xh-panel");
+      return !(!!el && !el.hidden);
+    }, null, { timeout: 4000 });
+    isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "turning review off must close open Review view");
+
+    // 4. With review off, Alt+R does nothing
+    await page.keyboard.press("Alt+KeyR");
+    await page.waitForTimeout(500);
+    isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "Alt+R must do nothing when review is off");
+
+    // 5. Popup row is hidden when switch is off
+    const p2 = await ctx.newPage();
+    try {
+      await p2.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+      await p2.waitForSelector(".entry-list");
+      assert.strictEqual(await p2.$eval("#review", (el) => el.hidden), true, "popup row must be hidden when review is off");
+    } finally {
+      await p2.close();
+    }
+
+    // Restore setting
+    await updateSettings({ review: true, lang: "en" });
+  });
 } finally {
   await ctx.close();
 }

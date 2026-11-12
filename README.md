@@ -10,6 +10,7 @@ That is the point: you get faster without anything that looks like a bot to X.
 
 ## Features
 
+- **Review** (`Alt+R`, or the button in the toolbar popup): review the performance of your replies and track your follower growth. Shows 7-day reply count and median views, follower change over the last 7 and 30 days, a 30-day chart of replies bars and follower polyline (split at missing days), breakdown of what gets seen across reply delay, author size and post heat (groups with clear differences marked Best), top 10 most-viewed replies from the last 30 days, and a link to your Replies tab to refresh numbers. Data is kept in this browser only and can be turned off in Options.
 - **Feature switches and autosave**: every feature (heat chip, heat colouring, interaction chips, interaction tint, reply signals, replied mark, relationship chip, key accounts, top posts, notes, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in its own section in Options. All changes save automatically as you make them (no Save button needed). All are on by default.
 - **Notes** (`Alt+N`, or the button on profiles): keep private notes, tags and relationship stages for any account. Choose from four status presets (To reach out, In touch, Regular, Working together), up to 5 tags, and up to 500 characters of text. Posts by that account show a status chip or `#tag` next to the author's name (hover to preview the note). Manage, search and filter all notes in Options. Data is stored strictly in your browser and never leaves.
 - **Top posts** (`Alt+B`, or the button on profiles): opens X's own search for an account's best-received original posts (`from:<handle> min_faves:<N> -filter:replies`), with the threshold N chosen from their follower count; the browser's Back button returns to the profile. Helps you find winning topics and opening lines without typing search queries by hand. Turn it off in Options.
@@ -59,13 +60,13 @@ That is the point: you get faster without anything that looks like a bot to X.
   or if you are about to send the same short reply ("great!", "加油") for the third time.
   Repetitive replies are what spam filters look for.
 - **Daily stats**: a rounded pill in the bottom-right corner with today's likes, replies, posts, follows and time on X, plus an optional daily reply goal. It sits where it won't cover the reply box, and you can drag it anywhere in the window (clamped inside on resize; position saved locally and can be reset in Options). `Alt+H` hides it, and it fades while you scroll.
-- **Toolbar popup**: today's five numbers, a 7-day replies bar chart with weekly total and daily average, quick-access rows for Key accounts (with quiet count and `Alt+K`) and Not following back (with count and `Alt+U`), and an Options button.
+- **Toolbar popup**: today's five numbers, a 7-day replies bar chart with weekly total and daily average, quick-access rows for Review (`Alt+R`), Key accounts (with quiet count and `Alt+K`) and Not following back (with count and `Alt+U`), and an Options button.
 - **Looks at home on X**: post badges use X's own colours and follow its Default, Dim and Lights out themes.
   Xhandy's own surfaces (stats bar, panels, toasts, popup, settings) share one neutral look matching X, stroke SVG icons, and proportional numbers with tabular figures. Toasts ignore the mouse
   (`pointer-events: none`), so they never block a click on X; the stats bar takes the mouse only so you can drag it.
 
 X's own shortcuts already cover navigation and actions (`j`/`k`, `l` like, `r` reply, `t` repost, `?` for the list),
-and Xhandy adds `Alt+S` (star/unstar selected post's author), `Alt+B` (top posts search), `Alt+N` (edit note), `Alt+K` (key accounts panel), `Alt+U` (not following you back panel), `Shift+F` (follow assistant), and `Alt+H` (toggle stats bar).
+and Xhandy adds `Alt+S` (star/unstar selected post's author), `Alt+B` (top posts search), `Alt+N` (edit note), `Alt+K` (key accounts panel), `Alt+U` (not following you back panel), `Alt+R` (review panel), `Shift+F` (follow assistant), and `Alt+H` (toggle stats bar).
 
 ## Install
 
@@ -171,8 +172,9 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 ![帖子上的关注关系和互动次数，右侧是「没回关我」列表，右下角是今日统计（其他用户的信息已打码）](docs/relations-zh.png)
 
 - **防重复回复**：写回复时如果和你最近发过的某条很像，或者同一句短回复（比如「加油」）要发第三次了，右下角会提醒。重复的回复最容易被当成垃圾内容。
+- **效果复盘**（`Alt+R`，或工具栏弹窗入口）：复盘你的回复效果与粉丝增长。显示近 7 天回复数与中位数浏览量、近 7 天和 30 天粉丝增量、近 30 天每日回复柱状图与粉丝折线图（未打开的日子保留折线缺口，不虚报为 0）、按回复时机/对方粉丝量/原帖热度三个维度的效果对比（有明显优势的标为「最佳」），以及近 30 天最受关注的前 10 条回复，附「回复」页面链接以刷新数据。数据仅保存在本浏览器，可在设置中关闭。
 - **今日统计**：页面右下角的圆角统计条显示今天的点赞、回复、发帖、关注数和在线时长，不遮挡回复框，滚动时会变淡。按住可以随意拖拽到屏幕任何位置（调整窗口大小时始终留在窗口内，设置页可一键重置回默认位置）。
-- **工具栏弹窗**：点击工具栏上的 Xhandy 图标可以看今日 5 项数据、近 7 天回复柱状图（含总计与日均），以及「重点账号」（带沉寂数和 Alt+K 提示）与「没回关我」（带未回关数和 Alt+U 提示）的快捷入口。
+- **工具栏弹窗**：点击工具栏上的 Xhandy 图标可以看今日 5 项数据、近 7 天回复柱状图（含总计与日均），以及「效果复盘」（带 Alt+R 提示）、「重点账号」（带沉寂数和 Alt+K 提示）与「没回关我」（带未回关数和 Alt+U 提示）的快捷入口。
 
 ### 快捷键
 
@@ -183,6 +185,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 | `Alt+B` | 博主高赞帖：在当前页打开选中帖子作者或当前主页的高赞原创推文搜索 |
 | `Alt+N` | 账号备注：打开选中帖子作者或当前主页的备注编辑器，`Esc` 关闭 |
 | `Alt+K` | 打开或关闭「重点账号」面板，按最久未互动排序并标出沉寂账号，`Esc` 关闭 |
+| `Alt+R` | 打开或关闭「效果复盘」面板，查看回复表现与粉丝增长趋势，`Esc` 关闭 |
 | `Shift+F` | 关注助手：找到选中帖子作者的「关注」按钮并让它获得焦点。页面上已有就直接用（比如你把鼠标移到作者头像上弹出的资料卡），没有就跳到作者主页 |
 | `Enter` / `Esc` | 关注助手出现后：按 `Enter` 关注，按 `Esc` 取消。插件自己永远不会点 |
 | `Alt+←` | 浏览器自带的后退：关注助手跳到作者主页后，用它回到时间线 |
