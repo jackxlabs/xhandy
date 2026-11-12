@@ -347,6 +347,28 @@ test("cleanRelations validates new post fields and user followers", () => {
   ]);
 });
 
+test("cleanRelations validates followingCount on user entries", () => {
+  const store = loadStore(fakeChrome());
+  const r = store.cleanRelations(
+    JSON.stringify({
+      u: [
+        { handle: "u1", followingCount: 50 },
+        { handle: "u2", followingCount: 0 },
+        { handle: "u3", followers: 100, followingCount: 20 },
+        { handle: "bad_fg1", followingCount: -1 },
+        { handle: "bad_fg2", followingCount: 1.5 },
+        { handle: "bad_fg3", followingCount: "100" },
+      ],
+      at: 10,
+    })
+  );
+  assert.deepStrictEqual(r.u, [
+    { handle: "u1", name: null, id: null, followingCount: 50 },
+    { handle: "u2", name: null, id: null, followingCount: 0 },
+    { handle: "u3", name: null, id: null, followers: 100, followingCount: 20 },
+  ]);
+});
+
 test("cleanRelations validates inbound candidates n", () => {
   const store = loadStore(fakeChrome());
 
@@ -1743,4 +1765,96 @@ test("a migration that failed is tried again on the next read", async () => {
   const s = await store.get();
   assert.strictEqual(s.rel.bob.mAt, 7, "the v4 -> v5 step ran on the retry");
   assert.strictEqual(chrome.data["xh:v"], 5);
+});
+
+test("nextRel and relAfterFriendship handle fo and fg counts", () => {
+  const store = loadStore(fakeChrome());
+  const now = 1000;
+
+  // 1. Counts stored in nextRel (from u.followers and u.followingCount)
+  const entry1 = store.nextRel(undefined, { handle: "alice", id: "1", followers: 500, followingCount: 200 }, now);
+  assert.strictEqual(entry1.fo, 500);
+  assert.strictEqual(entry1.fg, 200);
+
+  // 2. Later payload with only followers preserves fg
+  const entry2 = store.nextRel(entry1, { id: "1", followers: 550 }, now + 10);
+  assert.strictEqual(entry2.fo, 550);
+  assert.strictEqual(entry2.fg, 200, "fg preserved when omitted in later payload");
+
+  // Later payload with only followingCount preserves fo
+  const entry3 = store.nextRel(entry2, { id: "1", followingCount: 210 }, now + 20);
+  assert.strictEqual(entry3.fo, 550, "fo preserved when omitted in later payload");
+  assert.strictEqual(entry3.fg, 210);
+
+  // 3. Never sent -> keys absent (not 0)
+  const entryNoCounts = store.nextRel(undefined, { handle: "bob", id: "2" }, now);
+  assert.strictEqual(entryNoCounts.fo, undefined);
+  assert.strictEqual(entryNoCounts.fg, undefined);
+  assert.ok(!("fo" in entryNoCounts));
+  assert.ok(!("fg" in entryNoCounts));
+
+  // 4. Reused handle (different id) drops old counts
+  const reused = store.nextRel(entry1, { id: "99", name: "NewAlice" }, now + 30);
+  assert.strictEqual(reused.id, "99");
+  assert.strictEqual(reused.fo, undefined);
+  assert.strictEqual(reused.fg, undefined);
+  assert.ok(!("fo" in reused));
+  assert.ok(!("fg" in reused));
+
+  // 5. relAfterFriendship preserves fo and fg
+  const follow = store.relAfterFriendship(entry1, { id: "1", name: "alice", on: true }, now + 40);
+  assert.strictEqual(follow.fo, 500);
+  assert.strictEqual(follow.fg, 200);
+
+  const unfollow = store.relAfterFriendship(entry1, { id: "1", name: "alice", on: false }, now + 50);
+  assert.strictEqual(unfollow.fo, 500);
+  assert.strictEqual(unfollow.fg, 200);
+});
+
+test("cleanRelEntry and replaceAll round-trip fo and fg counts", async () => {
+  const chrome = fakeChrome({ "xh:v": 5 });
+  const store = loadStore(chrome);
+
+  // cleanRelEntry directly exported on XH.store
+  assert.strictEqual(typeof store.cleanRelEntry, "function");
+  const cleanValid = store.cleanRelEntry({ f: true, fb: false, id: "1", t: 100, fo: 1200, fg: 350 });
+  assert.deepStrictEqual(cleanValid, { f: true, fb: false, id: "1", n: null, t: 100, fo: 1200, fg: 350 });
+
+  // cleanRelEntry drops invalid fo/fg
+  const cleanInvalid = store.cleanRelEntry({ f: true, fb: false, id: "1", t: 100, fo: -1, fg: "bad" });
+  assert.strictEqual(cleanInvalid.fo, undefined);
+  assert.strictEqual(cleanInvalid.fg, undefined);
+  assert.ok(!("fo" in cleanInvalid));
+  assert.ok(!("fg" in cleanInvalid));
+
+  // replaceAll round-trip preserves valid fo/fg and drops invalid ones
+  await store.replaceAll({
+    rel: {
+      valid: { f: true, fb: false, id: "10", t: 1, fo: 800, fg: 400 },
+      zero: { f: true, fb: false, id: "11", t: 2, fo: 0, fg: 0 },
+      bad: { f: true, fb: false, id: "12", t: 3, fo: -5, fg: 3.14 },
+      nocounts: { f: true, fb: false, id: "13", t: 4 },
+    },
+  });
+  const s = await store.get();
+  assert.deepStrictEqual(s.rel.valid, { f: true, fb: false, id: "10", n: null, t: 1, fo: 800, fg: 400 });
+  assert.deepStrictEqual(s.rel.zero, { f: true, fb: false, id: "11", n: null, t: 2, fo: 0, fg: 0 });
+  assert.deepStrictEqual(s.rel.bad, { f: true, fb: false, id: "12", n: null, t: 3 });
+  assert.ok(!("fo" in s.rel.bad));
+  assert.ok(!("fg" in s.rel.bad));
+  assert.deepStrictEqual(s.rel.nocounts, { f: true, fb: false, id: "13", n: null, t: 4 });
+  assert.ok(!("fo" in s.rel.nocounts));
+  assert.ok(!("fg" in s.rel.nocounts));
+
+  // pre-change export imports unchanged (keys absent)
+  const legacyExport = {
+    rel: {
+      legacy_user: { f: true, fb: false, id: "20", n: "Legacy", t: 50 },
+    },
+  };
+  await store.replaceAll(legacyExport);
+  const s2 = await store.get();
+  assert.deepStrictEqual(s2.rel.legacy_user, { f: true, fb: false, id: "20", n: "Legacy", t: 50 });
+  assert.ok(!("fo" in s2.rel.legacy_user));
+  assert.ok(!("fg" in s2.rel.legacy_user));
 });

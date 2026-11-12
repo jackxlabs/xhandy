@@ -38,7 +38,7 @@ list SHALL remain read-only: no control that follows or unfollows, and no mark s
 
 #### Scenario: Both known
 - **WHEN** @alice has 12,400 followers and follows 310
-- **THEN** her row shows "12.4K followers · 310 following" (Chinese: "粉丝 1.2万 · 关注 310") next to the
+- **THEN** her row shows "12K followers · 310 following" (Chinese: "粉丝 1.2万 · 关注 310") next to the
   existing "last seen" text
 
 #### Scenario: One known

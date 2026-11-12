@@ -544,6 +544,59 @@ try {
     if (process.env.SHOTS) await page.screenshot({ path: join(process.env.SHOTS, "panel.png") });
   });
 
+  await step("panel displays follower and following counts, honors locale, and updates live", async () => {
+    // Panel is open on the Following page where ann has both counts, zed has followers only, cal has neither
+    // 1. English rendering (default locale is en)
+    const annMetaEn = await page.$eval('.xh-panel a[href="/ann"] .xh-panel-meta', (el) => el.textContent);
+    assert.match(annMetaEn, /12K followers · 310 following/);
+
+    const zedMetaEn = await page.$eval('.xh-panel a[href="/zed"] .xh-panel-meta', (el) => el.textContent);
+    assert.match(zedMetaEn, /5\.2K followers/);
+    assert.doesNotMatch(zedMetaEn, /following/);
+
+    const calMetaEn = await page.$eval('.xh-panel a[href="/cal"] .xh-panel-meta', (el) => el.textContent);
+    assert.doesNotMatch(calMetaEn, /followers|following/);
+
+    // 2. Chinese locale rendering
+    await updateSettings({ lang: "zh" });
+    await page.waitForFunction(
+      () => /粉丝 1\.2万 · 关注 310/.test(document.querySelector('.xh-panel a[href="/ann"] .xh-panel-meta')?.textContent || ""),
+      null,
+      { timeout: 4000 }
+    );
+    const annMetaZh = await page.$eval('.xh-panel a[href="/ann"] .xh-panel-meta', (el) => el.textContent);
+    assert.match(annMetaZh, /粉丝 1\.2万 · 关注 310/);
+
+    // Back to English, the language the rest of the suite expects.
+    await updateSettings({ lang: "en" });
+    await page.waitForFunction(
+      () => /12K followers · 310 following/.test(document.querySelector('.xh-panel a[href="/ann"] .xh-panel-meta')?.textContent || ""),
+      null,
+      { timeout: 4000 }
+    );
+
+    // 3. Live update: dispatch xh-relations with counts for cal while panel is open
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent("xh-relations", {
+          detail: JSON.stringify({
+            u: [{ handle: "cal", following: true, followedBy: false, followers: 800, followingCount: 50 }],
+            v: [],
+            at: Date.now(),
+          }),
+        })
+      );
+    });
+    // Wait for debounce and storage onChange to re-render the row
+    await page.waitForFunction(
+      () => /800 followers · 50 following/.test(document.querySelector('.xh-panel a[href="/cal"] .xh-panel-meta')?.textContent || ""),
+      null,
+      { timeout: 4000 }
+    );
+    const calMetaUpdated = await page.$eval('.xh-panel a[href="/cal"] .xh-panel-meta', (el) => el.textContent);
+    assert.match(calMetaUpdated, /800 followers · 50 following/);
+  });
+
   await step("panel search narrows by name or handle", async () => {
     await page.fill(".xh-panel-search", "lee");
     await page.waitForFunction(() => !/@zed/.test(document.querySelector(".xh-panel-list").textContent));

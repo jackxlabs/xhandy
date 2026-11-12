@@ -73,6 +73,8 @@
     nfb_empty: "Nobody here.",
     nfb_more: "Showing {n} of {total}. Search to narrow it down.",
     nfb_seen: "seen {ago}",
+    nfb_size_fo: "{n} followers",
+    nfb_size_fg: "{n} following",
     nfb_you: "you: {n}×",
     nfb_recent: "Recently unfollowed you ({n})",
     nfb_lost: "unfollow noticed {ago}",

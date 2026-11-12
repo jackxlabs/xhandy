@@ -268,6 +268,109 @@ test("collectRelations reads relationship_counts.followers when available", () =
   });
 });
 
+test("collectRelations reads follower and following counts with legacy fallbacks", () => {
+  const json = {
+    users: [
+      {
+        __typename: "User",
+        rest_id: "301",
+        core: { screen_name: "both_counts", name: "Both" },
+        relationship_perspectives: { following: true, followed_by: true },
+        relationship_counts: { followers: 1500, following: 200 },
+      },
+      {
+        __typename: "User",
+        rest_id: "302",
+        core: { screen_name: "legacy_counts", name: "Legacy" },
+        relationship_perspectives: { following: true, followed_by: false },
+        legacy: { followers_count: 50, friends_count: 80 },
+      },
+      {
+        __typename: "User",
+        rest_id: "303",
+        core: { screen_name: "zero_counts", name: "Zero" },
+        relationship_perspectives: { following: true, followed_by: false },
+        relationship_counts: { followers: 0, following: 0 },
+      },
+      {
+        __typename: "User",
+        rest_id: "304",
+        core: { screen_name: "missing_counts", name: "Missing" },
+        relationship_perspectives: { following: true, followed_by: false },
+      },
+      {
+        __typename: "User",
+        rest_id: "305",
+        core: { screen_name: "invalid_counts", name: "Invalid" },
+        relationship_perspectives: { following: true, followed_by: false },
+        relationship_counts: { followers: "not_a_number", following: -5 },
+      },
+    ],
+  };
+  const byHandle = Object.fromEntries(collectRelations(json).map((u) => [u.handle, u]));
+  assert.deepStrictEqual(byHandle.both_counts, {
+    handle: "both_counts",
+    name: "Both",
+    id: "301",
+    following: true,
+    followedBy: true,
+    followers: 1500,
+    followingCount: 200,
+  });
+  assert.deepStrictEqual(byHandle.legacy_counts, {
+    handle: "legacy_counts",
+    name: "Legacy",
+    id: "302",
+    following: true,
+    followedBy: false,
+    followers: 50,
+    followingCount: 80,
+  });
+  assert.deepStrictEqual(byHandle.zero_counts, {
+    handle: "zero_counts",
+    name: "Zero",
+    id: "303",
+    following: true,
+    followedBy: false,
+    followers: 0,
+    followingCount: 0,
+  });
+  assert.strictEqual(byHandle.missing_counts.followers, undefined);
+  assert.strictEqual(byHandle.missing_counts.followingCount, undefined);
+  assert.ok(!("followers" in byHandle.missing_counts));
+  assert.ok(!("followingCount" in byHandle.missing_counts));
+  assert.strictEqual(byHandle.invalid_counts.followers, undefined);
+  assert.strictEqual(byHandle.invalid_counts.followingCount, undefined);
+});
+
+test("collectRelations merges counts from earlier and later copies of same user", () => {
+  const json = [
+    {
+      __typename: "User",
+      core: { screen_name: "merge_user", name: "Merge" },
+      relationship_perspectives: { following: true },
+      relationship_counts: { followers: 1200 },
+    },
+    {
+      __typename: "User",
+      core: { screen_name: "merge_user" },
+      relationship_perspectives: { followed_by: false },
+      relationship_counts: { following: 340 },
+    },
+  ];
+  const list = collectRelations(json);
+  assert.strictEqual(list.length, 1);
+  assert.deepStrictEqual(list[0], {
+    handle: "merge_user",
+    name: "Merge",
+    id: null,
+    following: true,
+    followedBy: false,
+    followers: 1200,
+    followingCount: 340,
+  });
+});
+
 test("collectRelations passes relationship flags through only when X sends booleans", () => {
   const user = (h, rp) => ({ __typename: "User", rest_id: "1", core: { screen_name: h }, relationship_perspectives: rp });
   const byHandle = Object.fromEntries(collectRelations([

@@ -1477,7 +1477,15 @@
       const k = u.handle.toLowerCase();
       const prev = relPending[k];
       // Within one batch, a later sighting that leaves a flag out keeps the earlier one.
-      relPending[k] = prev ? { ...u, following: u.following ?? prev.following, followedBy: u.followedBy ?? prev.followedBy } : u;
+      relPending[k] = prev
+        ? {
+            ...u,
+            following: u.following ?? prev.following,
+            followedBy: u.followedBy ?? prev.followedBy,
+            followers: u.followers ?? prev.followers,
+            followingCount: u.followingCount ?? prev.followingCount,
+          }
+        : u;
       relHandles[k] = u.handle;
     }
     const onFollowingPage = me && location.pathname.toLowerCase() === "/" + me.toLowerCase() + "/following";
@@ -1758,8 +1766,14 @@
     }
   }
 
+  let panelLang = null;
   function renderPanel(force) {
     if (!S || !panelEl || panelEl.hidden) return;
+    // The render keys don't include the language: redraw when it changes.
+    if (panelLang !== XH.lang) {
+      panelLang = XH.lang;
+      force = true;
+    }
     if (panelMode === "keys") {
       renderKeysPanel(force);
     } else {
@@ -1783,8 +1797,8 @@
     const today = S.days[store.dayKey()] || {};
     const key = JSON.stringify([
       "nfb",
-      recent.map(([h, r]) => [h, r.n, r.lostAt, r.mAt]),
-      shown.map(([h, r]) => [h, r.n, r.t]),
+      recent.map(([h, r]) => [h, r.n, r.lostAt, r.mAt, r.fo, r.fg]),
+      shown.map(([h, r]) => [h, r.n, r.t, r.fo, r.fg]),
       rows.length,
       S.relMeta.scan,
       today.unfollows,
@@ -1820,6 +1834,8 @@
         const li = el("li", "xh-panel-recent");
         // When they were last seen as mutuals tells how recent the unfollow really is.
         const meta = [t("nfb_lost", { ago: XH.ago(r.lostAt, now) })];
+        if (typeof r.fo === "number") meta.push(t("nfb_size_fo", { n: XH.compact(r.fo) }));
+        if (typeof r.fg === "number") meta.push(t("nfb_size_fg", { n: XH.compact(r.fg) }));
         if (r.mAt != null) meta.push(t("nfb_was", { ago: XH.ago(r.mAt, now) }));
         const p = S.people[h];
         if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
@@ -1845,6 +1861,8 @@
         const li = el("li");
         const meta = [t("nfb_seen", { ago: XH.ago(r.t, now) })];
         if (now - r.t > S.settings.relStaleDays * 86400000) meta[0] += t("rel_stale");
+        if (typeof r.fo === "number") meta.push(t("nfb_size_fo", { n: XH.compact(r.fo) }));
+        if (typeof r.fg === "number") meta.push(t("nfb_size_fg", { n: XH.compact(r.fg) }));
         const p = S.people[h];
         if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
         li.append(panelRow(h, { name: r.n, meta: meta.join(" · ") }));

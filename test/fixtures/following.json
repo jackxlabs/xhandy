@@ -26,6 +26,9 @@
                "followed_by": false,
                "following": true,
                "muting": false
+              },
+              "relationship_counts": {
+               "followers": 5200
               }
              }
             }
@@ -74,6 +77,10 @@
                "followed_by": false,
                "following": true,
                "muting": false
+              },
+              "relationship_counts": {
+               "followers": 12400,
+               "following": 310
               }
              }
             }
@@ -91,6 +98,30 @@
               "core": {
                "name": "Me",
                "screen_name": "me_test"
+              },
+              "relationship_perspectives": {
+               "blocked_by": false,
+               "blocking": false,
+               "followed_by": false,
+               "following": true,
+               "muting": false
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "entryId": "user-24",
+          "content": {
+           "itemContent": {
+            "user_results": {
+             "result": {
+              "__typename": "User",
+              "rest_id": "24",
+              "core": {
+               "name": "Cal",
+               "screen_name": "cal"
               },
               "relationship_perspectives": {
                "blocked_by": false,

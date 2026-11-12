@@ -18,7 +18,7 @@ Two problems found while using the "Not following you back" list (`Alt+U`) on re
   keyboard focus, so `j`/`k` work on the page right away.
 - Rows of the "Not following you back" view (both the "Recently unfollowed you" section and the normal
   list) show the account's follower and following counts when X has sent them, e.g.
-  `12.4K followers · 310 following`. Counts X never sent are left out, not shown as 0.
+  `12K followers · 310 following`. Counts X never sent are left out, not shown as 0.
 - Xhandy stores these two counts with each relationship it already stores, updated whenever X sends them.
 
 ## Capabilities

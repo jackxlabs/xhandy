@@ -73,6 +73,8 @@
     nfb_empty: "没有。",
     nfb_more: "显示 {n} / {total} 个，用搜索缩小范围。",
     nfb_seen: "{ago}看到",
+    nfb_size_fo: "粉丝 {n}",
+    nfb_size_fg: "关注 {n}",
     nfb_you: "互动{n}次",
     nfb_recent: "最近取关了你（{n}）",
     nfb_lost: "{ago}发现取关",

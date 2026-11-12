@@ -27,3 +27,16 @@ steps pass.
    box is swallowed), and whether to add CI.
 4. Dropped after measuring: merging the three JSON walks in `src/page-hook.js` (under 0.5 ms per 100 KB response).
 
+
+## Panel fixes and reply review (2026-11-12)
+Order agreed with Jack 2026-11-12: `panel-stay-and-counts` first, then `reply-review`. Claude writes specs and
+reviews, agy implements (herdr agent `xh-dev`, edit-only).
+1. `openspec/changes/panel-stay-and-counts/`: groups 1 and 2 implemented, reviewed and committed on branch
+   `panel-stay-and-counts` (not pushed, not merged). 117 unit tests and 104 e2e steps pass.
+   Next: task 3.1, Jack checks on real X (reload the extension; Alt+U, click a few accounts, use Back; scroll the
+   own Following page and see whether rows show follower AND following counts). The following-count field path
+   (`relationship_counts.following`, fallback `legacy.friends_count`) is unconfirmed: if only followers show, fix
+   the path in `collectRelations`. Then merge to `main`, archive the change, and decide on a version bump.
+2. `openspec/changes/reply-review/` (reply review + daily follower snapshot): spec written and valid, untracked,
+   no code yet. Jack agreed: store the first 80 characters of own posts, shortcut Alt+R, one switch for review and
+   follower snapshots. Next: hand task group 1 to agy on a new branch `reply-review`, in a fresh agy session.

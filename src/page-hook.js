@@ -24,14 +24,22 @@
         // Only pass a flag X actually sent: an omitted one is unknown, not false.
         if (typeof r.following === "boolean") entry.following = r.following;
         if (typeof r.followed_by === "boolean") entry.followedBy = r.followed_by;
-        if (v.relationship_counts && v.relationship_counts.followers != null) {
-          const fc = Number(v.relationship_counts.followers);
+        let rawFo = v.relationship_counts?.followers;
+        if (rawFo == null && v.legacy) rawFo = v.legacy.followers_count;
+        if (rawFo != null) {
+          const fc = Number(rawFo);
           if (Number.isFinite(fc) && fc >= 0) entry.followers = fc;
+        }
+        let rawFg = v.relationship_counts?.following;
+        if (rawFg == null && v.legacy) rawFg = v.legacy.friends_count;
+        if (rawFg != null) {
+          const fg = Number(rawFg);
+          if (Number.isFinite(fg) && fg >= 0) entry.followingCount = fg;
         }
         const key = v.core.screen_name.toLowerCase();
         const existing = out.get(key);
         if (existing) {
-          for (const k of ["following", "followedBy", "followers"]) {
+          for (const k of ["following", "followedBy", "followers", "followingCount"]) {
             if (entry[k] == null && existing[k] != null) entry[k] = existing[k];
           }
         }

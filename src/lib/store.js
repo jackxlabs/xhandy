@@ -230,6 +230,8 @@
     const next = { ...old, id: u.id || old.id || null, n: u.name || old.n || null, t: now };
     if (typeof u.following === "boolean") next.f = u.following;
     if (typeof u.followedBy === "boolean") next.fb = u.followedBy;
+    if (isNonNegInt(u.followers)) next.fo = u.followers;
+    if (isNonNegInt(u.followingCount)) next.fg = u.followingCount;
     // Only a mutual X actually showed counts; f and fb can both be true after the user unfollows and follows again.
     const wasMutual = old.mAt != null;
     if (u.following === true && u.followedBy === true) {
@@ -295,7 +297,7 @@
     if (!isObj(r)) return null;
     const e = { f: r.f === true, fb: r.fb === true, id: isId(r.id) ? r.id : null, n: str(r.n, 100), t: num(r.t) };
     // Unfollow detection: mutual since, unfollow detected at, alert dismissed at.
-    for (const k of ["mAt", "lostAt", "ackAt"]) if (isNonNegInt(r[k])) e[k] = r[k];
+    for (const k of ["mAt", "lostAt", "ackAt", "fo", "fg"]) if (isNonNegInt(r[k])) e[k] = r[k];
     return e;
   }
 
@@ -426,6 +428,7 @@
     for (const x of Array.isArray(p.u) ? p.u : []) {
       if (!isObj(x) || !isHandle(x.handle)) continue;
       if (x.followers != null && !isNonNegInt(x.followers)) continue;
+      if (x.followingCount != null && !isNonNegInt(x.followingCount)) continue;
       const uEntry = {
         handle: x.handle,
         name: str(x.name, 100),
@@ -435,6 +438,7 @@
       if (typeof x.following === "boolean") uEntry.following = x.following;
       if (typeof x.followedBy === "boolean") uEntry.followedBy = x.followedBy;
       if (isNonNegInt(x.followers)) uEntry.followers = x.followers;
+      if (isNonNegInt(x.followingCount)) uEntry.followingCount = x.followingCount;
       u.push(uEntry);
     }
     const v = [];
@@ -766,5 +770,5 @@
     return Math.min(8, Math.max(0, Math.round(depth * fade * 8)));
   }
 
-  XH.store = { PARTS, DEFAULTS, SETTING_RANGES, clampSetting, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, MAX_NOTE_TEXT, MAX_NOTE_TAGS, MAX_TAG_LEN, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel };
+  XH.store = { PARTS, DEFAULTS, SETTING_RANGES, clampSetting, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, MAX_NOTE_TEXT, MAX_NOTE_TAGS, MAX_TAG_LEN, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel, cleanRelEntry };
 })();
