@@ -90,13 +90,13 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
 
 - Permissions: `storage` and `unlimitedStorage` (so a long follow list never hits Chrome's 10 MB cap).
   Scripts run on `x.com` and `twitter.com` only.
-- Stored in this browser only: your settings (including the stats bar position), daily counts, per-author like/reply counts, follow relationships
+- Stored in this browser only: your settings (including the stats bar position), daily counts (likes, replies, posts, follows, unfollows, time on X, and a daily follower count snapshot when X sends it), per-author like/reply counts, follow relationships
   (with when an account was last seen as a mutual, when it stopped following you back, when you dismissed that, and follower/following counts when X sends them),
   timestamps of up to 100 recent follows and 100 recent unfollows (dropped after 24 hours, used for pace reminders),
   the text of your last 300 replies and posts (used for the duplicate-reply warning), the ids of up to 5,000
   posts you replied to (for the `✓ replied` mark), your own handle and follower count, how often each account
   liked, replied to, quoted or mentioned you, up to 20,000 ids of those interactions so each is counted once,
-  up to 1,000 key accounts you starred, with the time each was added, and up to 5,000 private notes you wrote about accounts (status, tags, text, and when each was created and last edited).
+  up to 1,000 key accounts you starred, with the time each was added, up to 5,000 private notes you wrote about accounts (status, tags, text, and when each was created and last edited), and up to 2,000 records of your own posts and replies (post id, reply or post kind, created time, account replied to, the first 80 characters of your text, latest views/likes/reply count and when received, and reply context such as parent creation time, parent author followers, your followers, and parent views per hour; oldest by creation time dropped first, used for the Review view).
 - In tab session storage (`sessionStorage`): panel open state (view, search text, scroll position) across reloads within the same tab, cleared when the panel or tab is closed.
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
   view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never

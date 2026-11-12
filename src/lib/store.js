@@ -43,6 +43,7 @@
       showTint: true, // tint posts by two-way interaction strength
       tintFull: 20, // interaction count that gives the deepest tint
       tintHalfLife: 30, // days until tint strength halves
+      review: true, // review panel, reply stats, follower snapshots
     },
     people: {}, // handle -> { likes, replies, last, in?: { likes, replies, quotes, mentions, last } }
     sent: [], // { t, text, kind: "reply" | "post", to }
@@ -58,6 +59,7 @@
     pace: { follows: [], unfollows: [] },
     keys: {}, // handle (lowercase) -> { h: displayHandle, t: addedAt }
     notes: {}, // handle (lowercase) -> { h, id?, s?, tags?, text?, t, u }
+    mine: {}, // id -> { k, t, v?, l?, r?, u?, to?, x?, pt?, pf?, mf?, ph? }
   };
   const PARTS = Object.keys(DEFAULTS);
   // Allowed range of each number setting with a field on the settings page. The settings page and import
@@ -88,6 +90,7 @@
   const MAX_PACE = 100;
   const MAX_KEYS = 1000;
   const MAX_NOTES = 5000;
+  const MAX_MINE = 2000;
   const MAX_NOTE_TEXT = 500;
   const MAX_NOTE_TAGS = 5;
   const MAX_TAG_LEN = 20;
@@ -155,6 +158,7 @@
   const capRel = (rel) => capOldest(rel, MAX_REL, (r) => r.t); // most recently seen relationships
   const capKeys = (k) => capOldest(k, MAX_KEYS, (e) => (e && e.t) || 0); // by added time
   const capNotes = (notes) => capOldest(notes, MAX_NOTES, (e) => (e && e.u) || 0); // by last edit
+  const capMine = (mine) => capOldest(mine, MAX_MINE, (e) => (e && e.t) || 0); // newest by creation time
 
   const chars = (x) => Array.from(x);
 
@@ -328,6 +332,36 @@
       .slice(-MAX_PACE);
   }
 
+  function cleanMineRecord(v) {
+    if (!isObj(v)) return null;
+    if (v.k !== "r" && v.k !== "p") return null;
+    if (typeof v.t !== "number" || !Number.isFinite(v.t) || v.t < 0) return null;
+    const out = { k: v.k, t: v.t };
+    if (typeof v.v === "number" && Number.isFinite(v.v) && v.v >= 0) out.v = v.v;
+    if (typeof v.l === "number" && Number.isFinite(v.l) && v.l >= 0) out.l = v.l;
+    if (typeof v.r === "number" && Number.isFinite(v.r) && v.r >= 0) out.r = v.r;
+    if (typeof v.u === "number" && Number.isFinite(v.u) && v.u >= 0) out.u = v.u;
+    if (isHandle(v.to)) out.to = v.to;
+    if (typeof v.x === "string") out.x = chars(v.x).slice(0, 80).join("");
+    if (typeof v.pt === "number" && Number.isFinite(v.pt) && v.pt >= 0) out.pt = v.pt;
+    if (typeof v.pf === "number" && Number.isFinite(v.pf) && v.pf >= 0) out.pf = v.pf;
+    if (typeof v.mf === "number" && Number.isFinite(v.mf) && v.mf >= 0) out.mf = v.mf;
+    if (typeof v.ph === "number" && Number.isFinite(v.ph) && v.ph >= 0) out.ph = v.ph;
+    return out;
+  }
+
+  function cleanMine(raw) {
+    if (!isObj(raw)) return {};
+    const out = {};
+    for (const [id, val] of Object.entries(raw)) {
+      if (!isId(id)) continue;
+      const record = cleanMineRecord(val);
+      if (record) out[id] = record;
+    }
+    capMine(out);
+    return out;
+  }
+
   // A whole state object from an import file: drop what can't be right, keep the rest.
   function cleanState(data) {
     const s = isObj(data) ? data : {};
@@ -343,6 +377,7 @@
       pace: cleanPace(s.pace),
       keys: {},
       notes: {},
+      mine: cleanMine(s.mine),
     };
     for (const [h, p] of Object.entries(isObj(s.people) ? s.people : {})) {
       if (isHandle(h) && isObj(p)) {
@@ -363,6 +398,7 @@
       if (!DAY.test(k) || !isObj(d)) continue;
       const day = {};
       for (const f of ["likes", "replies", "posts", "follows", "unfollows", "seconds"]) day[f] = num(d[f]);
+      if (isNonNegInt(d.followers)) day.followers = d.followers;
       out.days[k] = day;
     }
     for (const [h, r] of Object.entries(isObj(s.rel) ? s.rel : {})) {
@@ -522,6 +558,7 @@
     if (part === "pace") return cleanPace(v);
     if (part === "keys") return isObj(v) ? v : {};
     if (part === "notes") return isObj(v) ? v : {};
+    if (part === "mine") return cleanMine(v);
     return v || {};
   }
 
@@ -658,6 +695,7 @@
         }
       }
       if (s.keys) capKeys(s.keys);
+      if (s.mine) capMine(s.mine);
       const out = {};
       for (const part of parts) out[keyOf(part)] = s[part];
       await chrome.storage.local.set(out);
@@ -770,5 +808,5 @@
     return Math.min(8, Math.max(0, Math.round(depth * fade * 8)));
   }
 
-  XH.store = { PARTS, DEFAULTS, SETTING_RANGES, clampSetting, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, MAX_NOTE_TEXT, MAX_NOTE_TAGS, MAX_TAG_LEN, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel, cleanRelEntry };
+  XH.store = { PARTS, DEFAULTS, SETTING_RANGES, clampSetting, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, MAX_MINE, MAX_NOTE_TEXT, MAX_NOTE_TAGS, MAX_TAG_LEN, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel, cleanRelEntry, cleanMine, cleanMineRecord, capMine, trimMine: capMine };
 })();

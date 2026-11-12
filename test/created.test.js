@@ -15,7 +15,9 @@ test("collectCreated parses successful reply with display range and unicode code
       create_tweet: {
         tweet_results: {
           result: {
+            rest_id: "2001",
             legacy: {
+              created_at: "Wed Oct 21 14:00:00 +0000 2026",
               full_text: "@alice @bob 👍 Great job on the release!",
               display_text_range: [12, 39], // code point indices (skips mentions, includes emoji)
               in_reply_to_status_id_str: "1001",
@@ -30,6 +32,8 @@ test("collectCreated parses successful reply with display range and unicode code
   const r = collectCreated(POST_URL, json, true);
   assert.deepStrictEqual(r, {
     ok: true,
+    id: "2001",
+    at: Date.parse("Wed Oct 21 14:00:00 +0000 2026"),
     kind: "reply",
     text: "👍 Great job on the release!",
     to: "alice",
@@ -43,7 +47,9 @@ test("collectCreated parses quote post as kind post without target", () => {
       create_tweet: {
         tweet_results: {
           result: {
+            rest_id: "2002",
             legacy: {
+              created_at: "Wed Oct 21 14:05:00 +0000 2026",
               full_text: "Sharing this thoughtful write-up https://t.co/fake123",
               display_text_range: [0, 53],
               in_reply_to_status_id_str: null,
@@ -58,6 +64,8 @@ test("collectCreated parses quote post as kind post without target", () => {
   const r = collectCreated(POST_URL, json, true);
   assert.deepStrictEqual(r, {
     ok: true,
+    id: "2002",
+    at: Date.parse("Wed Oct 21 14:05:00 +0000 2026"),
     kind: "post",
     text: "Sharing this thoughtful write-up https://t.co/fake123",
     to: null,
@@ -71,6 +79,7 @@ test("collectCreated parses long post via CreateNoteTweet", () => {
       notetweet_create: {
         tweet_results: {
           result: {
+            rest_id: "2003",
             note_tweet: {
               note_tweet_results: {
                 result: {
@@ -79,6 +88,7 @@ test("collectCreated parses long post via CreateNoteTweet", () => {
               },
             },
             legacy: {
+              created_at: "Wed Oct 21 14:10:00 +0000 2026",
               full_text: "This is a detailed...",
               in_reply_to_status_id_str: null,
             },
@@ -90,6 +100,8 @@ test("collectCreated parses long post via CreateNoteTweet", () => {
   const r = collectCreated(NOTE_URL, json, true);
   assert.deepStrictEqual(r, {
     ok: true,
+    id: "2003",
+    at: Date.parse("Wed Oct 21 14:10:00 +0000 2026"),
     kind: "post",
     text: "This is a detailed long-form note tweet that exceeds the usual length limits.",
     to: null,
@@ -105,7 +117,9 @@ test("collectCreated unwraps TweetWithVisibilityResults without requiring __type
           result: {
             __typename: "TweetWithVisibilityResults",
             tweet: {
+              rest_id: "2004",
               legacy: {
+                created_at: "Wed Oct 21 14:15:00 +0000 2026",
                 full_text: "Post wrapped inside visibility results",
                 display_text_range: [0, 38],
                 in_reply_to_status_id_str: null,
@@ -119,6 +133,8 @@ test("collectCreated unwraps TweetWithVisibilityResults without requiring __type
   const r = collectCreated(POST_URL, json, true);
   assert.deepStrictEqual(r, {
     ok: true,
+    id: "2004",
+    at: Date.parse("Wed Oct 21 14:15:00 +0000 2026"),
     kind: "post",
     text: "Post wrapped inside visibility results",
     to: null,
@@ -132,7 +148,9 @@ test("collectCreated decodes HTML entities &amp; &lt; &gt;", () => {
       create_tweet: {
         tweet_results: {
           result: {
+            rest_id: "2005",
             legacy: {
+              created_at: "Wed Oct 21 14:20:00 +0000 2026",
               full_text: "Tips: 1 &lt; 2 &amp;&amp; 5 &gt; 3",
               display_text_range: [0, 34],
               in_reply_to_status_id_str: null,
@@ -145,11 +163,33 @@ test("collectCreated decodes HTML entities &amp; &lt; &gt;", () => {
   const r = collectCreated(POST_URL, json, true);
   assert.deepStrictEqual(r, {
     ok: true,
+    id: "2005",
+    at: Date.parse("Wed Oct 21 14:20:00 +0000 2026"),
     kind: "post",
     text: "Tips: 1 < 2 && 5 > 3",
     to: null,
     inReplyTo: null,
   });
+});
+
+test("collectCreated falls back to receive time when created_at is omitted and null when rest_id is omitted", () => {
+  const json = {
+    data: {
+      create_tweet: {
+        tweet_results: {
+          result: {
+            legacy: {
+              full_text: "Post without rest_id and created_at",
+            },
+          },
+        },
+      },
+    },
+  };
+  const r = collectCreated(POST_URL, json, true, 1760000000000);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.id, null);
+  assert.strictEqual(r.at, 1760000000000);
 });
 
 test("collectCreated returns { ok: false } for failed or error responses", () => {

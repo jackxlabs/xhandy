@@ -491,3 +491,161 @@ test("nextRel keeps a known id and name when X sends none", () => {
   assert.strictEqual(r.id, "1");
   assert.strictEqual(r.n, "Al");
 });
+
+test("collectPosts reads likes, time, and to; leaves absent when omitted", () => {
+  const json = [
+    {
+      __typename: "Tweet",
+      rest_id: "501",
+      legacy: {
+        favorite_count: 42,
+        created_at: "Wed Oct 21 14:00:00 +0000 2026",
+        in_reply_to_screen_name: "bob_coder",
+      },
+    },
+    {
+      __typename: "Tweet",
+      rest_id: "502",
+      legacy: {
+        reply_count: 3,
+      },
+    },
+  ];
+  const posts = collectPosts(json);
+  const p1 = posts.find((p) => p.id === "501");
+  const p2 = posts.find((p) => p.id === "502");
+
+  assert.strictEqual(p1.likes, 42);
+  assert.strictEqual(p1.at, Date.parse("Wed Oct 21 14:00:00 +0000 2026"));
+  assert.strictEqual(p1.to, "bob_coder");
+
+  assert.strictEqual("likes" in p2, false, "missing favorite_count leaves likes absent, never 0");
+  assert.strictEqual("at" in p2, false, "missing created_at leaves at absent");
+  assert.strictEqual("to" in p2, false, "missing in_reply_to_screen_name leaves to absent");
+});
+
+test("collectPosts extracts text only for own posts (matched by handle or id), never for others, and absent when me is null", () => {
+  const json = [
+    {
+      __typename: "Tweet",
+      rest_id: "601",
+      core: {
+        user_results: {
+          result: {
+            __typename: "User",
+            rest_id: "9999",
+            core: { screen_name: "Viewer_Jack" },
+          },
+        },
+      },
+      legacy: {
+        full_text: "My own tweet text &amp; thoughts",
+        favorite_count: 5,
+        created_at: "Wed Oct 21 14:00:00 +0000 2026",
+      },
+    },
+    {
+      __typename: "Tweet",
+      rest_id: "602",
+      core: {
+        user_results: {
+          result: {
+            __typename: "User",
+            rest_id: "9999",
+            core: { screen_name: "Renamed_Handle" },
+          },
+        },
+      },
+      legacy: {
+        full_text: "Matched by ID only",
+      },
+    },
+    {
+      __typename: "Tweet",
+      rest_id: "603",
+      core: {
+        user_results: {
+          result: {
+            __typename: "User",
+            rest_id: "1234",
+            core: { screen_name: "other_person" },
+          },
+        },
+      },
+      legacy: {
+        full_text: "Someone else's text must never be included",
+      },
+    },
+  ];
+
+  const me = { handle: "viewer_jack", id: "9999" };
+  const postsWithMe = collectPosts(json, me);
+  const byId = Object.fromEntries(postsWithMe.map((p) => [p.id, p]));
+
+  assert.strictEqual(byId["601"].text, "My own tweet text & thoughts");
+  assert.strictEqual(byId["602"].text, "Matched by ID only");
+  assert.strictEqual("text" in byId["603"], false, "other people's post text must never be in payload");
+
+  // When me is null, no post has text
+  const postsWithoutMe = collectPosts(json, null);
+  for (const p of postsWithoutMe) {
+    assert.strictEqual("text" in p, false, "text is absent when me is null");
+  }
+});
+
+test("collectPosts prefers note_tweet text over full_text, uses display range, and cuts to 80 chars", () => {
+  const me = { handle: "dev_alice", id: "100" };
+  const longNote = "🌟 ".repeat(50); // > 80 code points
+  const json = [
+    {
+      __typename: "Tweet",
+      rest_id: "701",
+      core: {
+        user_results: {
+          result: {
+            __typename: "User",
+            rest_id: "100",
+            core: { screen_name: "dev_alice" },
+          },
+        },
+      },
+      note_tweet: {
+        note_tweet_results: {
+          result: {
+            text: longNote,
+          },
+        },
+      },
+      legacy: {
+        full_text: "Short fallback text",
+      },
+    },
+    {
+      __typename: "Tweet",
+      rest_id: "702",
+      core: {
+        user_results: {
+          result: {
+            __typename: "User",
+            rest_id: "100",
+            core: { screen_name: "dev_alice" },
+          },
+        },
+      },
+      legacy: {
+        full_text: "@bob @carol Useful reply &lt;3",
+        display_text_range: [12, 30],
+      },
+    },
+  ];
+
+  const posts = collectPosts(json, me);
+  const byId = Object.fromEntries(posts.map((p) => [p.id, p]));
+
+  // 701: note_tweet preferred, cut to 80 code points without corrupting emoji
+  assert.strictEqual(Array.from(byId["701"].text).length, 80);
+  assert.strictEqual(byId["701"].text, Array.from(longNote).slice(0, 80).join(""));
+
+  // 702: display_text_range applied and entities decoded
+  assert.strictEqual(byId["702"].text, "Useful reply <3");
+});

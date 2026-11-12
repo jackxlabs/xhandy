@@ -50,8 +50,12 @@
     return [...out.values()];
   }
 
-  // Walk any JSON value and collect post stats: [{ id, views?, replies?, author?, authorFollowers?, inReplyTo? }].
-  function collectPosts(root) {
+  function decodeEntities(s) {
+    return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  }
+
+  // Walk any JSON value and collect post stats: [{ id, views?, replies?, likes?, at?, to?, author?, authorFollowers?, inReplyTo?, text? }].
+  function collectPosts(root, me) {
     const out = new Map();
     const stack = [root];
     while (stack.length) {
@@ -71,6 +75,14 @@
           const r = Number(v.legacy.reply_count);
           if (Number.isFinite(r) && r >= 0) post.replies = r;
         }
+        if (v.legacy && v.legacy.favorite_count != null) {
+          const l = Number(v.legacy.favorite_count);
+          if (Number.isFinite(l) && l >= 0) post.likes = l;
+        }
+        if (v.legacy && v.legacy.created_at) {
+          const t = Date.parse(v.legacy.created_at);
+          if (Number.isFinite(t)) post.at = t;
+        }
         const user = v.core && v.core.user_results && v.core.user_results.result;
         const author = user && ((user.core && user.core.screen_name) || (user.legacy && user.legacy.screen_name));
         if (typeof author === "string" && author) {
@@ -82,6 +94,34 @@
         }
         if (v.legacy && typeof v.legacy.in_reply_to_status_id_str === "string" && v.legacy.in_reply_to_status_id_str) {
           post.inReplyTo = v.legacy.in_reply_to_status_id_str;
+        }
+        if (v.legacy && typeof v.legacy.in_reply_to_screen_name === "string" && v.legacy.in_reply_to_screen_name) {
+          post.to = v.legacy.in_reply_to_screen_name;
+        }
+        if (me && (me.handle || me.id)) {
+          const myHandle = me.handle && typeof me.handle === "string" ? me.handle.toLowerCase() : null;
+          const myId = me.id != null ? String(me.id) : null;
+          const authorHandle = post.author || (user && user.screen_name) || v.legacy?.screen_name || null;
+          const authorId = (user && (user.rest_id || user.id_str || user.id)) || v.legacy?.user_id_str || null;
+          const isMe = (myId && authorId != null && String(authorId) === myId) ||
+                       (myHandle && authorHandle != null && String(authorHandle).toLowerCase() === myHandle);
+          if (isMe) {
+            const noteText = v.note_tweet?.note_tweet_results?.result?.text || (typeof v.note_tweet?.text === "string" ? v.note_tweet.text : null);
+            let rawText = null;
+            if (typeof noteText === "string") {
+              rawText = noteText;
+            } else if (v.legacy && typeof v.legacy.full_text === "string") {
+              const range = v.legacy.display_text_range;
+              if (Array.isArray(range) && range.length === 2 && Number.isInteger(range[0]) && Number.isInteger(range[1])) {
+                rawText = Array.from(v.legacy.full_text).slice(range[0], range[1]).join("");
+              } else {
+                rawText = v.legacy.full_text;
+              }
+            }
+            if (typeof rawText === "string") {
+              post.text = Array.from(decodeEntities(rawText)).slice(0, 80).join("");
+            }
+          }
         }
         out.set(post.id, post);
       }
@@ -104,11 +144,7 @@
   // The user's own post or reply, from X's GraphQL mutation: POST .../(CreateTweet|CreateNoteTweet)
   const POST_URL = /\/graphql\/[^/]+\/(CreateTweet|CreateNoteTweet)(\?|$)/;
 
-  function decodeEntities(s) {
-    return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-  }
-
-  function collectCreated(url, json, ok = true) {
+  function collectCreated(url, json, ok = true, receiveTime = Date.now()) {
     if (typeof url !== "string" || !POST_URL.test(url)) return null;
     if (!ok) return { ok: false };
     if (!json || typeof json !== "object") return { ok: false };
@@ -141,7 +177,10 @@
     const isReply = Boolean(inReplyTo);
     const kind = isReply ? "reply" : "post";
     const to = isReply && typeof res.legacy?.in_reply_to_screen_name === "string" ? res.legacy.in_reply_to_screen_name : null;
-    return { ok: true, kind, text, to, inReplyTo };
+    const id = res.rest_id != null ? String(res.rest_id) : (res.legacy?.id_str || null);
+    let at = res.legacy?.created_at ? Date.parse(res.legacy.created_at) : NaN;
+    if (!Number.isFinite(at)) at = typeof receiveTime === "number" && Number.isFinite(receiveTime) ? receiveTime : Date.now();
+    return { ok: true, id, at, kind, text, to, inReplyTo };
   }
 
   // X sends notification times as epoch milliseconds in a string, or as an ISO date.
@@ -387,7 +426,7 @@
       if (json) updateMeFromViewer(json);
       const me = getMe();
       const u = ok ? collectRelations(json) : [];
-      const v = ok ? collectPosts(json) : [];
+      const v = ok ? collectPosts(json, me) : [];
       const f = ok ? collectFriendship(url, json) : [];
       const created = collectCreated(url, json, ok);
       const c = created ? [created] : [];

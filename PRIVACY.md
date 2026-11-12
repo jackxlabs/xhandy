@@ -16,7 +16,7 @@ Everything below is kept in your browser's extension storage (`chrome.storage.lo
 It is not synced to other devices and is never sent anywhere.
 
 - **Settings** you choose on the Options page (feature switches, limits, thresholds, accounts to highlight, and the stats bar position).
-- **Daily counts**: likes, replies, posts, follows, unfollows and time spent on X, per day.
+- **Daily counts**: likes, replies, posts, follows, unfollows, time spent on X, and a daily snapshot of your follower count (when X provides it), per day.
 - **Recent follow and unfollow times**: timestamps of up to 100 recent follows and 100 recent unfollows,
   dropped after 24 hours, used only to remind you when you follow or unfollow too fast within a short window.
 - **Interaction counts per account**: how many times you liked or replied to an account, and when you last did;
@@ -33,6 +33,7 @@ It is not synced to other devices and is never sent anywhere.
 - **Notes**: up to 5,000 private notes you wrote about accounts, including each account's status preset, tags, note text, X user ID (when known), and timestamps when created and last edited. Kept only in this browser, never sent anywhere, and can be edited, deleted or cleared from the Options page.
 - **Your recent replies and posts**: the text of your last 300, used only to warn you before you send a reply
   that is very similar to one you sent before.
+- **Your own posts and replies performance**: up to 2,000 records of posts and replies written by your signed-in account, holding the post id, whether it is a reply or original post, creation timestamp, the account replied to, the first 80 characters of your text, the latest view, like and reply counts X showed with the time they were received, and reply context available when sent or seen (parent creation time, parent author followers, your followers, and parent views per hour). The oldest records by creation time are dropped first. Kept in `xh:mine` and used for the Review view.
 
 ## Where the data comes from
 

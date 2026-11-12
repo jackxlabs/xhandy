@@ -1858,3 +1858,201 @@ test("cleanRelEntry and replaceAll round-trip fo and fg counts", async () => {
   assert.ok(!("fo" in s2.rel.legacy_user));
   assert.ok(!("fg" in s2.rel.legacy_user));
 });
+
+test("state without xh:mine loads as empty object with VERSION still 5", async () => {
+  const chrome = fakeChrome({ "xh:v": 5, "xh:settings": { hud: true } });
+  const store = loadStore(chrome);
+  const s = await store.get();
+  assert.deepStrictEqual(s.mine, {});
+  assert.strictEqual(chrome.data["xh:v"], 5);
+  assert.strictEqual(s.settings.review, true);
+});
+
+test("cleanMine validates ids, handles, numbers, cuts text to 80, keeps stats absent, and drops malformed entries", () => {
+  const store = loadStore(fakeChrome());
+  const { cleanMine } = store;
+
+  const valid = {
+    "1001": {
+      k: "r",
+      t: 1000,
+      v: 250,
+      l: 10,
+      r: 2,
+      u: 1500,
+      to: "coder_bob",
+      x: "Nice reply! " + "x".repeat(100),
+      pt: 800,
+      pf: 5000,
+      mf: 1200,
+      ph: 15.5,
+    },
+    "1002": {
+      k: "p",
+      t: 2000,
+      // all optional fields omitted
+    },
+  };
+
+  const cleaned = cleanMine(valid);
+  assert.strictEqual(cleaned["1001"].k, "r");
+  assert.strictEqual(cleaned["1001"].t, 1000);
+  assert.strictEqual(cleaned["1001"].v, 250);
+  assert.strictEqual(cleaned["1001"].l, 10);
+  assert.strictEqual(cleaned["1001"].r, 2);
+  assert.strictEqual(cleaned["1001"].u, 1500);
+  assert.strictEqual(cleaned["1001"].to, "coder_bob");
+  assert.strictEqual(Array.from(cleaned["1001"].x).length, 80);
+  assert.strictEqual(cleaned["1001"].pt, 800);
+  assert.strictEqual(cleaned["1001"].pf, 5000);
+  assert.strictEqual(cleaned["1001"].mf, 1200);
+  assert.strictEqual(cleaned["1001"].ph, 15.5);
+
+  // 1002: optional stats remain absent, never 0
+  assert.deepStrictEqual(cleaned["1002"], { k: "p", t: 2000 });
+  assert.strictEqual("v" in cleaned["1002"], false);
+  assert.strictEqual("l" in cleaned["1002"], false);
+  assert.strictEqual("r" in cleaned["1002"], false);
+  assert.strictEqual("u" in cleaned["1002"], false);
+  assert.strictEqual("to" in cleaned["1002"], false);
+  assert.strictEqual("x" in cleaned["1002"], false);
+  assert.strictEqual("pt" in cleaned["1002"], false);
+  assert.strictEqual("pf" in cleaned["1002"], false);
+  assert.strictEqual("mf" in cleaned["1002"], false);
+  assert.strictEqual("ph" in cleaned["1002"], false);
+
+  // Malformed records dropped or sanitized
+  const malformed = {
+    "bad-id": { k: "r", t: 100 }, // invalid ID format dropped
+    "123456789012345678901": { k: "r", t: 100 }, // >20 digits ID dropped
+    "": { k: "r", t: 100 }, // empty ID dropped
+    "2001": { k: "invalid_kind", t: 100 }, // invalid kind dropped
+    "2002": { k: "r", t: -1 }, // negative t dropped
+    "2003": { k: "r", t: "not_a_number" }, // non-number t dropped
+    "2004": { k: "r", t: NaN }, // NaN t dropped
+    "2005": "not an object", // non-object dropped
+    "2006": null, // null dropped
+    "2007": {
+      k: "r",
+      t: 3000,
+      v: -1, // negative views dropped
+      l: NaN, // NaN likes dropped
+      r: Infinity, // non-finite replies dropped
+      u: "recent", // non-number u dropped
+      to: "/invalid handle", // invalid handle dropped
+      x: 12345, // non-string x dropped
+      pt: -50, // negative pt dropped
+      pf: "100", // string pf dropped
+      mf: -1, // negative mf dropped
+      ph: NaN, // NaN ph dropped
+      extraKey: "removeMe", // unknown key dropped
+    },
+  };
+
+  const cleanedBad = cleanMine(malformed);
+  assert.strictEqual(Object.keys(cleanedBad).length, 1);
+  assert.deepStrictEqual(cleanedBad["2007"], { k: "r", t: 3000 });
+  assert.strictEqual("extraKey" in cleanedBad["2007"], false);
+});
+
+test("mine part caps at 2,000 entries dropping the oldest by t", async () => {
+  const chrome = fakeChrome({ "xh:v": 5 });
+  const store = loadStore(chrome);
+
+  // 1. In cleanState / replaceAll:
+  const overflow = {};
+  for (let i = 1; i <= 2005; i++) {
+    overflow[String(i)] = { k: "r", t: i * 10 }; // id: "1" has t: 10 (oldest), id: "2005" has t: 20050 (newest)
+  }
+  await store.replaceAll({ mine: overflow });
+  const s1 = await store.get();
+  assert.strictEqual(Object.keys(s1.mine).length, 2000);
+  assert.strictEqual(s1.mine["1"], undefined, "oldest id 1 dropped");
+  assert.strictEqual(s1.mine["5"], undefined, "oldest id 5 dropped");
+  assert.strictEqual(s1.mine["6"].t, 60, "id 6 kept");
+  assert.strictEqual(s1.mine["2005"].t, 20050, "newest id 2005 kept");
+
+  // 2. In store.update:
+  await store.update(["mine"], (s) => {
+    s.mine["99999"] = { k: "p", t: 999990 };
+  });
+  const s2 = await store.get();
+  assert.strictEqual(Object.keys(s2.mine).length, 2000);
+  assert.strictEqual(s2.mine["6"], undefined, "oldest id 6 dropped after update overflow");
+  assert.strictEqual(s2.mine["99999"].t, 999990, "new entry kept");
+});
+
+test("store.update with mine part touches only mine and rejects touching other parts", async () => {
+  const chrome = fakeChrome({ "xh:v": 5, "xh:rel": { alice: { f: true, fb: true, t: 1 } } });
+  const store = loadStore(chrome);
+
+  // Touching an undeclared part throws
+  await assert.rejects(
+    store.update(["mine"], (s) => {
+      s.rel.alice.f = false;
+    }),
+    /"rel" not in/
+  );
+  assert.strictEqual(chrome.writes.length, 0);
+
+  // Touching declared mine succeeds and writes only xh:mine
+  await store.update(["mine"], (s) => {
+    s.mine["100"] = { k: "p", t: 50 };
+  });
+  assert.deepStrictEqual(chrome.writes.at(-1), ["xh:mine"]);
+  assert.deepStrictEqual(chrome.data["xh:mine"]["100"], { k: "p", t: 50 });
+  assert.deepStrictEqual(chrome.data["xh:rel"], { alice: { f: true, fb: true, t: 1 } }, "rel untouched");
+});
+
+test("days cleaner keeps days[date].followers when non-negative integer and leaves it absent otherwise", async () => {
+  const chrome = fakeChrome({ "xh:v": 5 });
+  const store = loadStore(chrome);
+
+  // 1. replaceAll round-trip with and without followers
+  await store.replaceAll({
+    days: {
+      "2026-10-18": { likes: 5, replies: 2, posts: 1, follows: 3, unfollows: 0, seconds: 60, followers: 1204 },
+      "2026-10-19": { likes: 0, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 15, followers: 0 },
+      "2026-10-20": { likes: 1, replies: 0, posts: 0, follows: 0, unfollows: 0, seconds: 30 }, // omitted
+    },
+  });
+  const s1 = await store.get();
+  assert.strictEqual(s1.days["2026-10-18"].followers, 1204);
+  assert.strictEqual(s1.days["2026-10-19"].followers, 0);
+  assert.strictEqual(s1.days["2026-10-20"].followers, undefined);
+  assert.strictEqual("followers" in s1.days["2026-10-20"], false, "omitted followers stays absent, never 0");
+
+  // 2. Invalid followers values dropped (not 0)
+  await store.replaceAll({
+    days: {
+      "2026-10-21": { likes: 1, seconds: 10, followers: -1 },
+      "2026-10-22": { likes: 1, seconds: 10, followers: "1204" },
+      "2026-10-23": { likes: 1, seconds: 10, followers: NaN },
+      "2026-10-24": { likes: 1, seconds: 10, followers: 12.5 },
+      "2026-10-25": { likes: 1, seconds: 10, followers: null },
+    },
+  });
+  const s2 = await store.get();
+  for (const d of ["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"]) {
+    assert.strictEqual("followers" in s2.days[d], false, `${d} invalid followers must be dropped, not 0`);
+  }
+
+  // 3. Pre-change export without followers imports unchanged
+  const preChangeExport = {
+    settings: { hud: true },
+    days: {
+      "2026-10-01": { likes: 10, replies: 5, posts: 2, follows: 1, unfollows: 0, seconds: 120 },
+    },
+  };
+  await store.replaceAll(preChangeExport);
+  const s3 = await store.get();
+  assert.deepStrictEqual(s3.days["2026-10-01"], {
+    likes: 10,
+    replies: 5,
+    posts: 2,
+    follows: 1,
+    unfollows: 0,
+    seconds: 120,
+  });
+  assert.strictEqual("followers" in s3.days["2026-10-01"], false);
+});
