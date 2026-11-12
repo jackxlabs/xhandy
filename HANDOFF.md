@@ -35,5 +35,3 @@ v0.7.0 = side panel stays open across page loads, follower and following counts 
 counts show, Review opens. 141 unit tests and 109 e2e steps pass.
 1. Not checked yet: Alt+R (and Alt+U / Alt+K / Alt+H) while typing on macOS; comparing Review numbers with X's own
    after a few days of data.
-2. Next features, in the order Jack approved 2026-11-12, none specified yet: "who to reply to" panel, notes as a
-   local CRM, `rel` into IndexedDB, waitlist link and first-run card.
