@@ -60,6 +60,26 @@
     notes: {}, // handle (lowercase) -> { h, id?, s?, tags?, text?, t, u }
   };
   const PARTS = Object.keys(DEFAULTS);
+  // Allowed range of each number setting with a field on the settings page. The settings page and import
+  // both use it. hudRight / hudBottom have no field: the stats bar is kept inside the window when drawn.
+  const SETTING_RANGES = {
+    staleHours: { min: 1, max: 10000, integer: true },
+    heatWarm: { min: 0, max: 10000000, integer: false },
+    heatHot: { min: 0, max: 10000000, integer: false },
+    dupThreshold: { min: 0, max: 1, integer: false },
+    dupWindow: { min: 1, max: 1000, integer: true },
+    repeatShort: { min: 1, max: 100, integer: true },
+    dailyReplyGoal: { min: 0, max: 10000, integer: true },
+    relStaleDays: { min: 1, max: 3650, integer: true },
+    followLimit: { min: 1, max: 10000, integer: true },
+    unfollowLimit: { min: 1, max: 10000, integer: true },
+    followPace: { min: 1, max: 10000, integer: true },
+    unfollowPace: { min: 1, max: 10000, integer: true },
+    paceMinutes: { min: 5, max: 1440, integer: true },
+    quietDays: { min: 1, max: 365, integer: true },
+    tintFull: { min: 2, max: 500, integer: true },
+    tintHalfLife: { min: 1, max: 365, integer: true },
+  };
   const MAX_REL = 30000;
   const MAX_SENT = 300;
   const MAX_TEXT = 25000; // X's longest post
@@ -121,51 +141,20 @@
     };
   }
 
-  // Keep the newest MAX_REPLIED replied-to post ids.
-  function capReplied(r) {
-    const ids = Object.keys(r);
-    if (ids.length <= MAX_REPLIED) return;
-    ids.sort((a, b) => r[a] - r[b]).slice(0, ids.length - MAX_REPLIED).forEach((id) => delete r[id]);
+  // Drops the oldest entries (smallest timeOf) until at most max are left.
+  function capOldest(obj, max, timeOf) {
+    if (!isObj(obj)) return;
+    const ks = Object.keys(obj);
+    if (ks.length <= max) return;
+    ks.sort((a, b) => timeOf(obj[a]) - timeOf(obj[b]))
+      .slice(0, ks.length - max)
+      .forEach((k) => delete obj[k]);
   }
-
-  // Keep the newest MAX_IN_SEEN counted inbound interaction keys.
-  function capInSeen(seen) {
-    const keys = Object.keys(seen);
-    if (keys.length <= MAX_IN_SEEN) return;
-    keys.sort((a, b) => seen[a] - seen[b]).slice(0, keys.length - MAX_IN_SEEN).forEach((k) => delete seen[k]);
-  }
-
-  // Keep the MAX_REL most recently seen relationships.
-  function capRel(rel) {
-    const handles = Object.keys(rel);
-    if (handles.length <= MAX_REL) return;
-    handles
-      .sort((a, b) => rel[a].t - rel[b].t)
-      .slice(0, handles.length - MAX_REL)
-      .forEach((h) => delete rel[h]);
-  }
-
-  // Keep the newest MAX_KEYS key accounts, dropping the oldest by added timestamp.
-  function capKeys(k) {
-    if (!isObj(k)) return;
-    const handles = Object.keys(k);
-    if (handles.length <= MAX_KEYS) return;
-    handles
-      .sort((a, b) => ((k[a] && k[a].t) || 0) - ((k[b] && k[b].t) || 0))
-      .slice(0, handles.length - MAX_KEYS)
-      .forEach((h) => delete k[h]);
-  }
-
-  // Keep the newest MAX_NOTES notes, dropping the oldest by updated timestamp.
-  function capNotes(notes) {
-    if (!isObj(notes)) return;
-    const handles = Object.keys(notes);
-    if (handles.length <= MAX_NOTES) return;
-    handles
-      .sort((a, b) => ((notes[a] && notes[a].u) || 0) - ((notes[b] && notes[b].u) || 0))
-      .slice(0, handles.length - MAX_NOTES)
-      .forEach((h) => delete notes[h]);
-  }
+  const capReplied = (r) => capOldest(r, MAX_REPLIED, (t) => t); // newest replied-to post ids
+  const capInSeen = (seen) => capOldest(seen, MAX_IN_SEEN, (t) => t); // newest counted inbound keys
+  const capRel = (rel) => capOldest(rel, MAX_REL, (r) => r.t); // most recently seen relationships
+  const capKeys = (k) => capOldest(k, MAX_KEYS, (e) => (e && e.t) || 0); // by added time
+  const capNotes = (notes) => capOldest(notes, MAX_NOTES, (e) => (e && e.u) || 0); // by last edit
 
   const chars = (x) => Array.from(x);
 
@@ -277,14 +266,24 @@
     };
   }
 
+  // A number setting pulled into its allowed range (and rounded when it must be whole).
+  function clampSetting(key, n) {
+    const rule = SETTING_RANGES[key];
+    if (!rule) return n;
+    const c = Math.max(rule.min, Math.min(rule.max, n));
+    return rule.integer ? Math.round(c) : c;
+  }
+
   // Each setting keeps the type of its default; a wrong type falls back to the default.
-  function cleanSettings(v) {
+  // clamp: also pull numbers into SETTING_RANGES. Import does; reading stored settings does not.
+  function cleanSettings(v, clamp = false) {
     const def = DEFAULTS.settings;
     const out = { ...def };
     if (!isObj(v)) return out;
     for (const k of Object.keys(def)) {
       if (typeof def[k] === "number") {
         out[k] = num(v[k], def[k]);
+        if (clamp) out[k] = clampSetting(k, out[k]);
       } else if (typeof v[k] === typeof def[k]) {
         out[k] = v[k];
       }
@@ -331,7 +330,7 @@
   function cleanState(data) {
     const s = isObj(data) ? data : {};
     const out = {
-      settings: cleanSettings(s.settings),
+      settings: cleanSettings(s.settings, true),
       people: {},
       sent: [],
       days: {},
@@ -533,77 +532,83 @@
   // v1 -> v2: split the single "xh" object into one key per part.
   // v2 -> v3: collapse tripled sent history entries.
   // v3 -> v4: move settings.targets into keys.
+  // v4 -> v5: give mutuals stored before unfollow detection their mAt.
+  // A run that failed is forgotten, so the next read or write tries again instead of failing until reload.
   let migrated = null;
   function migrate() {
-    return (migrated =
-      migrated ||
-      (async () => {
-        const r = await chrome.storage.local.get([VERSION_KEY, LEGACY_KEY]);
-        let v = r[VERSION_KEY] || 0;
-        if (v >= VERSION) return;
-        if (r[LEGACY_KEY]) {
-          const legacy = r[LEGACY_KEY];
-          const old = withDefaults(legacy);
-          if (legacy.settings && Array.isArray(legacy.settings.targets)) {
-            old.settings.targets = legacy.settings.targets;
-          }
-          const out = { [VERSION_KEY]: 2 };
-          for (const part of PARTS) out[keyOf(part)] = old[part];
-          if (old.settings.targets) out[keyOf("settings")].targets = old.settings.targets;
-          await chrome.storage.local.set(out);
-          await chrome.storage.local.remove(LEGACY_KEY);
-          v = 2;
+    if (migrated) return migrated;
+    const run = (async () => {
+      const r = await chrome.storage.local.get([VERSION_KEY, LEGACY_KEY]);
+      let v = r[VERSION_KEY] || 0;
+      if (v >= VERSION) return;
+      if (r[LEGACY_KEY]) {
+        const legacy = r[LEGACY_KEY];
+        const old = withDefaults(legacy);
+        if (legacy.settings && Array.isArray(legacy.settings.targets)) {
+          old.settings.targets = legacy.settings.targets;
         }
-        if (v < 3) {
-          const sr = await chrome.storage.local.get(keyOf("sent"));
-          const out = { [VERSION_KEY]: 3 };
-          if (Array.isArray(sr[keyOf("sent")])) {
-            out[keyOf("sent")] = sr[keyOf("sent")].map((x) =>
-              isObj(x) && typeof x.text === "string" ? { ...x, text: untriple(x.text) } : x
-            );
-          }
-          await chrome.storage.local.set(out);
-          v = 3;
+        const out = { [VERSION_KEY]: 2 };
+        for (const part of PARTS) out[keyOf(part)] = old[part];
+        if (old.settings.targets) out[keyOf("settings")].targets = old.settings.targets;
+        await chrome.storage.local.set(out);
+        await chrome.storage.local.remove(LEGACY_KEY);
+        v = 2;
+      }
+      if (v < 3) {
+        const sr = await chrome.storage.local.get(keyOf("sent"));
+        const out = { [VERSION_KEY]: 3 };
+        if (Array.isArray(sr[keyOf("sent")])) {
+          out[keyOf("sent")] = sr[keyOf("sent")].map((x) =>
+            isObj(x) && typeof x.text === "string" ? { ...x, text: untriple(x.text) } : x
+          );
         }
-        if (v < 4) {
-          const sr = await chrome.storage.local.get([keyOf("settings"), keyOf("keys")]);
-          const settings = isObj(sr[keyOf("settings")]) ? sr[keyOf("settings")] : {};
-          const keys = isObj(sr[keyOf("keys")]) ? sr[keyOf("keys")] : {};
-          const now = Date.now();
-          if (Array.isArray(settings.targets)) {
-            for (const h of settings.targets) {
-              if (isHandle(h)) {
-                const lower = h.toLowerCase();
-                if (!keys[lower]) {
-                  keys[lower] = { h, t: now };
-                }
+        await chrome.storage.local.set(out);
+        v = 3;
+      }
+      if (v < 4) {
+        const sr = await chrome.storage.local.get([keyOf("settings"), keyOf("keys")]);
+        const settings = isObj(sr[keyOf("settings")]) ? sr[keyOf("settings")] : {};
+        const keys = isObj(sr[keyOf("keys")]) ? sr[keyOf("keys")] : {};
+        const now = Date.now();
+        if (Array.isArray(settings.targets)) {
+          for (const h of settings.targets) {
+            if (isHandle(h)) {
+              const lower = h.toLowerCase();
+              if (!keys[lower]) {
+                keys[lower] = { h, t: now };
               }
             }
-            delete settings.targets;
           }
-          capKeys(keys);
-          await chrome.storage.local.set({
-            [VERSION_KEY]: 4,
-            [keyOf("settings")]: settings,
-            [keyOf("keys")]: keys,
-          });
+          delete settings.targets;
         }
-        if (v < 5) {
-          // Unfollow detection only trusts mAt. A mutual stored before it existed was last seen mutual at its t.
-          const sr = await chrome.storage.local.get(keyOf("rel"));
-          const rel = sr[keyOf("rel")];
-          const out = { [VERSION_KEY]: 5 };
-          let changed = false;
-          for (const r of Object.values(isObj(rel) ? rel : {})) {
-            if (isObj(r) && r.f === true && r.fb === true && r.mAt == null) {
-              r.mAt = isNonNegInt(r.t) ? r.t : 0;
-              changed = true;
-            }
+        capKeys(keys);
+        await chrome.storage.local.set({
+          [VERSION_KEY]: 4,
+          [keyOf("settings")]: settings,
+          [keyOf("keys")]: keys,
+        });
+      }
+      if (v < 5) {
+        // Unfollow detection only trusts mAt. A mutual stored before it existed was last seen mutual at its t.
+        const sr = await chrome.storage.local.get(keyOf("rel"));
+        const rel = sr[keyOf("rel")];
+        const out = { [VERSION_KEY]: 5 };
+        let changed = false;
+        for (const r of Object.values(isObj(rel) ? rel : {})) {
+          if (isObj(r) && r.f === true && r.fb === true && r.mAt == null) {
+            r.mAt = isNonNegInt(r.t) ? r.t : 0;
+            changed = true;
           }
-          if (changed) out[keyOf("rel")] = rel;
-          await chrome.storage.local.set(out);
         }
-      })());
+        if (changed) out[keyOf("rel")] = rel;
+        await chrome.storage.local.set(out);
+      }
+    })();
+    migrated = run;
+    run.catch(() => {
+      if (migrated === run) migrated = null;
+    });
+    return run;
   }
 
   async function read(parts) {
@@ -712,8 +717,8 @@
   function quietKeys(keys, people, quietDays = 14, now = Date.now()) {
     if (!isObj(keys)) return [];
     const pTable = isObj(people) ? people : {};
-    const days = typeof quietDays === "number" && Number.isFinite(quietDays) && quietDays > 0 ? quietDays : 14;
-    const n = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+    const days = num(quietDays) > 0 ? quietDays : 14;
+    const n = num(now, Date.now());
     const quietThresholdMs = days * 86400000;
 
     const rows = [];
@@ -721,8 +726,8 @@
       if (!isHandle(h)) continue;
       const cleanEntry = isObj(entry) ? entry : { h, t: 0 };
       const p = pTable[h.toLowerCase()];
-      const youLast = (p && typeof p.last === "number" && Number.isFinite(p.last)) ? p.last : 0;
-      const themLast = (p && p.in && typeof p.in.last === "number" && Number.isFinite(p.in.last)) ? p.in.last : 0;
+      const youLast = num(p && p.last);
+      const themLast = num(p && p.in && p.in.last);
       const latest = Math.max(youLast, themLast);
       const isQuiet = !latest || n - latest >= quietThresholdMs;
       rows.push({ h, entry: cleanEntry, youLast, themLast, latest, isQuiet });
@@ -740,28 +745,20 @@
   // shared = min(you, them); fades with time since the latest interaction.
   function tintLevel(person, settings, now = Date.now()) {
     if (!isObj(person)) return 0;
-    const count = (n) => (typeof n === "number" && Number.isFinite(n) && n > 0 ? n : 0);
+    const count = (n) => Math.max(0, num(n));
     const you = count(person.likes) + count(person.replies);
     const inbound = isObj(person.in) ? person.in : null;
     const them = inbound ? count(inbound.likes) + count(inbound.replies) + count(inbound.quotes) + count(inbound.mentions) : 0;
     const shared = Math.min(you, them);
     if (shared <= 0) return 0;
 
-    const rawFull = isObj(settings) && typeof settings.tintFull === "number" && Number.isFinite(settings.tintFull)
-      ? settings.tintFull
-      : 20;
-    const full = Math.min(500, Math.max(2, rawFull));
+    const full = Math.min(500, Math.max(2, num(isObj(settings) && settings.tintFull, 20)));
     const depth = Math.min(1, Math.log(1 + shared) / Math.log(1 + full));
 
-    const rawHalf = isObj(settings) && typeof settings.tintHalfLife === "number" && Number.isFinite(settings.tintHalfLife)
-      ? settings.tintHalfLife
-      : 30;
-    const half = Math.min(365, Math.max(1, rawHalf));
+    const half = Math.min(365, Math.max(1, num(isObj(settings) && settings.tintHalfLife, 30)));
 
-    const n = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
-    const youLast = typeof person.last === "number" && Number.isFinite(person.last) && person.last > 0 ? person.last : 0;
-    const themLast = inbound && typeof inbound.last === "number" && Number.isFinite(inbound.last) && inbound.last > 0 ? inbound.last : 0;
-    const latest = Math.max(youLast, themLast);
+    const n = num(now, Date.now());
+    const latest = Math.max(count(person.last), inbound ? count(inbound.last) : 0);
 
     const elapsed = Math.max(0, n - latest);
     const fade = Math.pow(0.5, elapsed / (half * 86400000));
@@ -769,5 +766,5 @@
     return Math.min(8, Math.max(0, Math.round(depth * fade * 8)));
   }
 
-  XH.store = { PARTS, DEFAULTS, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel };
+  XH.store = { PARTS, DEFAULTS, SETTING_RANGES, clampSetting, MAX_REPLIED, MAX_IN_SEEN, MAX_PACE, MAX_KEYS, MAX_NOTES, MAX_NOTE_TEXT, MAX_NOTE_TAGS, MAX_TAG_LEN, NOTE_STATUS, dayKey, get, update, today, person, onChange, replaceAll, reset, isHandle, isId, isNonNegInt, cleanRelations, nextRel, relAfterFriendship, untriple, prunePace, cleanNote, saveNote, renameNote, notFollowingBack, quietKeys, tintLevel };
 })();

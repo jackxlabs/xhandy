@@ -1,5 +1,6 @@
 (async function () {
-  const { store } = globalThis.XH;
+  const XH = globalThis.XH;
+  const { store } = XH;
   const s = (await store.get()) || {};
   if (s.settings) {
     XH.setLang(XH.resolveLang(s.settings.lang, navigator.language));
@@ -165,32 +166,15 @@
     if (keysEntry) keysEntry.hidden = true;
   }
 
-  // Click handlers
-  const nfb = document.getElementById("nfb");
-  if (nfb) {
-    nfb.addEventListener("click", async () => {
+  // Click handlers: each row opens its panel in the active X tab.
+  for (const mode of ["nfb", "keys"]) {
+    const row = document.getElementById(mode);
+    if (!row) continue;
+    row.addEventListener("click", async () => {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) throw new Error("No active tab");
-        await chrome.tabs.sendMessage(tab.id, { type: "xh-panel", mode: "nfb" });
-        window.close();
-      } catch (_) {
-        const msg = document.getElementById("nfb-msg");
-        if (msg) {
-          msg.textContent = XH.t("pop_open_x");
-          msg.hidden = false;
-        }
-      }
-    });
-  }
-
-  const keysBtn = document.getElementById("keys");
-  if (keysBtn) {
-    keysBtn.addEventListener("click", async () => {
-      try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab || !tab.id) throw new Error("No active tab");
-        await chrome.tabs.sendMessage(tab.id, { type: "xh-panel", mode: "keys" });
+        await chrome.tabs.sendMessage(tab.id, { type: "xh-panel", mode });
         window.close();
       } catch (_) {
         const msg = document.getElementById("nfb-msg");

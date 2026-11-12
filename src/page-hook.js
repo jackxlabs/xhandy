@@ -136,16 +136,16 @@
     return { ok: true, kind, text, to, inReplyTo };
   }
 
+  // X sends notification times as epoch milliseconds in a string, or as an ISO date.
+  function parseTime(x) {
+    if (x == null || x === "") return 0;
+    const n = /^\d+$/.test(String(x)) ? Number(x) : Date.parse(x);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   // Walk any JSON value and collect inbound interactions (likes, replies, quotes, mentions):
   // [{ kind, from: { handle, id, name }, key, at }]
-  // X sends notification times as epoch milliseconds in a string, or as an ISO date.
-function parseTime(x) {
-  if (x == null || x === "") return 0;
-  const n = /^\d+$/.test(String(x)) ? Number(x) : Date.parse(x);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function collectInbound(json, me) {
+  function collectInbound(json, me) {
     if (!json || typeof json !== "object") return [];
     if (!me || (!me.handle && !me.id)) return [];
 

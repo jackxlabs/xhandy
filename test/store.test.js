@@ -1698,3 +1698,49 @@ test("store.tintLevel computes steps 0..8 based on shared count, time fade, and 
   // Default now parameter uses Date.now()
   assert.strictEqual(typeof store.tintLevel(p1, {}), "number");
 });
+
+test("import pulls number settings into their allowed range; stored ones are read as they are", async () => {
+  const chrome = fakeChrome({ "xh:v": 5 });
+  const store = loadStore(chrome);
+  await store.replaceAll({ settings: { staleHours: -5, paceMinutes: 100000, followLimit: 35, dupWindow: 12.6, dupThreshold: 0.45, hudRight: 4000 } });
+  const s = (await store.get()).settings;
+  assert.strictEqual(s.staleHours, 1, "below the range: lowest allowed");
+  assert.strictEqual(s.paceMinutes, 1440, "above the range: highest allowed");
+  assert.strictEqual(s.followLimit, 35, "in range: kept");
+  assert.strictEqual(s.dupWindow, 13, "whole-number setting is rounded");
+  assert.strictEqual(s.dupThreshold, 0.45, "fractional setting is not rounded");
+  assert.strictEqual(s.hudRight, 4000, "a setting without a range is kept");
+
+  const stored = fakeChrome({ "xh:v": 5, "xh:settings": { followLimit: 0, paceMinutes: 1 } });
+  const t = (await loadStore(stored).get()).settings;
+  assert.strictEqual(t.followLimit, 0);
+  assert.strictEqual(t.paceMinutes, 1);
+});
+
+test("every number setting with a range has a default inside it", () => {
+  const store = loadStore(fakeChrome());
+  for (const [k, r] of Object.entries(store.SETTING_RANGES)) {
+    const def = store.DEFAULTS.settings[k];
+    assert.strictEqual(typeof def, "number", k);
+    assert.ok(def >= r.min && def <= r.max, k);
+    assert.strictEqual(store.clampSetting(k, def), def, k);
+  }
+});
+
+test("a migration that failed is tried again on the next read", async () => {
+  const chrome = fakeChrome({ "xh:v": 4, "xh:rel": { bob: { f: true, fb: true, t: 7 } } });
+  const realGet = chrome.storage.local.get;
+  let fail = true;
+  chrome.storage.local.get = async (keys) => {
+    if (fail) {
+      fail = false;
+      throw new Error("storage unavailable");
+    }
+    return realGet(keys);
+  };
+  const store = loadStore(chrome);
+  await assert.rejects(store.get(), /storage unavailable/);
+  const s = await store.get();
+  assert.strictEqual(s.rel.bob.mAt, 7, "the v4 -> v5 step ran on the retry");
+  assert.strictEqual(chrome.data["xh:v"], 5);
+});

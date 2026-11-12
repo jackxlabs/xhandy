@@ -39,25 +39,6 @@
     "localNotes",
   ];
 
-  const RANGE_TABLE = {
-    staleHours: { min: 1, max: 10000, integer: true },
-    heatWarm: { min: 0, max: 10000000, integer: false },
-    heatHot: { min: 0, max: 10000000, integer: false },
-    dupThreshold: { min: 0, max: 1, integer: false },
-    dupWindow: { min: 1, max: 1000, integer: true },
-    repeatShort: { min: 1, max: 100, integer: true },
-    dailyReplyGoal: { min: 0, max: 10000, integer: true },
-    relStaleDays: { min: 1, max: 3650, integer: true },
-    followLimit: { min: 1, max: 10000, integer: true },
-    unfollowLimit: { min: 1, max: 10000, integer: true },
-    followPace: { min: 1, max: 10000, integer: true },
-    unfollowPace: { min: 1, max: 10000, integer: true },
-    paceMinutes: { min: 5, max: 1440, integer: true },
-    quietDays: { min: 1, max: 365, integer: true },
-    tintFull: { min: 2, max: 500, integer: true },
-    tintHalfLife: { min: 1, max: 365, integer: true },
-  };
-
   const SECTION_KEY = "xh:opt_section";
   const VALID_SECTIONS = ["general", "badges", "rel", "dup", "keys", "notes", "data"];
 
@@ -219,11 +200,9 @@
 
   async function saveSetting(key, value) {
     let finalVal = value;
-    const rule = RANGE_TABLE[key];
-    if (rule) {
+    if (store.SETTING_RANGES[key]) {
       if (typeof finalVal !== "number" || !Number.isFinite(finalVal)) return;
-      finalVal = Math.max(rule.min, Math.min(rule.max, finalVal));
-      if (rule.integer) finalVal = Math.round(finalVal);
+      finalVal = store.clampSetting(key, finalVal);
       const el = $(key);
       if (el && Number(el.value) !== finalVal) {
         el.value = finalVal;
@@ -266,6 +245,43 @@
     await saveSetting(key, Number(raw));
   }
 
+  function emptyRow(textKey) {
+    const empty = document.createElement("div");
+    empty.className = "key-empty";
+    empty.textContent = XH.t(textKey);
+    return empty;
+  }
+
+  // A row of the key accounts or notes list: link to the profile, one line of details, a remove button.
+  function listRow(h, entry, metaText, removeText, onRemove) {
+    const row = document.createElement("div");
+    row.className = "key-row";
+    row.dataset.handle = h;
+
+    const info = document.createElement("div");
+    info.className = "key-row-info";
+    const link = document.createElement("a");
+    const displayH = entry.h || h;
+    link.href = "https://x.com/" + displayH;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "@" + displayH;
+    const meta = document.createElement("span");
+    meta.className = "key-row-meta";
+    meta.textContent = metaText;
+    info.append(link, meta);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "remove";
+    removeBtn.dataset.handle = h;
+    removeBtn.textContent = removeText;
+    removeBtn.addEventListener("click", onRemove);
+
+    row.append(info, removeBtn);
+    return row;
+  }
+
   function renderKeyAccountsList() {
     const listEl = $("keyList");
     if (!listEl) return;
@@ -277,57 +293,26 @@
 
     listEl.replaceChildren();
     if (!rows.length) {
-      const empty = document.createElement("div");
-      empty.className = "key-empty";
-      empty.textContent = XH.t("opt_keys_empty");
-      listEl.appendChild(empty);
+      listEl.appendChild(emptyRow("opt_keys_empty"));
       return;
     }
 
     for (const [h, entry] of rows) {
-      const row = document.createElement("div");
-      row.className = "key-row";
-      row.dataset.handle = h;
-
-      const info = document.createElement("div");
-      info.className = "key-row-info";
-
-      const link = document.createElement("a");
-      const displayH = entry.h || h;
-      link.href = "https://x.com/" + displayH;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = "@" + displayH;
-
       const p = allPeople[h];
       const youStr = p && p.last ? XH.ago(p.last, now) : XH.t("key_never");
       const themStr = p && p.in && p.in.last ? XH.ago(p.in.last, now) : XH.t("key_never");
       const inter = XH.t("key_both_last", { you: youStr, them: themStr });
-
-      const meta = document.createElement("span");
-      meta.className = "key-row-meta";
       const addedDate = entry.t ? new Date(entry.t).toLocaleDateString() : "";
-      meta.textContent = addedDate
-        ? `${XH.t("opt_keys_added_date", { date: addedDate })} · ${inter}`
-        : inter;
-
-      info.append(link, meta);
-
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "remove";
-      removeBtn.dataset.handle = h;
-      removeBtn.textContent = XH.t("opt_key_remove");
-      removeBtn.addEventListener("click", async () => {
-        await store.update(["keys"], (s) => {
-          delete s.keys[h];
-        });
-        delete allKeys[h];
-        renderKeyAccountsList();
-      });
-
-      row.append(info, removeBtn);
-      listEl.appendChild(row);
+      const metaText = addedDate ? `${XH.t("opt_keys_added_date", { date: addedDate })} · ${inter}` : inter;
+      listEl.appendChild(
+        listRow(h, entry, metaText, XH.t("opt_key_remove"), async () => {
+          await store.update(["keys"], (s) => {
+            delete s.keys[h];
+          });
+          delete allKeys[h];
+          renderKeyAccountsList();
+        })
+      );
     }
   }
 
@@ -338,10 +323,7 @@
 
     listEl.replaceChildren();
     if (!entries.length) {
-      const empty = document.createElement("div");
-      empty.className = "key-empty";
-      empty.textContent = XH.t("opt_notes_empty");
-      listEl.appendChild(empty);
+      listEl.appendChild(emptyRow("opt_notes_empty"));
       return;
     }
 
@@ -358,30 +340,11 @@
       .sort(([, a], [, b]) => (b.u || b.t || 0) - (a.u || a.t || 0));
 
     if (!filtered.length) {
-      const empty = document.createElement("div");
-      empty.className = "key-empty";
-      empty.textContent = XH.t("opt_notes_none");
-      listEl.appendChild(empty);
+      listEl.appendChild(emptyRow("opt_notes_none"));
       return;
     }
 
     for (const [h, entry] of filtered) {
-      const row = document.createElement("div");
-      row.className = "key-row";
-      row.dataset.handle = h;
-
-      const info = document.createElement("div");
-      info.className = "key-row-info";
-
-      const link = document.createElement("a");
-      const displayH = entry.h || h;
-      link.href = "https://x.com/" + displayH;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = "@" + displayH;
-
-      const meta = document.createElement("span");
-      meta.className = "key-row-meta";
       const parts = [];
       if (entry.s) parts.push(XH.t("note_s_" + entry.s));
       if (Array.isArray(entry.tags) && entry.tags.length > 0) {
@@ -397,25 +360,15 @@
         const dateStr = new Date(dateVal).toLocaleDateString();
         parts.push(XH.t("opt_note_last_edited", { date: dateStr }));
       }
-      meta.textContent = parts.join(" · ");
-
-      info.append(link, meta);
-
-      const delBtn = document.createElement("button");
-      delBtn.type = "button";
-      delBtn.className = "remove";
-      delBtn.dataset.handle = h;
-      delBtn.textContent = XH.t("opt_note_del");
-      delBtn.addEventListener("click", async () => {
-        await store.update(["notes"], (s) => {
-          delete s.notes[h];
-        });
-        delete allNotes[h];
-        renderNotesList();
-      });
-
-      row.append(info, delBtn);
-      listEl.appendChild(row);
+      listEl.appendChild(
+        listRow(h, entry, parts.join(" · "), XH.t("opt_note_del"), async () => {
+          await store.update(["notes"], (s) => {
+            delete s.notes[h];
+          });
+          delete allNotes[h];
+          renderNotesList();
+        })
+      );
     }
   }
 

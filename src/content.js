@@ -27,6 +27,17 @@
   const authorFollowers = new Map(); // post id -> author followers count; memory only
   const handleFollowers = new Map(); // handle (lowercase) -> author followers count; memory only
   const MAX_VIEWS = 5000;
+  // Memory-only maps stay in arrival order: setting a key moves it to the end, and the oldest go first.
+  function remember(map, key, value) {
+    map.delete(key);
+    map.set(key, value);
+  }
+  function trim(map, max = MAX_VIEWS) {
+    for (const k of map.keys()) {
+      if (map.size <= max) break;
+      map.delete(k);
+    }
+  }
   let pendingReply = null; // { handle, t } set when the user clicks a reply button
   let lastSendAt = 0;
   let lastSendText = "";
@@ -69,7 +80,7 @@
     return v.n / hours;
   }
 
-  // ---------- 3. post badges: age, heat, past interactions, target accounts ----------
+  // ---------- post badges: age, heat, past interactions, key accounts, notes ----------
 
   function toggleKeyAccount(handle, showToast = false) {
     if (!handle || !store.isHandle(handle)) return;
@@ -141,130 +152,104 @@
     return null;
   }
 
+  // One of Xhandy's profile buttons. The one already there is kept when it is for this account and in
+  // place; otherwise it is removed and a new one made, which the caller puts on the page.
+  function profileButton(existing, { cls, icon, text, label, handle, inPlace, onClick }) {
+    if (existing) {
+      if (existing.dataset.h === handle.toLowerCase() && inPlace) {
+        // Only on a language change: rewriting it every time would wake the page observer, forever.
+        if (existing.textContent !== text) existing.replaceChildren(XH.icon(icon, 16), document.createTextNode(text));
+        existing.setAttribute("aria-label", label);
+        return { btn: existing, created: false };
+      }
+      existing.remove();
+    }
+    const btn = document.createElement("button");
+    btn.className = cls;
+    btn.type = "button";
+    btn.dataset.h = handle.toLowerCase();
+    btn.replaceChildren(XH.icon(icon, 16), document.createTextNode(text));
+    btn.setAttribute("aria-label", label);
+    btn.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      },
+      true
+    );
+    return { btn, created: true };
+  }
+
   function updateProfileButtons() {
     const existingTop = document.querySelector("button.xh-top");
     const existingNote = document.querySelector("button.xh-note-btn");
     const showTop = !!(S && S.settings && S.settings.topPosts);
     const showNote = !!(S && S.settings && S.settings.localNotes);
-
-    const handle = profileHandleFromUrl();
-    if (!handle || isMe(handle) || document.querySelector('[data-testid="editProfileButton"]')) {
+    const removeBoth = () => {
       if (existingTop) existingTop.remove();
       if (existingNote) existingNote.remove();
-      return;
-    }
+    };
 
-    const followBtn = findProfileFollowButton(handle);
-    let target = null;
+    const handle = profileHandleFromUrl();
+    if (!handle || isMe(handle) || document.querySelector('[data-testid="editProfileButton"]')) return removeBoth();
+
+    // Before X's Follow button when there is one, else before the profile's action buttons or in its header.
+    let target = findProfileFollowButton(handle);
     let insertBefore = true;
-
-    if (followBtn) {
-      target = followBtn;
-      insertBefore = true;
-    } else {
+    if (!target) {
       const fallback = findProfileFallbackArea(handle);
-      if (!fallback) {
-        if (existingTop) existingTop.remove();
-        if (existingNote) existingNote.remove();
-        return;
-      }
+      if (!fallback) return removeBoth();
       target = fallback.el;
       insertBefore = fallback.position === "before";
     }
+    const place = (btn) => (insertBefore ? target.before(btn) : target.appendChild(btn));
 
-    let topBtn = existingTop;
+    let topBtn = null;
     if (!showTop) {
-      if (existingTop) {
-        existingTop.remove();
-        topBtn = null;
-      }
+      if (existingTop) existingTop.remove();
     } else {
-      if (existingTop) {
-        const isCorrectPlace = insertBefore
-          ? existingTop.nextSibling === target || (existingNote && existingTop.nextSibling === existingNote)
-          : existingTop.parentNode === target;
-        if (existingTop.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-          // Only on a language change: rewriting it every time would wake the page observer, forever.
-          if (existingTop.textContent !== t("top_btn")) existingTop.replaceChildren(XH.icon("flame", 16), document.createTextNode(t("top_btn")));
-          existingTop.setAttribute("aria-label", t("top_label", { h: handle }));
-        } else {
-          existingTop.remove();
-          topBtn = null;
-        }
-      }
-      if (!topBtn) {
-        topBtn = document.createElement("button");
-        topBtn.className = "xh-top";
-        topBtn.type = "button";
-        topBtn.dataset.h = handle.toLowerCase();
-        topBtn.replaceChildren(XH.icon("flame", 16), document.createTextNode(t("top_btn")));
-        topBtn.setAttribute("aria-label", t("top_label", { h: handle }));
-        topBtn.addEventListener(
-          "click",
-          (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
-            location.assign(url);
-          },
-          true
-        );
-        if (insertBefore) {
-          target.before(topBtn);
-        } else {
-          target.appendChild(topBtn);
-        }
-      }
+      const top = profileButton(existingTop, {
+        cls: "xh-top",
+        icon: "flame",
+        text: t("top_btn"),
+        label: t("top_label", { h: handle }),
+        handle,
+        inPlace:
+          !!existingTop &&
+          (insertBefore
+            ? existingTop.nextSibling === target || (existingNote && existingTop.nextSibling === existingNote)
+            : existingTop.parentNode === target),
+        onClick: () => location.assign(XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()))),
+      });
+      topBtn = top.btn;
+      if (top.created) place(topBtn);
     }
 
     if (!showNote) {
       if (existingNote) existingNote.remove();
       return;
     }
-
-    let noteBtn = existingNote;
-    if (existingNote) {
-      const isCorrectPlace = topBtn
-        ? existingNote.previousElementSibling === topBtn
-        : insertBefore
-        ? existingNote.nextSibling === target
-        : existingNote.parentNode === target;
-      if (existingNote.dataset.h === handle.toLowerCase() && isCorrectPlace) {
-        if (existingNote.textContent !== t("note_btn")) existingNote.replaceChildren(XH.icon("note", 16), document.createTextNode(t("note_btn")));
-        existingNote.setAttribute("aria-label", t("note_title") + " @" + handle);
-      } else {
-        existingNote.remove();
-        noteBtn = null;
-      }
+    const note = profileButton(existingNote, {
+      cls: "xh-note-btn",
+      icon: "note",
+      text: t("note_btn"),
+      label: t("note_title") + " @" + handle,
+      handle,
+      inPlace:
+        !!existingNote &&
+        (topBtn
+          ? existingNote.previousElementSibling === topBtn
+          : insertBefore
+          ? existingNote.nextSibling === target
+          : existingNote.parentNode === target),
+      onClick: () => openNoteEditor(handle),
+    });
+    if (note.created) {
+      if (topBtn) topBtn.after(note.btn);
+      else place(note.btn);
     }
-    if (!noteBtn) {
-      noteBtn = document.createElement("button");
-      noteBtn.className = "xh-note-btn";
-      noteBtn.type = "button";
-      noteBtn.dataset.h = handle.toLowerCase();
-      noteBtn.replaceChildren(XH.icon("note", 16), document.createTextNode(t("note_btn")));
-      noteBtn.setAttribute("aria-label", t("note_title") + " @" + handle);
-      noteBtn.addEventListener(
-        "click",
-        (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          openNoteEditor(handle);
-        },
-        true
-      );
-      if (topBtn) {
-        topBtn.after(noteBtn);
-      } else if (insertBefore) {
-        target.before(noteBtn);
-      } else {
-        target.appendChild(noteBtn);
-      }
-    }
-  }
-
-  function updateTopPostsButton() {
-    updateProfileButtons();
   }
 
   let noteEditorEl = null;
@@ -377,7 +362,7 @@
         const raw = tagInput.value.trim().replace(/^#+/, "").trim();
         if (!raw) return;
         const chars = Array.from(raw);
-        if (currentTags.length >= 5 || chars.length > 20) {
+        if (currentTags.length >= store.MAX_NOTE_TAGS || chars.length > store.MAX_TAG_LEN) {
           tagHint.hidden = false;
           return;
         }
@@ -401,7 +386,7 @@
     textWrap.className = "xh-note-text-wrap";
     const textarea = document.createElement("textarea");
     textarea.className = "xh-note-text";
-    textarea.maxLength = 500;
+    textarea.maxLength = store.MAX_NOTE_TEXT;
     textarea.placeholder = t("note_text_ph");
     textarea.value = existingNote && existingNote.text ? existingNote.text : "";
 
@@ -409,7 +394,7 @@
     countDiv.className = "xh-note-count";
     const updateCount = () => {
       const len = Array.from(textarea.value).length;
-      countDiv.textContent = `${len}/500`;
+      countDiv.textContent = `${len}/${store.MAX_NOTE_TEXT}`;
     };
     updateCount();
     textarea.addEventListener("input", updateCount);
@@ -467,44 +452,23 @@
     textarea.focus();
   }
 
-  function handleAltB() {
-    let handle = null;
+  // The account the user means: the focused post's author, else the profile in the URL.
+  function targetHandle() {
     const article = document.activeElement && document.activeElement.closest(SEL.tweet);
     const info = article && tweetInfo(article);
-    if (info && info.handle) {
-      handle = info.handle;
-    } else {
-      const urlHandle = profileHandleFromUrl();
-      if (urlHandle) handle = urlHandle;
-    }
+    return (info && info.handle) || profileHandleFromUrl();
+  }
 
-    if (!handle) {
-      return toast(t("top_pick"), "warn");
-    }
-
-    const url = XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase()));
-    location.assign(url);
+  function handleAltB() {
+    const handle = targetHandle();
+    if (!handle) return toast(t("top_pick"), "warn");
+    location.assign(XH.topPosts.topPostsUrl(handle, handleFollowers.get(handle.toLowerCase())));
   }
 
   function handleAltN() {
-    let handle = null;
-    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
-    const info = article && tweetInfo(article);
-    if (info && info.handle) {
-      handle = info.handle;
-    } else {
-      const urlHandle = profileHandleFromUrl();
-      if (urlHandle) handle = urlHandle;
-    }
-
-    if (!handle) {
-      return toast(t("note_pick"), "warn");
-    }
-
-    if (isMe(handle)) {
-      return;
-    }
-
+    const handle = targetHandle();
+    if (!handle) return toast(t("note_pick"), "warn");
+    if (isMe(handle)) return;
     openNoteEditor(handle);
   }
 
@@ -723,23 +687,18 @@
     }
     for (const [badge, apply] of done) {
       if (apply) apply();
-      const key = placeKey(badge.dataset.post);
-      placements.delete(key); // keep the Map in arrival order so the oldest go first
-      placements.set(key, badge.classList.contains("xh-badge-row") ? "row" : "inline");
+      remember(placements, placeKey(badge.dataset.post), badge.classList.contains("xh-badge-row") ? "row" : "inline");
     }
-    for (const key of placements.keys()) {
-      if (placements.size <= MAX_VIEWS) break;
-      placements.delete(key);
-    }
+    trim(placements);
   }
 
   function annotateAll() {
     if (!S) return;
     document.querySelectorAll(SEL.tweet).forEach(annotate);
-    updateTopPostsButton();
+    updateProfileButtons();
   }
 
-  // ---------- 6. counting the user's own actions ----------
+  // ---------- counting the user's own actions ----------
 
   function composerText(container) {
     return Array.from(container.querySelectorAll(SEL.textarea))
@@ -898,7 +857,7 @@
     true
   );
 
-  // ---------- 4. duplicate-reply warning ----------
+  // ---------- duplicate-reply warning ----------
 
   let dupEl = null;
   let dupTimer = null;
@@ -967,7 +926,7 @@
     true
   );
 
-  // ---------- 6. HUD and time on X ----------
+  // ---------- stats bar (HUD) and time on X ----------
 
   let hudEl = null;
   let hudDrag = null;
@@ -1344,9 +1303,29 @@
   let relHandles = {}; // lowercase -> handle as X shows it, for moving notes; not stored
   let relTimer = null;
 
+  // Runs write at most once every 2 s: the returned function asks for a write, and asking again while one
+  // is waiting does nothing.
+  function batcher(write) {
+    let timer = null;
+    let last = 0;
+    return () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        last = Date.now();
+        write();
+      }, Math.max(0, 2000 - (Date.now() - last)));
+    };
+  }
+
   let repliedPending = {};
-  let repliedTimer = null;
-  let lastRepliedWrite = 0;
+  const flushReplied = batcher(() => {
+    const batch = repliedPending;
+    repliedPending = {};
+    store.update(["replied"], (s) => {
+      Object.assign(s.replied, batch);
+    });
+  });
 
   function recordReplied(postId, t = Date.now()) {
     if (!store.isId(postId)) return;
@@ -1356,46 +1335,53 @@
     }
     repliedPending[postId] = t;
     annotateAll();
-
-    if (repliedTimer) return;
-    const delay = Math.max(0, 2000 - (Date.now() - lastRepliedWrite));
-    repliedTimer = setTimeout(() => {
-      repliedTimer = null;
-      lastRepliedWrite = Date.now();
-      const batch = repliedPending;
-      repliedPending = {};
-      store.update(["replied"], (s) => {
-        Object.assign(s.replied, batch);
-      });
-    }, delay);
+    flushReplied();
   }
 
   let pendingMe = null;
-  let meTimer = null;
-  let lastMeWrite = 0;
+  const flushMe = batcher(() => {
+    if (!pendingMe) return;
+    const batch = pendingMe;
+    pendingMe = null;
+    store.update(["relMeta"], (s) => {
+      s.relMeta.me = batch;
+    });
+  });
 
   function scheduleMe(data) {
     pendingMe = data;
     if (S && S.relMeta) S.relMeta.me = { ...data };
     annotateAll();
-    if (meTimer) return;
-    const delay = Math.max(0, 2000 - (Date.now() - lastMeWrite));
-    meTimer = setTimeout(() => {
-      meTimer = null;
-      lastMeWrite = Date.now();
-      if (!pendingMe) return;
-      const batch = pendingMe;
-      pendingMe = null;
-      store.update(["relMeta"], (s) => {
-        s.relMeta.me = batch;
-      });
-    }, delay);
+    flushMe();
+  }
+
+  const noInbound = () => ({ likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 });
+  const INBOUND_FIELD = { like: "likes", reply: "replies", quote: "quotes", mention: "mentions" };
+  function countInbound(counter, kind, at) {
+    if (INBOUND_FIELD[kind]) counter[INBOUND_FIELD[kind]]++;
+    counter.last = Math.max(counter.last, at);
   }
 
   let inSeenPending = {};
   let inboundPending = {};
-  let inboundTimer = null;
-  let lastInboundWrite = 0;
+  const flushInbound = batcher(() => {
+    const batchSeen = inSeenPending;
+    const batchInbound = inboundPending;
+    inSeenPending = {};
+    inboundPending = {};
+    store.update(["people", "inSeen"], (s) => {
+      Object.assign(s.inSeen, batchSeen);
+      for (const [h, diff] of Object.entries(batchInbound)) {
+        const p = store.person(s, h);
+        if (!p.in) p.in = noInbound();
+        p.in.likes += diff.likes;
+        p.in.replies += diff.replies;
+        p.in.quotes += diff.quotes;
+        p.in.mentions += diff.mentions;
+        p.in.last = Math.max(p.in.last, diff.last);
+      }
+    });
+  });
 
   function recordInbound(candidates) {
     if (!Array.isArray(candidates) || !candidates.length) return;
@@ -1409,55 +1395,22 @@
       const at = typeof c.at === "number" ? c.at : Date.now();
 
       inSeenPending[c.key] = at;
-      const cur = inboundPending[h] || { likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 };
-      if (c.kind === "like") cur.likes++;
-      else if (c.kind === "reply") cur.replies++;
-      else if (c.kind === "quote") cur.quotes++;
-      else if (c.kind === "mention") cur.mentions++;
-      cur.last = Math.max(cur.last, at);
-      inboundPending[h] = cur;
+      countInbound((inboundPending[h] = inboundPending[h] || noInbound()), c.kind, at);
 
       if (S) {
         if (!S.inSeen) S.inSeen = {};
         S.inSeen[c.key] = at;
         let p = S.people[h];
         if (!p) p = S.people[h] = { likes: 0, replies: 0, last: 0 };
-        if (!p.in) p.in = { likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 };
-        if (c.kind === "like") p.in.likes++;
-        else if (c.kind === "reply") p.in.replies++;
-        else if (c.kind === "quote") p.in.quotes++;
-        else if (c.kind === "mention") p.in.mentions++;
-        p.in.last = Math.max(p.in.last, at);
+        if (!p.in) p.in = noInbound();
+        countInbound(p.in, c.kind, at);
       }
       changed = true;
     }
 
     if (!changed) return;
     annotateAll();
-
-    if (inboundTimer) return;
-    const delay = Math.max(0, 2000 - (Date.now() - lastInboundWrite));
-    inboundTimer = setTimeout(() => {
-      inboundTimer = null;
-      lastInboundWrite = Date.now();
-      const batchSeen = inSeenPending;
-      const batchInbound = inboundPending;
-      inSeenPending = {};
-      inboundPending = {};
-
-      store.update(["people", "inSeen"], (s) => {
-        Object.assign(s.inSeen, batchSeen);
-        for (const [h, diff] of Object.entries(batchInbound)) {
-          const p = store.person(s, h);
-          if (!p.in) p.in = { likes: 0, replies: 0, quotes: 0, mentions: 0, last: 0 };
-          p.in.likes += diff.likes;
-          p.in.replies += diff.replies;
-          p.in.quotes += diff.quotes;
-          p.in.mentions += diff.mentions;
-          p.in.last = Math.max(p.in.last, diff.last);
-        }
-      });
-    }, delay);
+    flushInbound();
   }
 
   window.addEventListener("xh-relations", (e) => {
@@ -1495,43 +1448,17 @@
     const meLower = me ? me.toLowerCase() : null;
     if (payload.v.length) {
       for (const p of payload.v) {
-        if (typeof p.views === "number") {
-          views.delete(p.id); // keep the Map in arrival order so the oldest go first
-          views.set(p.id, { n: p.views, at: payload.at });
-        }
-        if (typeof p.replies === "number") {
-          replyCounts.delete(p.id);
-          replyCounts.set(p.id, p.replies);
-        }
+        if (typeof p.views === "number") remember(views, p.id, { n: p.views, at: payload.at });
+        if (typeof p.replies === "number") remember(replyCounts, p.id, p.replies);
         if (typeof p.authorFollowers === "number") {
-          authorFollowers.delete(p.id);
-          authorFollowers.set(p.id, p.authorFollowers);
-          if (p.author) {
-            const h = p.author.toLowerCase();
-            handleFollowers.delete(h);
-            handleFollowers.set(h, p.authorFollowers);
-          }
+          remember(authorFollowers, p.id, p.authorFollowers);
+          if (p.author) remember(handleFollowers, p.author.toLowerCase(), p.authorFollowers);
         }
         if (meLower && p.author && p.author.toLowerCase() === meLower && p.inReplyTo) {
           recordReplied(p.inReplyTo, payload.at || Date.now());
         }
       }
-      for (const id of views.keys()) {
-        if (views.size <= MAX_VIEWS) break;
-        views.delete(id);
-      }
-      for (const id of replyCounts.keys()) {
-        if (replyCounts.size <= MAX_VIEWS) break;
-        replyCounts.delete(id);
-      }
-      for (const id of authorFollowers.keys()) {
-        if (authorFollowers.size <= MAX_VIEWS) break;
-        authorFollowers.delete(id);
-      }
-      for (const h of handleFollowers.keys()) {
-        if (handleFollowers.size <= MAX_VIEWS) break;
-        handleFollowers.delete(h);
-      }
+      [views, replyCounts, authorFollowers, handleFollowers].forEach((m) => trim(m));
       clearTimeout(annotateTimer);
       annotateTimer = setTimeout(annotateAll, 250);
     }
@@ -1666,6 +1593,21 @@
     return av;
   }
 
+  // A panel row: avatar, name, @handle and one line of details. It links to the profile and does nothing else.
+  // name: display name if known; shown: the handle as X writes it; mark: a small label after the name.
+  function panelRow(h, { name, shown = h, meta, mark }) {
+    const a = el("a", "xh-panel-row");
+    a.href = "/" + h;
+    const nameEl = el("span", "xh-panel-name", name || shown);
+    if (mark) nameEl.append(el("span", "xh-quiet-mark", mark));
+    const user = el("div", "xh-panel-user");
+    user.append(nameEl, el("span", "xh-panel-handle", "@" + shown));
+    const body = el("div", "xh-panel-body");
+    body.append(user, el("span", "xh-panel-meta", meta));
+    a.append(makeAvatar(h, name), body);
+    return a;
+  }
+
   function buildPanel() {
     panelEl = el("aside", "xh-panel");
     panelEl.hidden = true;
@@ -1777,23 +1719,12 @@
       list.append(el("li", "xh-panel-section", t("nfb_recent", { n: recent.length })));
       for (const [h, r] of recent) {
         const li = el("li", "xh-panel-recent");
-        const a = el("a", "xh-panel-row");
-        a.href = "/" + h;
         // When they were last seen as mutuals tells how recent the unfollow really is.
         const meta = [t("nfb_lost", { ago: XH.ago(r.lostAt, now) })];
         if (r.mAt != null) meta.push(t("nfb_was", { ago: XH.ago(r.mAt, now) }));
         const p = S.people[h];
         if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
-
-        const av = makeAvatar(h, r.n);
-        const body = el("div", "xh-panel-body");
-        const user = el("div", "xh-panel-user");
-        user.append(
-          el("span", "xh-panel-name", r.n || h),
-          el("span", "xh-panel-handle", "@" + h)
-        );
-        body.append(user, el("span", "xh-panel-meta", meta.join(" · ")));
-        a.append(av, body);
+        const a = panelRow(h, { name: r.n, meta: meta.join(" · ") });
 
         const dismiss = el("button", "xh-panel-dismiss");
         dismiss.type = "button";
@@ -1813,23 +1744,11 @@
     list.append(
       ...shown.map(([h, r]) => {
         const li = el("li");
-        const a = el("a", "xh-panel-row");
-        a.href = "/" + h;
         const meta = [t("nfb_seen", { ago: XH.ago(r.t, now) })];
         if (now - r.t > S.settings.relStaleDays * 86400000) meta[0] += t("rel_stale");
         const p = S.people[h];
         if (p && p.likes + p.replies > 0) meta.push(t("nfb_you", { n: p.likes + p.replies }));
-
-        const av = makeAvatar(h, r.n);
-        const body = el("div", "xh-panel-body");
-        const user = el("div", "xh-panel-user");
-        user.append(
-          el("span", "xh-panel-name", r.n || h),
-          el("span", "xh-panel-handle", "@" + h)
-        );
-        body.append(user, el("span", "xh-panel-meta", meta.join(" · ")));
-        a.append(av, body);
-        li.append(a);
+        li.append(panelRow(h, { name: r.n, meta: meta.join(" · ") }));
         return li;
       })
     );
@@ -1888,28 +1807,17 @@
     list.replaceChildren(
       ...shown.map((item) => {
         const li = el("li");
-        const a = el("a", "xh-panel-row");
-        a.href = "/" + item.h;
-        const displayH = item.entry.h || item.h;
-        const nameText = (S.rel && S.rel[item.h] && S.rel[item.h].n) || displayH;
-
-        const av = makeAvatar(item.h, nameText);
-        const body = el("div", "xh-panel-body");
-        const user = el("div", "xh-panel-user");
-        const name = el("span", "xh-panel-name", nameText);
-        if (item.isQuiet) {
-          name.append(el("span", "xh-quiet-mark", t("key_quiet")));
-        }
-        const handle = el("span", "xh-panel-handle", "@" + displayH);
-        user.append(name, handle);
-
+        const shownHandle = item.entry.h || item.h;
         const youStr = item.youLast ? XH.ago(item.youLast, now) : t("key_never");
         const themStr = item.themLast ? XH.ago(item.themLast, now) : t("key_never");
-        const meta = el("span", "xh-panel-meta", t("key_both_last", { you: youStr, them: themStr }));
-
-        body.append(user, meta);
-        a.append(av, body);
-        li.append(a);
+        li.append(
+          panelRow(item.h, {
+            name: (S.rel && S.rel[item.h] && S.rel[item.h].n) || shownHandle,
+            shown: shownHandle,
+            meta: t("key_both_last", { you: youStr, them: themStr }),
+            mark: item.isQuiet ? t("key_quiet") : null,
+          })
+        );
         return li;
       })
     );
