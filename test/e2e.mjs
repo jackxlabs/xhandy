@@ -141,6 +141,7 @@ try {
     if (new URL(r.request().url()).pathname === "/me_test/following") return r.fulfill({ status: 200, contentType: "text/html", body: following });
     if (new URL(r.request().url()).pathname === "/me_test") return r.fulfill({ status: 200, contentType: "text/html", body: profile.replace(/@eve/g, "@me_test").replace(/Eve/g, "Me") });
     if (new URL(r.request().url()).pathname === "/eve") return r.fulfill({ status: 200, contentType: "text/html", body: profile });
+    if (new URL(r.request().url()).pathname === "/ann") return r.fulfill({ status: 200, contentType: "text/html", body: profile.replace(/@eve/g, "@ann").replace(/Eve/g, "Ann") });
     if (new URL(r.request().url()).pathname === "/alice/status/111") return r.fulfill({ status: 200, contentType: "text/html", body: status });
     return r.fulfill({ status: 200, contentType: "text/html", body: fixture });
   });
@@ -2566,6 +2567,167 @@ try {
       await p.close();
       await updateSettings({ hudRight: 16, hudBottom: 16 });
     }
+  });
+
+  await step("panel stays open across reload with same view, search, scroll position, and search box unfocused", async () => {
+    // Seed rel with accounts to make the panel list scrollable
+    const rels = {};
+    for (let i = 1; i <= 30; i++) {
+      rels[`user_${i}`] = { f: true, fb: false, n: `User ${i}`, t: Date.now() };
+    }
+    await setStoredPart("rel", rels);
+
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+
+    // Open Alt+U
+    await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+
+    // Type a search
+    await page.fill(".xh-panel-search", "user_");
+    await page.waitForTimeout(100);
+
+    // Scroll the list
+    await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel-list");
+      el.scrollTop = 150;
+      el.dispatchEvent(new Event("scroll"));
+    });
+    // Wait for the throttled 250ms scroll listener to save
+    await page.waitForTimeout(300);
+
+    // Reload the page
+    await page.reload();
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 5000 });
+
+    // Panel open on the same view
+    assert.strictEqual(await page.$eval(".xh-panel", (el) => el.hidden), false);
+    assert.match(await page.textContent(".xh-panel-title"), /Not following you back|没回关/);
+
+    // Same search text
+    assert.strictEqual(await page.inputValue(".xh-panel-search"), "user_");
+
+    // Same scrollTop
+    const st = await page.$eval(".xh-panel-list", (el) => el.scrollTop);
+    assert.ok(Math.abs(st - 150) <= 2, `expected scrollTop ~150, got ${st}`);
+
+    // document.activeElement is not the search box
+    const isSearchFocused = await page.evaluate(
+      () => document.activeElement === document.querySelector(".xh-panel-search")
+    );
+    assert.strictEqual(isSearchFocused, false, "restored panel must not focus search box");
+  });
+
+  await step("panel closed with Esc stays closed after reload", async () => {
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 3000 });
+    assert.strictEqual(await page.evaluate(() => sessionStorage.getItem("xh:panel")), null);
+
+    await page.reload();
+    await page.waitForTimeout(500);
+    const isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "panel must stay closed after reload");
+    assert.strictEqual(await page.evaluate(() => sessionStorage.getItem("xh:panel")), null);
+  });
+
+  await step("open on key accounts, turn keyAccounts off with updateSettings, reload -> closed", async () => {
+    await updateSettings({ keyAccounts: true });
+    await page.keyboard.press("Alt+KeyK");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+    assert.match(await page.textContent(".xh-panel-title"), /Key accounts|重点账号/);
+
+    await updateSettings({ keyAccounts: false });
+    await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 3000 });
+
+    await page.reload();
+    await page.waitForTimeout(500);
+    const isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "panel must be closed after reload with keyAccounts disabled");
+    assert.strictEqual(await page.evaluate(() => sessionStorage.getItem("xh:panel")), null);
+
+    await updateSettings({ keyAccounts: true });
+  });
+
+  await step("malformed JSON or unknown view in xh:panel stays closed and removes key", async () => {
+    // Malformed JSON
+    await page.evaluate(() => sessionStorage.setItem("xh:panel", "{bad:json"));
+    await page.reload();
+    await page.waitForTimeout(500);
+    let isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "panel must stay closed on malformed JSON");
+    assert.strictEqual(await page.evaluate(() => sessionStorage.getItem("xh:panel")), null);
+
+    // Unknown view
+    await page.evaluate(() =>
+      sessionStorage.setItem("xh:panel", JSON.stringify({ m: "unknown_view", q: "", y: 0 }))
+    );
+    await page.reload();
+    await page.waitForTimeout(500);
+    isOpen = await page.evaluate(() => {
+      const el = document.querySelector(".xh-panel");
+      return !!el && !el.hidden;
+    });
+    assert.strictEqual(isOpen, false, "panel must stay closed on unknown view");
+    assert.strictEqual(await page.evaluate(() => sessionStorage.getItem("xh:panel")), null);
+  });
+
+  await step("a second page starts closed and does not restore first tab's panel", async () => {
+    // Open panel in tab 1
+    await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 3000 });
+
+    const page2 = await ctx.newPage();
+    try {
+      await page2.goto("https://x.com/home");
+      await page2.waitForTimeout(500);
+      const isOpen = await page2.evaluate(() => {
+        const el = document.querySelector(".xh-panel");
+        return !!el && !el.hidden;
+      });
+      assert.strictEqual(isOpen, false, "second tab must start with panel closed");
+      assert.strictEqual(await page2.evaluate(() => sessionStorage.getItem("xh:panel")), null);
+    } finally {
+      await page2.close();
+    }
+
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 3000 });
+  });
+
+  await step("with the panel open, clicking a row link keeps the panel open on the profile page", async () => {
+    // Ensure rel contains ann
+    const rels = (await storedPart("rel")) || {};
+    rels.ann = { f: true, fb: false, n: "Ann Lee", t: Date.now() };
+    await setStoredPart("rel", rels);
+
+    await page.goto("https://x.com/home");
+    await page.waitForSelector(".xh-hud:not([hidden])", { timeout: 5000 });
+
+    // Open panel on nfb
+    await page.keyboard.press("Alt+KeyU");
+    await page.waitForSelector('.xh-panel-list a[href="/ann"]', { timeout: 3000 });
+
+    // Click the row link to /ann
+    await page.click('.xh-panel-list a[href="/ann"]');
+    await page.waitForURL("https://x.com/ann", { timeout: 6000 });
+    await page.waitForSelector(".xh-panel:not([hidden])", { timeout: 5000 });
+
+    assert.strictEqual(await page.$eval(".xh-panel", (el) => el.hidden), false);
+    assert.match(await page.textContent(".xh-panel-title"), /Not following you back|没回关/);
+
+    // Close panel
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".xh-panel[hidden]", { state: "attached", timeout: 3000 });
   });
 } finally {
   await ctx.close();

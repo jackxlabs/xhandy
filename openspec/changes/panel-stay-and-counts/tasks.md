@@ -1,0 +1,17 @@
+# Tasks
+
+## 1. Panel stays open
+
+- [x] 1.1 In `src/content.js`, add `savePanel()` / `clearPanel()` / `readPanel()` for `sessionStorage` key `xh:panel` as in design.md decision 1 (validated, try/catch), call them from `togglePanel`, the search input handler and a throttled scroll listener on the list, and add a `{ focus }` option to `togglePanel` so a restore does not focus the search box. Verify: e2e steps in `test/e2e.mjs`: open Alt+U, type a search, scroll the list, reload the page → panel open on the same view, same search text, same `scrollTop`, and `document.activeElement` is not the search box; close with Esc, reload → closed; open on key accounts, turn `keyAccounts` off with `updateSettings`, reload → closed; set `xh:panel` to malformed JSON and to an unknown view, reload → closed and the key removed; a second page (new tab in the same context) starts closed. The steps "extension never clicks anything by itself" and "extension never fakes mouse or pointer events" stay unchanged and pass.
+- [x] 1.2 e2e step for the real case: with the panel open, click a row link; after the fake profile page loads the panel is open on the same view. Verify: the step passes; extend `test/fixtures/` only if the fake profile route for the clicked handle is missing.
+
+## 2. Counts
+
+- [ ] 2.1 `src/page-hook.js` `collectRelations`: add `followingCount` and the legacy fallbacks as in design.md decision 2. Verify: unit tests with invented fixtures: both counts from `relationship_counts`; fallback to `legacy.followers_count` / `legacy.friends_count`; a missing count stays absent (not 0); merge of two entries for the same handle keeps a count only one of them has; existing whole-object assertions updated.
+- [ ] 2.2 `src/lib/store.js`: pass `followingCount` through `cleanRelations`; store `fo` / `fg` in `nextRel`; keep them in `cleanRelEntry`. Verify: unit tests in `test/store.test.js`: counts stored; a later payload with only followers keeps `fg`; never sent → keys absent; reused handle (different id) drops old counts; `relAfterFriendship` keeps counts; export → `replaceAll` round trip keeps valid counts and drops invalid ones; a pre-change export imports unchanged; an invalid `followingCount` in the event drops that user entry.
+- [ ] 2.3 `src/content.js` `renderNfbPanel`: show the counts in both sections and add them to the render key; add `nfb_size_fo` / `nfb_size_fg` to `src/locales/en.js` and `src/locales/zh.js`; CSS only if the meta line needs to wrap. Verify: e2e step with `test/fixtures/following.json` extended so one listed account has both counts, one has only followers and one has none: rows show "… followers · … following", only followers, and no count text respectively, in English and in Chinese; a second response with new counts updates the open row.
+- [ ] 2.4 Update README (feature text for "Not following you back", Privacy, 中文说明) and `PRIVACY.md`: counts stored with relationships; panel state in the tab's session storage. Verify: reread the four places against proposal.md "How the rules are kept"; report `npm test` and `CHROMIUM=/usr/bin/chromium npm run e2e` results (the reviewer runs them if shell commands are not allowed).
+
+## 3. Check on real X
+
+- [ ] 3.1 Manual check by Jack on real X: open Alt+U, click three accounts in a row and use Back: the panel stays where it was; open the own Following page and scroll: rows show follower and following counts that match the profiles; note in the review report whether the following count appears (confirms the field path).

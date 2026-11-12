@@ -1543,9 +1543,79 @@
   // Each row only links to the profile; there is no unfollow button and no bulk action.
 
   const PANEL_MAX = 300;
+  const PANEL_STORAGE_KEY = "xh:panel";
+  const PANEL_MODES = new Set(["nfb", "keys"]);
   let panelEl = null;
   let panelQuery = "";
   let panelMode = "nfb"; // "nfb" or "keys"
+
+  function readPanel() {
+    try {
+      const raw = sessionStorage.getItem(PANEL_STORAGE_KEY);
+      if (!raw) return null;
+      let data = null;
+      try {
+        data = JSON.parse(raw);
+      } catch (_) {
+        clearPanel();
+        return null;
+      }
+      if (
+        !data ||
+        typeof data !== "object" ||
+        Array.isArray(data) ||
+        !PANEL_MODES.has(data.m) ||
+        typeof data.q !== "string" ||
+        data.q.length > 50 ||
+        typeof data.y !== "number" ||
+        !Number.isFinite(data.y) ||
+        data.y < 0
+      ) {
+        clearPanel();
+        return null;
+      }
+      return { m: data.m, q: data.q, y: data.y };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function savePanel() {
+    if (!panelEl || panelEl.hidden) return;
+    try {
+      const search = panelEl.querySelector(".xh-panel-search");
+      const list = panelEl.querySelector(".xh-panel-list");
+      const q = search ? search.value : (panelQuery || "");
+      const y = list ? list.scrollTop : 0;
+      sessionStorage.setItem(
+        PANEL_STORAGE_KEY,
+        JSON.stringify({ m: panelMode, q, y })
+      );
+    } catch (_) {}
+  }
+
+  function clearPanel() {
+    try {
+      sessionStorage.removeItem(PANEL_STORAGE_KEY);
+    } catch (_) {}
+  }
+
+  function restorePanel() {
+    const saved = readPanel();
+    if (!saved) return;
+    if (saved.m === "keys" && (!S || !S.settings || !S.settings.keyAccounts)) {
+      clearPanel();
+      return;
+    }
+    togglePanel(true, saved.m, { focus: false });
+    const search = panelEl.querySelector(".xh-panel-search");
+    if (search) search.value = saved.q;
+    panelQuery = saved.q.trim().replace(/^@/, "").toLowerCase();
+    renderPanel(true);
+    const list = panelEl.querySelector(".xh-panel-list");
+    if (list) list.scrollTop = saved.y;
+    savePanel();
+  }
 
   function myHandle() {
     const a = document.querySelector(SEL.profileLink);
@@ -1629,10 +1699,33 @@
     search.addEventListener("input", () => {
       panelQuery = search.value.trim().replace(/^@/, "").toLowerCase();
       renderPanel(true);
+      savePanel();
     });
     searchWrap.append(search);
 
-    panelEl.append(head, el("div", "xh-panel-info"), searchWrap, el("ol", "xh-panel-list"), el("footer", "xh-panel-foot"));
+    const list = el("ol", "xh-panel-list");
+    let scrollTimer = null;
+    let lastScroll = 0;
+    list.addEventListener("scroll", () => {
+      const now = Date.now();
+      const remaining = 250 - (now - lastScroll);
+      if (remaining <= 0) {
+        if (scrollTimer) {
+          clearTimeout(scrollTimer);
+          scrollTimer = null;
+        }
+        lastScroll = now;
+        savePanel();
+      } else if (!scrollTimer) {
+        scrollTimer = setTimeout(() => {
+          scrollTimer = null;
+          lastScroll = Date.now();
+          savePanel();
+        }, remaining);
+      }
+    });
+
+    panelEl.append(head, el("div", "xh-panel-info"), searchWrap, list, el("footer", "xh-panel-foot"));
     // Keep X's single-key shortcuts (j, k, l, r…) from firing while typing in the search box.
     // Alt shortcuts (Alt+K, Alt+U, Alt+H) and Escape are allowed through.
     panelEl.addEventListener("keydown", (e) => {
@@ -1642,8 +1735,9 @@
     document.body.appendChild(panelEl);
   }
 
-  function togglePanel(open, mode) {
+  function togglePanel(open, mode, opts) {
     if (!panelEl) buildPanel();
+    const focus = !opts || opts.focus !== false;
     if (mode && mode !== panelMode) {
       panelMode = mode;
       panelQuery = "";
@@ -1655,7 +1749,12 @@
     panelEl.hidden = !show;
     if (show) {
       renderPanel(true);
-      panelEl.querySelector(".xh-panel-search").focus({ preventScroll: true });
+      if (focus) {
+        panelEl.querySelector(".xh-panel-search").focus({ preventScroll: true });
+      }
+      savePanel();
+    } else {
+      clearPanel();
     }
   }
 
@@ -1882,6 +1981,7 @@
     renderHud();
     // Arrived here from Shift+F's profile fallback? Arm the Follow button.
     resumePendingFollow();
+    restorePanel();
   });
 
   // Ask page-hook.js to replay relationships it saw before this script loaded.
