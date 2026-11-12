@@ -28,20 +28,12 @@ steps pass.
 4. Dropped after measuring: merging the three JSON walks in `src/page-hook.js` (under 0.5 ms per 100 KB response).
 
 
-## Panel fixes and reply review (2026-11-12)
-Order agreed with Jack 2026-11-12: `panel-stay-and-counts` first, then `reply-review`. Claude writes specs and
-reviews, agy implements (herdr agent `xh-dev`, edit-only).
-1. `openspec/changes/panel-stay-and-counts/`: groups 1 and 2 implemented, reviewed and committed on branch
-   `panel-stay-and-counts` (not pushed, not merged). 117 unit tests and 104 e2e steps pass.
-   Next: task 3.1, Jack checks on real X (reload the extension; Alt+U, click a few accounts, use Back; scroll the
-   own Following page and see whether rows show follower AND following counts). The following-count field path
-   (`relationship_counts.following`, fallback `legacy.friends_count`) is unconfirmed: if only followers show, fix
-   the path in `collectRelations`. Then merge to `main`, archive the change, and decide on a version bump.
-2. `openspec/changes/reply-review/` (reply review + daily follower snapshot): groups 1 to 5 implemented, reviewed
-   and committed on branch `reply-review`, which is based on `panel-stay-and-counts` (not pushed, not merged).
-   141 unit tests and 109 e2e steps pass. The Review view has only been seen through e2e, not looked at on real X.
-   Next: task 6.1, Jack checks on real X (send two replies, open the own Replies tab and scroll, Alt+R, compare
-   views and likes with X, follower count, popup row, Alt+R while typing on macOS, three themes). Then merge
-   `panel-stay-and-counts` and `reply-review` to `main`, archive both changes, bump the version, release notes.
-3. After that, per the order Jack approved 2026-11-12: "who to reply to" panel, notes as a local CRM, `rel` into
-   IndexedDB, waitlist link and first-run card. Not specified yet.
+## v0.7.0 (2026-11-12)
+v0.7.0 = side panel stays open across page loads, follower and following counts in the Alt+U list, Review view
+(Alt+R) with reply performance and daily follower snapshots. Both OpenSpec changes archived
+(`2026-11-12-panel-stay-and-counts`, `2026-11-12-reply-review`). Jack checked on real X: list stays in place,
+counts show, Review opens. 141 unit tests and 109 e2e steps pass.
+1. Not checked yet: Alt+R (and Alt+U / Alt+K / Alt+H) while typing on macOS; comparing Review numbers with X's own
+   after a few days of data.
+2. Next features, in the order Jack approved 2026-11-12, none specified yet: "who to reply to" panel, notes as a
+   local CRM, `rel` into IndexedDB, waitlist link and first-run card.
