@@ -19,6 +19,8 @@ Upload `dist/xhandy-<version>-store.zip`. The short description comes from `_loc
 ### Detailed description (English)
 
 ```
+Xhandy is a local-first X (Twitter) follower management Chrome extension designed for zero-ban safety. It inspects only the rendered DOM in your active browser session while you browse by hand—no passwords, no API keys, and zero background API requests.
+
 Xhandy shows quiet hints while you use X by hand, so you can see which posts are worth a reply and who you already know.
 
 Xhandy never acts for you. It does not click, type, send, like, follow or schedule anything. It reads the X pages you open and your own actions on them, and shows hints.
@@ -56,6 +58,8 @@ Xhandy is an independent project. It is not affiliated with, endorsed by or spon
 ### Detailed description (中文)
 
 ```
+Xhandy 是本地优先的 X (Twitter) 粉丝关系管理 Chrome 扩展，专为零封号风险设计。它仅在你在浏览器中手动浏览时读取页面已渲染的 DOM，无需账号密码，无需 API 密钥，绝不发起自动化后台 API 请求。
+
 Xhandy 在你手动刷 X 时给出顺手的提示：哪条帖子值得回，哪个作者你已经认识，一眼就能看到。
 
 Xhandy 从不替你操作：不点击、不输入、不发送、不点赞、不关注，也不定时发布。它只读取你打开的 X 页面和你自己的操作，然后显示提示。
