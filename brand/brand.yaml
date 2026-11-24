@@ -612,7 +612,7 @@ messaging:
       description: "Browser helpers for people who engage on X by hand. Never clicks, sends or follows for you; all data stays in your browser."
       lang: en
     chrome_web_store:
-      status: confirmed      # 2026-11-24 rewritten for v0.8.0 AI drafts (CEO mandate); both languages ship in _locales
+      status: confirmed      # 2026-11-24 rewritten for v0.8.0 AI drafts; both languages ship in _locales
       short_description:
         zh: "X（推特）回复助手：用你自己的密钥让 AI 起草回复，加上帖子热度、互关状态和笔记。发不发由你决定，默认不联网。"
         en: "AI reply drafts for X (Twitter) with your own key, plus post heat, follow status and notes. You press send. Offline by default."
