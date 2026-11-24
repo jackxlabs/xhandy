@@ -41,7 +41,7 @@
   ];
 
   const SECTION_KEY = "xh:opt_section";
-  const VALID_SECTIONS = ["general", "badges", "rel", "dup", "keys", "notes", "data"];
+  const VALID_SECTIONS = ["general", "badges", "rel", "dup", "keys", "notes", "ai", "data"];
 
   let lastRelMeta = null;
   let lastRelCount = 0;
@@ -405,6 +405,7 @@
     lastRelMeta = all.relMeta;
     renderRelStatus();
 
+    document.dispatchEvent(new Event("xh-options-loaded"));
     checkHash();
     if (!location.hash) {
       switchSection(getStoredSection());
@@ -420,6 +421,7 @@
     renderKeyAccountsList();
     renderNotesList();
     renderRelStatus();
+    document.dispatchEvent(new Event("xh-lang-changed"));
   });
 
   for (const k of CHECKS) {

@@ -1,10 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Xhandy",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "__MSG_description__",
   "default_locale": "en",
-  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "storage",
     "unlimitedStorage"
@@ -35,6 +40,8 @@
         "src/lib/top-posts.js",
         "src/lib/icons.js",
         "src/lib/review.js",
+        "src/lib/ai.js",
+        "src/lib/ai-composer.js",
         "src/content.js"
       ],
       "css": [
@@ -45,8 +52,23 @@
   ],
   "action": {
     "default_title": "Xhandy",
-    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
     "default_popup": "src/popup/popup.html"
   },
-  "options_page": "src/options/options.html"
+  "options_page": "src/options/options.html",
+  "minimum_chrome_version": "114",
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "http://[::1]/*"
+  ]
 }

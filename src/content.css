@@ -1108,3 +1108,16 @@ svg.xh-rev-chart {
 .xh-toast[hidden] {
   display: none;
 }
+
+.xh-ai-bar, .xh-ai-panel {
+  font: 13px var(--xh-font); color: var(--xh-fg); background: var(--xh-bg);
+}
+.xh-ai-bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
+.xh-ai-bar button, .xh-ai-bar select, .xh-ai-panel button {
+  font: inherit; color: inherit; background: var(--xh-chip); border: 1px solid var(--xh-line);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer; max-width: 100%;
+}
+.xh-ai-bar :focus-visible, .xh-ai-panel :focus-visible { outline: 2px solid var(--xh-accent); outline-offset: 2px; }
+.xh-ai-panel { width: min(440px, calc(100vw - 40px)); max-height: 65vh; overflow-y: auto; padding: 16px; border: 1px solid var(--xh-line); border-radius: 14px; box-shadow: var(--xh-shadow); }
+.xh-ai-results { display: grid; gap: 10px; }
+.xh-ai-candidate { text-align: start; white-space: pre-wrap; overflow-wrap: anywhere; }

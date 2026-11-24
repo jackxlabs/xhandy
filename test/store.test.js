@@ -2100,3 +2100,19 @@ test("days cleaner keeps days[date].followers when non-negative integer and leav
   });
   assert.strictEqual("followers" in s3.days["2026-10-01"], false);
 });
+
+test("AI defaults remain off for existing v5 data; export/import excludes key and reset deletes it", async () => {
+  const credential = { base: "https://provider.test/v1", key: "fake-test-secret" };
+  const chrome = fakeChrome({ "xh:v": 5, "xh:aiKey": credential, "xh:settings": { hud: false } });
+  const store = loadStore(chrome);
+  const data = await store.get();
+  assert.strictEqual(data.settings.aiEnabled, false);
+  assert.strictEqual(data.settings.aiExamples, true);
+  assert.strictEqual(data.settings.hud, false);
+  assert.ok(!JSON.stringify(data).includes("fake-test-secret"));
+  await store.replaceAll({ ...data, aiKey: "bad", "xh:aiKey": "bad", settings: { ...data.settings, aiEnabled: true } });
+  assert.deepStrictEqual(chrome.data["xh:aiKey"], credential);
+  assert.strictEqual((await store.get()).settings.aiEnabled, false);
+  await store.reset();
+  assert.ok(!("xh:aiKey" in chrome.data));
+});

@@ -1,6 +1,6 @@
 {
   "description": {
-    "message": "Hints for engaging on X by hand: post heat, follow status, interaction history and duplicate-reply warnings. Data stays local.",
+    "message": "AI reply drafts for X (Twitter) with your own key, plus post heat, follow status and notes. You press send. Offline by default.",
     "description": "Store and extensions-page description, 132 characters at most"
   }
 }

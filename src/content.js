@@ -1,6 +1,6 @@
 // Xhandy content script.
-// Rule for this file: it only READS the page and the user's own clicks/typing, and shows hints.
-// It never clicks, types, sends, likes or follows on the user's behalf. The follow assistant
+// It reads the page and shows hints. Only explicit AI candidate selection inserts text.
+// It never clicks, sends, likes or follows on the user's behalf. The follow assistant
 // only finds and focuses X's own Follow button; the user presses Enter.
 (function () {
   const XH = globalThis.XH;
@@ -8,6 +8,8 @@
 
   const SEL = {
     tweet: 'article[data-testid="tweet"]',
+    editor: '[data-testid^="tweetTextarea_"][contenteditable="true"]',
+    dialog: '[role="dialog"]',
     userName: '[data-testid="User-Name"]',
     like: '[data-testid="like"]',
     unlike: '[data-testid="unlike"]',
@@ -694,6 +696,7 @@
   }
 
   function annotateAll() {
+    aiComposer.refresh();
     if (!S) return;
     document.querySelectorAll(SEL.tweet).forEach(annotate);
     updateProfileButtons();
@@ -849,7 +852,7 @@
         }
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && e.target.closest(SEL.textarea)) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && e.target.closest?.(SEL.editor)) {
         const scope = e.target.closest('[role="dialog"]') || document;
         const button = scope.querySelector(SEL.send);
         if (button) onSend(button);
@@ -919,13 +922,24 @@
   document.addEventListener(
     "input",
     (e) => {
-      const box = e.target.closest && e.target.closest(SEL.textarea);
+      const box = e.target.closest && e.target.closest(SEL.editor);
       if (!box) return;
       clearTimeout(dupTimer);
       dupTimer = setTimeout(() => checkDup(box.innerText), 400);
     },
     true
   );
+
+  const aiComposer = XH.createAiComposer({ selectors: SEL, state: () => S, checkDup,
+    context: (article) => {
+      if (!article) return null;
+      const info = tweetInfo(article);
+      if (!info) return null;
+      return { id: info.id, handle: info.handle,
+        name: article.querySelector(SEL.userName)?.innerText?.split("\n")[0]?.slice(0, 200) || info.handle,
+        parent: article.querySelector(SEL.tweetText)?.innerText || "" };
+    },
+  });
 
   // ---------- stats bar (HUD) and time on X ----------
 

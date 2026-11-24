@@ -6,8 +6,8 @@
 
 ## 不能破的规矩
 
-1. **永远不替用户操作**：不点击、不输入、不发送、不点赞、不关注、不取关，也不做任何批量动作。只读页面和用户自己的操作，然后显示提示。关注助手只负责找到 X 自己的关注按钮并让它获得焦点，按 Enter 的是用户。e2e 里有「extension never clicks anything by itself」这一项，不能删，也不能绕过。
-2. **默认不联网**：不发网络请求，不做统计，不加载远程代码。`page-hook.js` 只克隆 X 自己的 API 响应来读数据，不修改，也不外发。以后加外部功能（webhook、Notion 同步）时，必须由用户自己在设置里打开，联网权限用 `optional_host_permissions` 在打开时再申请，请求从后台 service worker 发，不从内容脚本发。
+1. **永远不替用户操作**：不点击、不发送、不点赞、不关注、不取关，也不做任何批量动作。只读页面和用户自己的操作，然后显示提示。唯一的输入例外是：用户明确点选 AI 候选后，才可将文字填入回复框或发帖框；发送永远由用户自己按。关注助手只负责找到 X 自己的关注按钮并让它获得焦点，按 Enter 的是用户。e2e 里有「extension never clicks anything by itself」这一项，不能删，也不能绕过。
+2. **默认不联网**：AI 默认关闭，关闭时不发网络请求，不做统计，不加载远程代码。`page-hook.js` 只克隆 X 自己的 API 响应来读数据，不修改，也不外发。AI 及以后加的外部功能（webhook、Notion 同步），必须由用户自己在设置里打开，联网权限用 `optional_host_permissions` 在打开时再申请，请求从后台 service worker 发，不从内容脚本发。
 3. **数据只在本地**：用户数据只存在 `chrome.storage.local`。改了存什么、存在哪，同步改 README 的 Privacy 一节和 `PRIVACY.md`（上架商店用的隐私政策）。
 4. **不要像机器人**：每日关注、取关有软上限，只提醒，不拦截；重复回复会提醒。新功能如果会让用户的操作更快、更像批量，要先想清楚会不会触发 X 的风控。
 
@@ -20,6 +20,8 @@
 - `src/popup/`：工具栏弹窗（近 7 天统计）。`src/options/`：设置页（含导出、导入、清空）。
 
 ## 存储
+
+- AI 密钥单独保存在 `xh:aiKey`，绑定接口地址，不属于 `store.PARTS`，内容脚本不读取。导出不含密钥，导入不覆盖密钥且关闭 AI，清空数据一并删除密钥。
 
 - 每个顶层部分单独一个键：`xh:settings`、`xh:people`、`xh:sent`、`xh:days`、`xh:rel`、`xh:relMeta`、`xh:replied`、`xh:inSeen`、`xh:pace`、`xh:keys`、`xh:notes`、`xh:mine`（以 `store.js` 的 `PARTS` 为准）。版本号在 `xh:v`（当前是 5）。v1 时全部放在一个 `xh` 键里，`store.js` 第一次读写时会自动迁移。
 - 写入用 `store.update([要改的部分], fn)`，只读写声明过的部分。fn 碰到没声明的部分会直接报错，所以加新逻辑时把用到的部分都列上。不要为了省事退回 `store.update(fn)` 全量写：在线计时每 15 秒写一次，`rel` 最多 3 万条，全量写会拖慢 X 页面。

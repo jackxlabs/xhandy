@@ -49,7 +49,7 @@
 
 Mac 上 `Alt` 是 `Option` 键。完整说明见 [README 的中文说明](https://github.com/jackxlabs/xhandy#中文说明)。
 
-Xhandy 不会替你点击、输入、发送或关注任何东西，数据只存在你自己的浏览器里，不联网。
+Xhandy 不会替你点击、发送或关注。AI 默认关闭；在设置 → AI 中配置服务商并授权后，回复框按 Alt+G 生成候选，点选才填入，发送由你操作。原帖、草稿及可选样例直接发给服务商，密钥只在本机且不进导出。
 
 ## 反馈
 
@@ -70,5 +70,5 @@ Xhandy 不会替你点击、输入、发送或关注任何东西，数据只存�
 
 **Use:** posts get badges for views per hour (🔥 when hot, old posts marked stale), your follow relationship with the author (hidden when neither follows the other), how often you've interacted (both ways, `you 3 · them 5`, or `1× · 2d ago`), the reply count and size ratio (`💬 23 · 12×`), and `✓ replied` on posts you already answered. Click `☆` to make the author a key account (`★`, click again to remove); `Alt+K` shows which key accounts have gone quiet. `Alt+B` opens an author's top posts search, `Alt+N` opens the note editor, `Alt+R` opens the review panel, `Shift+F` focuses the author's Follow button (you press Enter), `Alt+U` lists accounts that don't follow you back, `Alt+H` hides the stats bar. Full guide in the [README](https://github.com/jackxlabs/xhandy#readme).
 
-Xhandy never clicks, types, sends or follows for you, and all data stays in your browser.
+Xhandy never clicks, sends or follows for you. AI is off by default: configure and grant provider access in Options → AI, then use Alt+G in a reply composer. Only selecting a candidate inserts text; you send manually. AI inputs go directly to your provider; keys stay local and are excluded from export.
 Feedback: DM [@JackHuang47](https://x.com/JackHuang47) on X.

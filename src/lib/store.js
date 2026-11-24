@@ -1,4 +1,4 @@
-// All state lives in chrome.storage.local. Nothing leaves the browser.
+// State lives in chrome.storage.local. Optional AI requests are handled only by the worker.
 // Each top-level part (settings, rel, ...) is its own key ("xh:rel"), so a write touches only the parts
 // it changes: the 15-second time tick rewrites a few bytes of "xh:days", not 30,000 relationships.
 (function () {
@@ -10,6 +10,9 @@
 
   const DEFAULTS = {
     settings: {
+      aiEnabled: false, aiProvider: "openrouter", aiBase: "https://openrouter.ai/api/v1",
+      aiModel: "google/gemini-3.1-flash-lite", aiLanguage: "same", aiCustomLanguage: "",
+      aiTone: "friendly", aiExamples: true,
       lang: "auto", // interface language: "auto" (follow browser), "en", "zh"
       staleHours: 48,
       showHeat: true, // colour the age chip by views per hour
@@ -744,13 +747,15 @@
   async function replaceAll(data) {
     await migrate();
     const s = cleanState(data);
+    // Import never grants consent to send text, and cannot replace the separate credential.
+    s.settings.aiEnabled = false;
     const out = { [VERSION_KEY]: VERSION };
     for (const part of PARTS) out[keyOf(part)] = s[part];
     await chrome.storage.local.set(out);
   }
 
   async function reset() {
-    await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY]);
+    await chrome.storage.local.remove([...PARTS.map(keyOf), VERSION_KEY, LEGACY_KEY, "xh:aiKey"]);
   }
 
   // Accounts followed by the user that do not follow back.

@@ -458,6 +458,7 @@
           <button type="button" class="opt-nav-item" data-section="dup" data-i18n="opt_nav_dup">Duplicate replies</button>
           <button type="button" class="opt-nav-item" data-section="keys" data-i18n="opt_nav_keys">Key accounts</button>
           <button type="button" class="opt-nav-item" data-section="notes" data-i18n="opt_nav_notes">Notes</button>
+          <button type="button" class="opt-nav-item" data-section="ai" data-i18n="ai_title">AI</button>
           <button type="button" class="opt-nav-item" data-section="data" data-i18n="opt_nav_data">Data</button>
         </nav>
 
@@ -775,6 +776,22 @@
           </section>
 
           <!-- 7. Data -->
+          <section id="sec-ai" class="opt-section" hidden>
+            <h2 data-i18n="ai_title">AI assistance</h2>
+            <p data-i18n="ai_notice"></p>
+            <p><label for="aiEnabled" data-i18n="ai_enabled"></label> <input id="aiEnabled" type="checkbox"></p>
+            <p><label for="aiProvider" data-i18n="ai_provider"></label> <select id="aiProvider"></select></p>
+            <p><label for="aiBase" data-i18n="ai_base"></label> <input id="aiBase" type="url"></p>
+            <p><label for="aiModel" data-i18n="ai_model"></label> <input id="aiModel" type="text"></p>
+            <p><label for="aiKey" data-i18n="ai_key"></label> <input id="aiKey" type="password" autocomplete="off" spellcheck="false"></p>
+            <p><label for="aiLanguage" data-i18n="ai_language"></label> <select id="aiLanguage"></select></p>
+            <p><label for="aiCustomLanguage" data-i18n="ai_custom_language"></label> <input id="aiCustomLanguage" type="text"></p>
+            <p><label for="aiTone" data-i18n="ai_tone"></label> <select id="aiTone"></select></p>
+            <p><label for="aiExamples" data-i18n="ai_examples"></label> <input id="aiExamples" type="checkbox"></p>
+            <button type="button" id="aiSave" data-i18n="ai_save"></button>
+            <button type="button" id="aiTest" data-i18n="ai_test"></button>
+            <p id="aiStatus" role="status"></p>
+          </section>
           <section id="sec-data" class="opt-section" hidden>
             <h2 data-i18n="opt_nav_data">Data</h2>
             <p class="hint" data-i18n="opt_data_disclosure">Xhandy reads the X pages you open and your own actions on them (likes, replies and posts, follows, what you type in the reply box), and stores counts, relationships, your recent reply text and your notes in this browser. Nothing is sent anywhere.</p>
@@ -795,6 +812,8 @@
     <script src="../lib/i18n.js"></script>
     <script src="../lib/store.js"></script>
     <script src="../lib/icons.js"></script>
+    <script src="../lib/ai.js"></script>
     <script src="options.js"></script>
+    <script src="ai-options.js"></script>
   </body>
 </html>

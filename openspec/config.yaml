@@ -9,10 +9,10 @@ context: |
   No build step: the repository root is the extension directory. Read CLAUDE.md (Chinese) for the full rules.
 
   Rules that no change may break:
-  - Xhandy never acts for the user: it never clicks, types, sends, likes, follows or unfollows, and does
-    nothing in bulk. It only reads the page and the user's own actions, then shows hints. The follow
+  - Xhandy never acts for the user: it never clicks, sends, likes, follows or unfollows, and does
+    nothing in bulk. Only explicit AI candidate selection may insert text; sending remains manual. It reads the page and the user's own actions, then shows hints. The follow
     assistant only moves focus to X's own Follow button; the user presses Enter.
-  - No fake input events, no masking of the fetch hook (src/page-hook.js only clones X's own responses).
+  - Native insertText after explicit AI candidate selection is allowed; no fake input events, no masking of the fetch hook (src/page-hook.js only clones X's own responses).
   - Offline by default: no network requests, analytics or remote code. Any network feature is off until
     the user turns it on in settings, asks for access through optional_host_permissions at that moment,
     and sends requests from the background service worker, never from content scripts.

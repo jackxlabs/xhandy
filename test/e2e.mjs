@@ -1,8 +1,9 @@
 // End-to-end check: loads the unpacked extension into Chromium and serves a fake
 // X timeline for https://x.com/home, so no real X account or network is touched.
 // Usage: CHROMIUM=/usr/bin/chromium npm run e2e
+import { aiE2e } from "./ai-e2e.mjs";
 import { chromium } from "playwright-core";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -20,17 +21,26 @@ const api = {
   Following: readFileSync(join(root, "test/fixtures/following.json"), "utf8"),
 };
 
+// Headless Chromium can't answer the optional host permission prompt, so the extension is loaded
+// from a copy whose manifest already grants the local fake AI provider's origin. Only the test copy
+// changes; the real manifest keeps it optional.
+const extRoot = mkdtempSync(join(tmpdir(), "xh-ext-"));
+cpSync(root, extRoot, { recursive: true, filter: (src) => !/[\\/](node_modules|\.git|dist|openspec)([\\/]|$)/.test(src.slice(root.length)) });
+const testManifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));
+testManifest.host_permissions = [...(testManifest.host_permissions || []), "http://127.0.0.1/*"];
+writeFileSync(join(extRoot, "manifest.json"), JSON.stringify(testManifest, null, 2));
+
 const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "xh-")), {
   executablePath: process.env.CHROMIUM || "/usr/bin/chromium",
   headless: true,
   locale: "en-US",
   viewport: { width: 1280, height: 800 },
-  args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, "--headless=new"],
+  args: [`--disable-extensions-except=${extRoot}`, `--load-extension=${extRoot}`, "--headless=new"],
 });
 
 // The content script runs in an isolated world, so the page can't see XH. Read storage from an
 // extension page instead. An unpacked extension's id is derived from its folder path.
-const extId = createHash("sha256").update(root).digest("hex").slice(0, 32).replace(/./g, (x) => String.fromCharCode(97 + parseInt(x, 16)));
+const extId = createHash("sha256").update(extRoot).digest("hex").slice(0, 32).replace(/./g, (x) => String.fromCharCode(97 + parseInt(x, 16)));
 async function storedSent() {
   const p = await ctx.newPage();
   try {
@@ -1972,7 +1982,7 @@ try {
       assert.match(await p.textContent("#keys"), /Alt K/);
       assert.match(await p.textContent("#nfb"), /我关注了、没回关我的/);
       assert.match(await p.textContent("#nfb"), /Alt U/);
-      assert.match(await p.textContent("[data-i18n=pop_data]"), /数据只存在本浏览器/);
+      assert.match(await p.textContent("[data-i18n=pop_data]"), /默认不联网/);
 
       // 2. In English
       await updateSettings({ lang: "en" });
@@ -1985,7 +1995,7 @@ try {
       assert.match(await p.textContent("#keys"), /Alt K/);
       assert.match(await p.textContent("#nfb"), /Not following you back/);
       assert.match(await p.textContent("#nfb"), /Alt U/);
-      assert.match(await p.textContent("[data-i18n=pop_data]"), /Data stays in this browser/);
+      assert.match(await p.textContent("[data-i18n=pop_data]"), /Offline by default/);
     } finally {
       await updateSettings({ lang: "auto" });
       await p.close();
@@ -3341,6 +3351,7 @@ try {
     // Restore setting
     await updateSettings({ review: true, lang: "en" });
   });
+  await aiE2e(ctx, extId, step);
 } finally {
   await ctx.close();
 }

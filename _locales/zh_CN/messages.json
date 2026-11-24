@@ -1,6 +1,6 @@
 {
   "description": {
-    "message": "刷 X 时的顺手提示：帖子热度、互关状态、互动记录和重复回复提醒。从不替你操作，数据只在你的浏览器里。",
+    "message": "X（推特）回复助手：用你自己的密钥让 AI 起草回复，加上帖子热度、互关状态和笔记。发不发由你决定，默认不联网。",
     "description": "Store and extensions-page description, 132 characters at most"
   }
 }

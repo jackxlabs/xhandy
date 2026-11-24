@@ -4,14 +4,16 @@ Browser helpers for people who engage on X by hand.
 
 > Xhandy is an independent project. It is not affiliated with, endorsed by or sponsored by X Corp.
 
-**Xhandy never acts for you.** It does not click, type, send, like, follow or schedule anything.
-It reads the page and your own actions, shows hints, and keeps all data in your browser.
-That is the point: you get faster without anything that looks like a bot to X.
+**You choose what to write and send.** Xhandy never clicks, sends, likes, follows or schedules anything.
+Optional AI drafts insert text only after you select a candidate; you review and send it yourself.
+AI is off by default. Local data stays in your browser except the text you choose to send directly to your AI provider.
 
 ## Features
 
+- **Optional AI assistance** (`Alt+G` in a reply composer): bring your own OpenRouter, Gemini, OpenAI, Anthropic, DeepSeek, Ollama or OpenAI-compatible provider. Choose language and tone, get three drafts, or polish, shorten, translate and make your text conversational. Only selecting a candidate changes the editor; sending stays manual. Optional examples use up to five matched high-view replies from the last 30 days. Configure and apply in Options → AI (off by default).
+
 - **Review** (`Alt+R`, or the button in the toolbar popup): review the performance of your replies and track your follower growth. Shows 7-day reply count and median views, follower change over the last 7 and 30 days, a 30-day chart of replies bars and follower polyline (split at missing days), breakdown of what gets seen across reply delay, author size and post heat (groups with clear differences marked Best), top 10 most-viewed replies from the last 30 days, and a link to your Replies tab to refresh numbers. Data is kept in this browser only and can be turned off in Options.
-- **Feature switches and autosave**: every feature (heat chip, heat colouring, interaction chips, interaction tint, reply signals, replied mark, relationship chip, key accounts, top posts, notes, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in its own section in Options. All changes save automatically as you make them (no Save button needed). All are on by default.
+- **Feature switches and autosave**: every feature (heat chip, heat colouring, interaction chips, interaction tint, reply signals, replied mark, relationship chip, key accounts, top posts, notes, duplicate-reply warning, follow/unfollow reminders, and stats bar) has an on/off switch in its own section in Options. All changes save automatically as you make them (no Save button needed). All these helpers are on by default; AI is off by default.
 - **Notes** (`Alt+N`, or the button on profiles): keep private notes, tags and relationship stages for any account. Choose from four status presets (To reach out, In touch, Regular, Working together), up to 5 tags, and up to 500 characters of text. Posts by that account show a status chip or `#tag` next to the author's name (hover to preview the note). Manage, search and filter all notes in Options. Data is stored strictly in your browser and never leaves.
 - **Top posts** (`Alt+B`, or the button on profiles): opens X's own search for an account's best-received original posts (`from:<handle> min_faves:<N> -filter:replies`), with the threshold N chosen from their follower count; the browser's Back button returns to the profile. Helps you find winning topics and opening lines without typing search queries by hand. Turn it off in Options.
 - **Language**: English or Chinese, chosen at the top of Options (default: follow the browser language). It applies to the settings page, the toolbar popup and every hint on x.com, without reloading X.
@@ -102,7 +104,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
   view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
   changes or sends anything. A reply or post is recorded only after X confirms it was created.
-- No network requests, no analytics, no remote code.
+- No network requests by default, no analytics, no remote code. AI is optional: after enabling it and granting the selected provider origin, the background worker sends original post text and author, your composer text, and (if enabled) up to five style-example replies directly from your browser to your selected provider, never through Xhandy. The provider processes that text under its own policy.
+- AI preferences are stored in settings. The API key is stored locally under a separate `xh:aiKey`, bound to the API base URL, excluded from exports and untouched by imports. Import leaves AI disabled; clearing all data also deletes the key. Connection testing sends only a tiny synthetic prompt. Custom endpoints require HTTPS, except local loopback HTTP (Ollama).
 - Export, import or delete everything from the Options page.
 
 The full privacy policy is in [PRIVACY.md](PRIVACY.md).
@@ -129,9 +132,9 @@ X changes its markup often. Selectors live at the top of `src/content.js` (`SEL`
 
 ## 中文说明
 
-Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，双方来回互动的作者帖子带淡紫色底色（来回互动越多底色越深，以较少一方为准，无互动每 30 天淡化一半，无需悬停直接显示，互动数来自本浏览器内 X 显示过的数据；可在设置中调节或关闭），在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），在别人主页点击「备注」或按 Alt+N 打开账号备注编辑器（设置待破冰、已破冰、常互动、合作中 4 种状态，添加标签和 500 字私密备忘，并在帖子上显示状态或标签角标），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，X 有提供时显示对方的粉丝数与关注数，在同标签页内跳转主页、刷新或后退保持展开并记住滚动位置，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒；原来互关、后来取关你的人排在最上面「最近取关了你」一栏），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，右下角统计条记录今天的点赞、回复、发帖、关注、取关数和在线时长（可自由拖拽，位置随窗口调整自适应，设置页可重置；关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算），在别人主页点击「高赞帖」或按 Alt+B 一键搜索该博主的高赞原创推文（在当前页打开，按浏览器的后退回到主页）。每个功能都可以在设置页对应的分区里开启或关闭（默认全开），改动自动保存。
+Xhandy 是给“手动玩 X”的人用的浏览器插件：标出帖子每小时浏览量（每小时 1000 以上标橙，1 万以上标红 🔥，一眼看出哪条正火、值得跟进；旧帖标灰）、你和作者是否互关、互动过几次，双方来回互动的作者帖子带淡紫色底色（来回互动越多底色越深，以较少一方为准，无互动每 30 天淡化一半，无需悬停直接显示，互动数来自本浏览器内 X 显示过的数据；可在设置中调节或关闭），在帖子上点击 ☆ 或按 Alt+S 将作者设为重点账号（帖子显示蓝色边线，星星变成实心 ★，再点一次取消），按 Alt+K 打开重点账号面板（按最久未互动排序并标出沉寂账号），在别人主页点击「备注」或按 Alt+N 打开账号备注编辑器（设置待破冰、已破冰、常互动、合作中 4 种状态，添加标签和 500 字私密备忘，并在帖子上显示状态或标签角标），选中帖子按 Shift+F 选中作者的「关注」按钮（页面上有就直接选中，比如你自己把鼠标移到作者头像上弹出的资料卡；没有就跳到作者主页再选中。你按 Enter 才会关注，插件不模拟鼠标），按 Alt+U 在右侧列出「我关注了、但没回关我」的账号（只读，没有取关按钮，X 有提供时显示对方的粉丝数与关注数，在同标签页内跳转主页、刷新或后退保持展开并记住滚动位置，取关要自己去对方主页点，超过每日软上限或短时间内取关过快会提醒；原来互关、后来取关你的人排在最上面「最近取关了你」一栏），打字时提醒“这条回复和你刚发过的很像”，关注太快或超过每日上限时提醒防限流，右下角统计条记录今天的点赞、回复、发帖、关注、取关数和在线时长（可自由拖拽，位置随窗口调整自适应，设置页可重置；关注和取关以 X 确认成功为准，从关注按钮、帖子「⋯」菜单等任何入口操作都算），在别人主页点击「高赞帖」或按 Alt+B 一键搜索该博主的高赞原创推文（在当前页打开，按浏览器的后退回到主页）。每个功能都可以在设置页对应的分区里开启或关闭（普通功能默认开启、AI 默认关闭），普通设置改动自动保存。
 
-它**不会替你做任何操作**：不点击、不输入、不发送、不点赞、不关注。只读取页面和你自己的操作，数据只存在你的浏览器里。
+它不点击、不发送、不点赞、不关注，也不做批量动作。**只有你点选 AI 候选后才会填入文字，发送始终由你自己按。** AI 默认关闭；开启并授权后，原帖及作者、框内文字和可选的好回复样例会从浏览器直接发给你选择的服务商，不经过 Xhandy。密钥只存在本机，不进导出，导入不覆盖密钥且关闭 AI，清空数据会删除密钥。
 
 Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或赞助。
 
@@ -171,6 +174,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 
 ![帖子上的关注关系和互动次数，右侧是「没回关我」列表，右下角是今日统计（其他用户的信息已打码）](docs/relations-zh.png)
 
+- **AI 草稿与改写**：在设置 → AI 中选择服务商、模型、密钥、语言和语气，点「应用」保存并授权域名。回复框按 `Alt+G` 或点「AI 草稿」获取三个候选；已有文字可润色、缩短、翻译或变得更口语。选中候选才填入，`Esc` 关闭，发送由你操作。可参考近 30 天浏览最多且能关联原文的最多五条回复（可关）。Ollama 本地服务不需要密钥。
 - **防重复回复**：写回复时如果和你最近发过的某条很像，或者同一句短回复（比如「加油」）要发第三次了，右下角会提醒。重复的回复最容易被当成垃圾内容。
 - **效果复盘**（`Alt+R`，或工具栏弹窗入口）：复盘你的回复效果与粉丝增长。显示近 7 天回复数与中位数浏览量、近 7 天和 30 天粉丝增量、近 30 天每日回复柱状图与粉丝折线图（未打开的日子保留折线缺口，不虚报为 0）、按回复时机/对方粉丝量/原帖热度三个维度的效果对比（有明显优势的标为「最佳」），以及近 30 天最受关注的前 10 条回复，附「回复」页面链接以刷新数据。数据仅保存在本浏览器，可在设置中关闭。
 - **今日统计**：页面右下角的圆角统计条显示今天的点赞、回复、发帖、关注数和在线时长，不遮挡回复框，滚动时会变淡。按住可以随意拖拽到屏幕任何位置（调整窗口大小时始终留在窗口内，设置页可一键重置回默认位置）。
@@ -190,6 +194,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 | `Enter` / `Esc` | 关注助手出现后：按 `Enter` 关注，按 `Esc` 取消。插件自己永远不会点 |
 | `Alt+←` | 浏览器自带的后退：关注助手跳到作者主页后，用它回到时间线 |
 | `Alt+U` | 打开或关闭「没回关我」列表，可以搜索，`Esc` 关闭 |
+| `Alt+G` | 回复框生成 AI 候选；点选才填入，发送由你操作 |
 | `Alt+H` | 隐藏或显示统计条 |
 
 Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` 回复、`t` 转发、`?` 查看全部）照常可用，Xhandy 不会占用它们。
@@ -198,7 +203,7 @@ Mac 上的 `Alt` 就是 `Option` 键。X 自带的快捷键（`l` 点赞、`r` �
 
 ### 设置
 
-在 `chrome://extensions` 里点 Xhandy 的「详细信息 → 扩展程序选项」，或者右键工具栏图标 →「选项」。设置页按功能划分为 7 个分区（常规、帖子标记、关注与取关、重复回复、重点账号、备注、数据），细调项收纳在折叠的「高级设置」中，**所有改动自动保存**（无需手动点保存）：
+在 `chrome://extensions` 里点 Xhandy 的「详细信息 → 扩展程序选项」，或者右键工具栏图标 →「选项」。设置页按功能划分为 8 个分区（常规、帖子标记、关注与取关、重复回复、重点账号、备注、AI、数据），细调项收纳在折叠的「高级设置」中，**普通设置自动保存**；AI 分区需点「应用 AI 设置／授权域名」：
 
 - 界面语言：中文或英文，默认跟随浏览器语言。设置页、工具栏弹窗和 X 页面上的提示都会一起切换，不用刷新 X
 - 功能开关：各功能开关放在对应分区顶部，可独立开启或关闭对应功能（默认全开）
