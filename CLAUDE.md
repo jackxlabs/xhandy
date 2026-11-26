@@ -15,6 +15,7 @@
 
 - `src/page-hook.js`：跑在页面环境（`world: MAIN`），从 X 的 API 响应里读互关关系、浏览量，以及用户自己关注、取关的结果（`friendships/create|destroy.json`，每日关注、取关数就按它统计，不看点的是哪个按钮），通过事件交给内容脚本。事件谁都能发，内容脚本收到后先过 `store.cleanRelations` 校验。纯函数 `collectRelations` / `collectViews` / `collectFriendship` 有单元测试。
 - `src/content.js`：内容脚本主体。X 页面的选择器全部放在文件开头的 `SEL` 里，用 `data-testid`。X 经常改页面结构，坏了先查这里。
+- `src/lib/posts.js`：找帖子。页面上有 X 旧版的 `article[data-testid="tweet"]` 时只认它（和 0.7.0 一样）；没有时从帖子的「带时间的 /status/ 链接」往上找容器。内容脚本里不要再直接用 `closest(...)` 找帖子，用 `postOf` / `findPosts`。
 - `src/lib/store.js`：存储层，见下一节。
 - `src/lib/similarity.js`：重复回复的相似度计算。`src/lib/i18n.js`：中英文文案。
 - `src/popup/`：工具栏弹窗（近 7 天统计）。`src/options/`：设置页（含导出、导入、清空）。
@@ -34,6 +35,8 @@ CHROMIUM=/usr/bin/chromium npm run e2e     # 在真实 Chromium 里加载扩展�
 ```
 
 提交前两样都要过。改了 X 页面的选择器，要同步更新 `test/fixtures/` 里的假页面。
+
+`npm run e2e` 把全部场景按四种页面布局各跑一遍（并行，约 3 分钟）：`old` 是 X 旧版，`a` 去掉 article 上的 `data-testid`，`b` 帖子换成放在 `cellInnerDiv` 里的普通 div，`c` 普通 div、没有列表格子、帖子里的 `data-testid` 也去掉（测试改从 `data-e2e` 找，扩展不读它）。只跑一种：`XH_LAYOUT=c CHROMIUM=/usr/bin/chromium node test/e2e.mjs`。假页面里找帖子内元素用 `E2E.q("like")`，测试代码里用 `T("like")`，这样四种布局都能找到。
 
 ## 发版
 

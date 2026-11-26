@@ -141,6 +141,24 @@
     return [{ handle: json.screen_name, name: json.name || null, id: json.id_str || null, on: m[1] === "create" }];
   }
 
+  // The user's own like or unlike, from X's answer to its GraphQL mutation: POST .../FavoriteTweet (or
+  // UnfavoriteTweet) answers {"data":{"favorite_tweet":"Done"}} without the post, so the post's id is read from
+  // the request X itself sent. Seeing X's answer rather than a button means likes count even when X's page has
+  // no like-button mark, and failed ones don't.
+  const LIKE_URL = /\/graphql\/[^/]+\/(FavoriteTweet|UnfavoriteTweet)(\?|$)/;
+  function collectLike(url, body, json) {
+    const m = typeof url === "string" ? LIKE_URL.exec(url) : null;
+    if (!m || !json || !json.data) return [];
+    const on = m[1] === "FavoriteTweet";
+    if (json.data[on ? "favorite_tweet" : "unfavorite_tweet"] !== "Done") return [];
+    let vars = null;
+    try {
+      vars = typeof body === "string" ? JSON.parse(body).variables : null;
+    } catch (_) {}
+    const id = vars && vars.tweet_id != null ? String(vars.tweet_id) : "";
+    return /^\d{1,20}$/.test(id) ? [{ id, on }] : [];
+  }
+
   // The user's own post or reply, from X's GraphQL mutation: POST .../(CreateTweet|CreateNoteTweet)
   const POST_URL = /\/graphql\/[^/]+\/(CreateTweet|CreateNoteTweet)(\?|$)/;
 
@@ -360,7 +378,7 @@
   }
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { collectRelations, collectViews, collectPosts, collectFriendship, collectCreated, collectInbound };
+    module.exports = { collectRelations, collectViews, collectPosts, collectFriendship, collectLike, collectCreated, collectInbound };
     return;
   }
 
@@ -421,19 +439,20 @@
     } catch (_) {}
   }
 
-  function emit(json, url, ok = true) {
+  function emit(json, url, ok = true, body = null) {
     try {
       if (json) updateMeFromViewer(json);
       const me = getMe();
       const u = ok ? collectRelations(json) : [];
       const v = ok ? collectPosts(json, me) : [];
       const f = ok ? collectFriendship(url, json) : [];
+      const l = ok ? collectLike(url, body, json) : [];
       const created = collectCreated(url, json, ok);
       const c = created ? [created] : [];
       const n = (ok && me) ? collectInbound(json, me) : [];
-      if (!u.length && !v.length && !f.length && !c.length && !n.length) return;
+      if (!u.length && !v.length && !f.length && !l.length && !c.length && !n.length) return;
       // Strings cross the MAIN/isolated world boundary reliably; objects may not.
-      dispatch({ u, v, f, c, n, at: Date.now() });
+      dispatch({ u, v, f, l, c, n, at: Date.now() });
     } catch (_) {
       // Never let Xhandy break X.
     }
@@ -447,6 +466,8 @@
       if (url && API.test(url)) {
         const isPost = POST_URL.test(url);
         if (isPost) emitSeen();
+        // A like's request body names the post (read only, for LIKE_URL; a Request object's body is not read).
+        const body = LIKE_URL.test(url) && init && typeof init.body === "string" ? init.body : null;
         // Every step is caught: a failure here must never surface as an error, on X or in chrome://extensions.
         p.then((res) => {
           const ct = res.headers.get("content-type") || "";
@@ -454,7 +475,7 @@
             return res
               .clone()
               .json()
-              .then((json) => emit(json, url, true))
+              .then((json) => emit(json, url, true, body))
               .catch(() => {
                 if (isPost) emit(null, url, false);
               });
@@ -478,12 +499,14 @@
   };
 
   const origOpen = XMLHttpRequest.prototype.open;
+  const likeXhrs = new WeakMap(); // XHR of a like -> the body X sends with it (null until sent)
   XMLHttpRequest.prototype.open = function (method, url) {
     try {
       const href = url && String(url);
       if (href && API.test(href)) {
         const isPost = POST_URL.test(href);
         if (isPost) emitSeen();
+        if (LIKE_URL.test(href)) likeXhrs.set(this, null);
         this.addEventListener("load", function () {
           try {
             const ok = this.status >= 200 && this.status < 300;
@@ -493,7 +516,7 @@
               if (this.responseType === "json") json = this.response;
               else if (this.responseType === "" || this.responseType === "text") json = JSON.parse(this.responseText);
             } catch (_) {}
-            emit(json, href, ok);
+            emit(json, href, ok, likeXhrs.get(this) || null);
           } catch (_) {}
         });
         if (isPost) {
@@ -507,5 +530,13 @@
       }
     } catch (_) {}
     return origOpen.apply(this, arguments);
+  };
+
+  const origSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function (body) {
+    try {
+      if (likeXhrs.has(this)) likeXhrs.set(this, typeof body === "string" ? body : null);
+    } catch (_) {}
+    return origSend.apply(this, arguments);
   };
 })();

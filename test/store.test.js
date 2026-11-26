@@ -224,12 +224,13 @@ test("cleanRelations keeps only well-formed users and view counts", () => {
     ],
     v: [{ id: "10", views: 5 }],
     f: [],
+    l: [],
     c: [],
     n: [],
     at: 7,
   });
   const empty = store.cleanRelations('{"x":1}');
-  assert.deepStrictEqual(empty, { u: [], v: [], f: [], c: [], n: [], at: empty.at });
+  assert.deepStrictEqual(empty, { u: [], v: [], f: [], l: [], c: [], n: [], at: empty.at });
   const f = store.cleanRelations(JSON.stringify({ f: [
     { handle: "carol", name: "Carol", id: "3", on: true },
     { handle: "zed", on: false },
@@ -242,6 +243,24 @@ test("cleanRelations keeps only well-formed users and view counts", () => {
   ]);
   assert.strictEqual(store.cleanRelations("not json"), null);
   assert.strictEqual(store.cleanRelations("[1]"), null);
+});
+
+test("cleanRelations keeps only well-formed likes in l", () => {
+  const store = loadStore(fakeChrome());
+  const l = store.cleanRelations(JSON.stringify({ l: [
+    { id: "111", on: true },
+    { id: "222", on: false, extra: "dropped" },
+    { id: "33a", on: true },
+    { id: 444, on: true },
+    { id: "555", on: "true" },
+    { id: "1".repeat(21), on: true },
+    "666",
+  ] })).l;
+  assert.deepStrictEqual(l, [
+    { id: "111", on: true },
+    { id: "222", on: false },
+  ]);
+  assert.deepStrictEqual(store.cleanRelations(JSON.stringify({ l: { id: "1", on: true } })).l, []);
 });
 
 test("cleanRelations validates confirmation entries in c", () => {

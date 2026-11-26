@@ -312,6 +312,66 @@
       .pop-footer svg {
         flex-shrink: 0;
       }
+      .pop-contact {
+        margin: 4px 0 0;
+        text-align: center;
+        color: var(--xh-muted);
+        font-size: 11px;
+      }
+      .pop-contact a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .pop-contact a:hover {
+        color: var(--xh-fg);
+      }
+      .pop-contact a:focus-visible,
+      .pop-diag button:focus-visible {
+        outline: 2px solid var(--xh-accent);
+        outline-offset: 2px;
+        border-radius: 3px;
+      }
+      .pop-diag {
+        margin: 0 0 8px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: rgba(180, 83, 9, 0.08);
+        color: var(--xh-warn);
+        font-size: 11px;
+      }
+      .pop-diag p {
+        margin: 0 0 6px;
+      }
+      .pop-diag a {
+        color: inherit;
+      }
+      .pop-diag button {
+        font: inherit;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      .pop-diag details {
+        margin-top: 6px;
+        color: var(--xh-muted);
+      }
+      .pop-diag pre {
+        max-height: 120px;
+        overflow: auto;
+        margin: 4px 0 0;
+        padding: 6px;
+        border-radius: 4px;
+        background: var(--xh-chip);
+        color: var(--xh-fg);
+        font-size: 10px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
     </style>
   </head>
   <body>
@@ -404,10 +464,20 @@
 
     <p class="pop-msg" id="nfb-msg" hidden></p>
 
+    <div class="pop-diag" id="diag" role="status" hidden>
+      <p id="diag-text"></p>
+      <button type="button" id="diag-copy" data-i18n="diag_copy">Copy report</button>
+      <details>
+        <summary data-i18n="diag_show">What's in the report</summary>
+        <pre id="diag-report"></pre>
+      </details>
+    </div>
+
     <footer class="pop-footer">
       <span id="lock-icon"></span>
       <span data-i18n="pop_data">Data stays in this browser.</span>
     </footer>
+    <p class="pop-contact" id="contact"></p>
 
     <script src="../locales/en.js"></script>
     <script src="../locales/zh.js"></script>

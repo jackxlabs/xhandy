@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { collectRelations, collectViews, collectPosts, collectFriendship } = require("../src/page-hook.js");
+const { collectRelations, collectViews, collectPosts, collectFriendship, collectLike } = require("../src/page-hook.js");
 const home = require("./fixtures/home-timeline.json");
 
 test("collects every user with relationship info, however deeply nested", () => {
@@ -47,6 +47,26 @@ test("reads the user's own follow and unfollow from X's answer", () => {
   assert.strictEqual(collectFriendship("/i/api/1.1/friendships/destroy.json", user)[0].on, false);
   assert.deepStrictEqual(collectFriendship("/i/api/1.1/friendships/show.json", user), []);
   assert.deepStrictEqual(collectFriendship("/i/api/1.1/friendships/create.json", { errors: [{ code: 161 }] }), []);
+});
+
+test("reads the user's own like and unlike from X's answer, with the post id from X's request", () => {
+  const body = (id) => JSON.stringify({ variables: { tweet_id: id }, queryId: "q" });
+  const fav = "https://x.com/i/api/graphql/lI07N6Ot/FavoriteTweet";
+  const unfav = "/i/api/graphql/ZYKSe-w7/UnfavoriteTweet";
+  assert.deepStrictEqual(collectLike(fav, body("111"), { data: { favorite_tweet: "Done" } }), [{ id: "111", on: true }]);
+  assert.deepStrictEqual(collectLike(unfav, body("222"), { data: { unfavorite_tweet: "Done" } }), [{ id: "222", on: false }]);
+  // Failed, mismatched or unknown answers, and requests that don't name a post, count nothing.
+  assert.deepStrictEqual(collectLike(fav, body("111"), { errors: [{ code: 139, message: "already favorited" }] }), []);
+  assert.deepStrictEqual(collectLike(fav, body("111"), { data: { unfavorite_tweet: "Done" } }), []);
+  assert.deepStrictEqual(collectLike(fav, body("111"), { data: { favorite_tweet: "Failed" } }), []);
+  assert.deepStrictEqual(collectLike(fav, null, { data: { favorite_tweet: "Done" } }), []);
+  assert.deepStrictEqual(collectLike(fav, "not json", { data: { favorite_tweet: "Done" } }), []);
+  assert.deepStrictEqual(collectLike(fav, body("12a"), { data: { favorite_tweet: "Done" } }), []);
+  assert.deepStrictEqual(collectLike(fav, JSON.stringify({ variables: {} }), { data: { favorite_tweet: "Done" } }), []);
+  assert.deepStrictEqual(collectLike(fav, body("111"), null), []);
+  // Other mutations are not likes.
+  assert.deepStrictEqual(collectLike("/i/api/graphql/x/CreateRetweet", body("111"), { data: { favorite_tweet: "Done" } }), []);
+  assert.deepStrictEqual(collectLike("/i/api/graphql/x/FavoriteTweetX", body("111"), { data: { favorite_tweet: "Done" } }), []);
 });
 
 test("collectPosts extracts reply count, author handle, followers, inReplyTo, and posts without views", () => {

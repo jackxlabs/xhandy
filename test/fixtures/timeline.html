@@ -9,18 +9,18 @@
       body.dark { background: #000; color: #e7e9ea; }
       main { width: 600px; margin: 0 auto; border-left: 1px solid #eff3f4; border-right: 1px solid #eff3f4; min-height: 100vh; }
       body.dark main { border-color: #2f3336; }
-      article { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; padding: 12px 16px; border-bottom: 1px solid #eff3f4; }
-      body.dark article { border-color: #2f3336; }
-      article:focus { outline: none; background: rgba(127,127,127,.06); }
-      article > *:not([data-testid="Tweet-User-Avatar"]) { grid-column: 2; }
-      [data-testid="Tweet-User-Avatar"] { grid-row: 1 / span 4; }
+      article, [data-e2e-post] { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; padding: 12px 16px; border-bottom: 1px solid #eff3f4; }
+      body.dark :is(article, [data-e2e-post]) { border-color: #2f3336; }
+      :is(article, [data-e2e-post]):focus { outline: none; background: rgba(127,127,127,.06); }
+      :is(article, [data-e2e-post]) > *:not(:is([data-testid="Tweet-User-Avatar"], [data-e2e="Tweet-User-Avatar"])) { grid-column: 2; }
+      :is([data-testid="Tweet-User-Avatar"], [data-e2e="Tweet-User-Avatar"]) { grid-row: 1 / span 4; }
       .av { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #1d9bf0; color: #fff; text-decoration: none; font-weight: 700; }
-      [data-testid="User-Name"] { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-      [data-testid="User-Name"] a { color: inherit; text-decoration: none; }
-      [data-testid="User-Name"] a:first-child { font-weight: 700; }
-      [data-testid="User-Name"] a + a { color: #536471; }
-      article p { margin: 2px 0 6px; }
-      article button { margin-right: 8px; }
+      :is([data-testid="User-Name"], [data-e2e="User-Name"]) { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+      :is([data-testid="User-Name"], [data-e2e="User-Name"]) a { color: inherit; text-decoration: none; }
+      :is([data-testid="User-Name"], [data-e2e="User-Name"]) a:first-child { font-weight: 700; }
+      :is([data-testid="User-Name"], [data-e2e="User-Name"]) a + a { color: #536471; }
+      :is(article, [data-e2e-post]) p { margin: 2px 0 6px; }
+      :is(article, [data-e2e-post]) button { margin-right: 8px; }
       [role="dialog"] { width: 600px; margin: 12px auto; }
       [data-testid="tweetTextarea_0"] { min-height: 40px; border: 1px solid #cfd9de; border-radius: 8px; padding: 8px; }
       .hc { position: absolute; width: 260px; padding: 14px; border-radius: 14px; background: inherit; box-shadow: 0 0 12px rgba(101,119,134,.3); background: #fff; color: #0f1419; }
@@ -29,6 +29,16 @@
     </style>
   </head>
   <body>
+    <script>
+      // For the e2e's layout variants (XH_LAYOUT in test/e2e.mjs): a post may be an article or a div[data-e2e-post],
+      // and an in-post data-testid may have moved to data-e2e. These find them either way.
+      window.E2E = {
+        post: "article, [data-e2e-post]",
+        q: (id) => `:is([data-testid="${id}"], [data-e2e="${id}"])`,
+        id: (el) => el && (el.getAttribute("data-testid") || el.getAttribute("data-e2e")),
+        set: (el, id) => el.setAttribute(el.hasAttribute("data-testid") ? "data-testid" : "data-e2e", id),
+      };
+    </script>
     <nav><a data-testid="AppTabBar_Profile_Link" href="/me_test"></a></nav>
     <!-- Minimal copy of the X DOM attributes Xhandy relies on. Times are filled in by the script below. -->
     <main>
@@ -103,7 +113,7 @@
           <a href="/nina">Nina Longname</a>
           <a href="/nina/status/888"><time id="t-narrow"></time></a>
         </div>
-        <div data-testid="tweetText">narrow post</div>
+        <div data-testid="tweetText" lang="en" dir="auto">narrow post</div>
       </article>
       <article data-testid="tweet" id="narrow2" tabindex="0" style="width: 150px">
         <div data-testid="Tweet-User-Avatar"><div data-testid="UserAvatar-Container-nora"><a href="/nora" class="av">N</a></div></div>
@@ -133,7 +143,7 @@
         fetch("/i/api/1.1/friendships/" + kind + ".json", { method: "POST", body: new URLSearchParams({ screen_name: handle, user_id: id }) });
       // Like X: a post's ⋯ menu has "Follow @handle" as a plain menu item, not a Follow button.
       document.addEventListener("click", (e) => {
-        if (e.target.closest('[data-testid="caret"]')) {
+        if (e.target.closest(E2E.q("caret"))) {
           const menu = document.createElement("div");
           menu.setAttribute("role", "menu");
           menu.innerHTML = '<div role="menuitem" id="mi-follow"><span>Follow @carol</span></div><div role="menuitem" id="mi-mute"><span>Mute @carol</span></div>';
@@ -155,9 +165,9 @@
       // eve has no hover card, to exercise the profile fallback.
       const ids = { alice: "1", bob: "2", carol: "3", dan: "8" };
       document.addEventListener("mouseover", (e) => {
-        const box = e.target.closest('[data-testid^="UserAvatar-Container-"]');
+        const box = e.target.closest('[data-testid^="UserAvatar-Container-"], [data-e2e^="UserAvatar-Container-"]');
         if (!box || document.querySelector(".hc")) return;
-        const h = box.dataset.testid.replace("UserAvatar-Container-", "");
+        const h = E2E.id(box).replace("UserAvatar-Container-", "");
         if (!ids[h]) return;
         setTimeout(() => {
           const card = document.createElement("div");
@@ -175,7 +185,7 @@
         }, 300);
       });
       document.addEventListener("mouseout", (e) => {
-        if (e.target.closest('[data-testid^="UserAvatar-Container-"]')) document.querySelector(".hc")?.remove();
+        if (e.target.closest('[data-testid^="UserAvatar-Container-"], [data-e2e^="UserAvatar-Container-"]')) document.querySelector(".hc")?.remove();
       });
       if (location.search.includes("theme=dark")) document.body.classList.add("dark");
       document.getElementById("t-carol").setAttribute("datetime", new Date(Date.now() - 600e3).toISOString());
@@ -184,25 +194,42 @@
       document.getElementById("t-narrow2").setAttribute("datetime", new Date(Date.now() - 5 * 3600e3).toISOString());
       document.getElementById("t-narrow").setAttribute("datetime", new Date(Date.now() - 5 * 3600e3).toISOString());
       document.getElementById("t-old").setAttribute("datetime", new Date(Date.now() - 3 * 86400e3).toISOString());
+      // Like X: liking sends POST .../FavoriteTweet (unliking .../UnfavoriteTweet) naming the post, answered "Done".
+      const xhFavorite = (id, on) =>
+        fetch("/i/api/graphql/lI07N6Ot/" + (on ? "FavoriteTweet" : "UnfavoriteTweet"), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ variables: { tweet_id: id }, queryId: "lI07N6Ot" }),
+        });
+      window.xhFavorite = xhFavorite;
+      const postId = (el) => el.closest(E2E.post)?.querySelector('a[href*="/status/"]')?.getAttribute("href").split("/").pop();
+      // Like X: clicking a like button likes the post (this fixture's button stays a like button).
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(E2E.q("like"));
+        if (btn && postId(btn)) xhFavorite(postId(btn), true);
+      });
       // Like X: "l" on a focused post toggles like <-> unlike.
       document.addEventListener("keydown", (e) => {
         if (e.key !== "l" || e.target.closest("[contenteditable]")) return;
-        const btn = document.activeElement.closest("article")?.querySelector('[data-testid="like"],[data-testid="unlike"]');
-        if (btn) btn.dataset.testid = btn.dataset.testid === "like" ? "unlike" : "like";
+        const btn = document.activeElement.closest(E2E.post)?.querySelector(E2E.q("like") + "," + E2E.q("unlike"));
+        if (!btn) return;
+        const on = E2E.id(btn) === "like";
+        E2E.set(btn, on ? "unlike" : "like");
+        xhFavorite(postId(btn), on);
       });
       let currentReplyTo = "alice";
       document.addEventListener("click", (e) => {
-        const article = e.target.closest("article");
+        const article = e.target.closest(E2E.post);
         if (article) {
-          const h = article.querySelector('[data-testid="User-Name"] a')?.getAttribute("href")?.slice(1);
+          const h = article.querySelector(E2E.q("User-Name") + " a")?.getAttribute("href")?.slice(1);
           if (h) currentReplyTo = h;
         }
       });
       document.addEventListener("keydown", (e) => {
         if (e.key === "r") {
-          const article = document.activeElement?.closest("article");
+          const article = document.activeElement?.closest(E2E.post);
           if (article) {
-            const h = article.querySelector('[data-testid="User-Name"] a')?.getAttribute("href")?.slice(1);
+            const h = article.querySelector(E2E.q("User-Name") + " a")?.getAttribute("href")?.slice(1);
             if (h) currentReplyTo = h;
           }
         }

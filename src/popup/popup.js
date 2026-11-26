@@ -22,6 +22,24 @@
     });
   }
 
+  // Where to send questions: the author's X account, a plain link the user opens (nothing is sent).
+  const CONTACT_URL = "https://x.com/JackHuang47";
+  function contactLink() {
+    const a = document.createElement("a");
+    a.href = CONTACT_URL;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "@JackHuang47";
+    return a;
+  }
+  // A string with {link} in it, as text around the contact link.
+  function withContact(el, key) {
+    const [before, after] = XH.t(key, { link: "\u0000" }).split("\u0000");
+    el.replaceChildren(before || "", contactLink(), after || "");
+  }
+  const contact = document.getElementById("contact");
+  if (contact) withContact(contact, "pop_contact");
+
   // Footer lock icon
   const lockIcon = document.getElementById("lock-icon");
   if (lockIcon) {
@@ -192,5 +210,30 @@
         }
       }
     });
+  }
+
+  // 4. Can Xhandy still find posts on the X tab? Asked of that tab's content script; nothing leaves the browser.
+  // When it can't, show a line and a structure-only report the user can copy and send themselves.
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const r = tab && tab.id ? await chrome.tabs.sendMessage(tab.id, { type: "xh-diag" }) : null;
+    if (r && r.blind === true && typeof r.report === "string") {
+      const box = document.getElementById("diag");
+      withContact(document.getElementById("diag-text"), "diag_text");
+      document.getElementById("diag-report").textContent = r.report;
+      const copy = document.getElementById("diag-copy");
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(r.report);
+          copy.textContent = XH.t("diag_copied");
+        } catch (_) {
+          // No clipboard here: open the report so it can be selected and copied by hand.
+          box.querySelector("details").open = true;
+        }
+      });
+      box.hidden = false;
+    }
+  } catch (_) {
+    // Not an X tab, or its page has no Xhandy: nothing to check.
   }
 })();

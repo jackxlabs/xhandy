@@ -1,6 +1,6 @@
 # Xhandy privacy policy
 
-Last updated: 2026-10-29
+Last updated: 2026-11-25
 
 Xhandy is a browser extension that shows hints while you use X (x.com). It is built so that your data never
 leaves your browser.
@@ -39,8 +39,8 @@ It is not synced to other devices and is never sent anywhere.
 
 - The X pages you open and your own actions on them (likes, replies, posts, follows, the accounts you star, and the notes you write).
 - The data X's own website already sends to your browser while you use it. Xhandy reads copies of these
-  responses (follow relationships, view counts, reply and follower counts, your notifications, and X's answers to your own follows, unfollows, posts and
-  replies; a post or reply is recorded only once X confirms it was created).
+  responses (follow relationships, view counts, reply and follower counts, your notifications, and X's answers to your own follows, unfollows, likes, posts and
+  replies; a post or reply is recorded only once X confirms it was created; for a like, Xhandy also reads which post X's own like request named).
   It never changes them, never sends extra requests to X and never sends anything to anyone else.
 
 ## Permissions

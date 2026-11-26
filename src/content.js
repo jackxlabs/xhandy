@@ -6,8 +6,8 @@
   const XH = globalThis.XH;
   const { store, sim, t } = XH;
 
+  // Posts themselves are found by XH.posts (src/lib/posts.js), which also works when X drops the post's data-testid.
   const SEL = {
-    tweet: 'article[data-testid="tweet"]',
     userName: '[data-testid="User-Name"]',
     like: '[data-testid="like"]',
     unlike: '[data-testid="unlike"]',
@@ -19,7 +19,10 @@
     profileLink: 'a[data-testid="AppTabBar_Profile_Link"]',
     profileName: '[data-testid="UserName"]',
     tweetText: '[data-testid="tweetText"]',
+    postText: "div[lang]", // a post's text when its data-testid is missing: X marks the text's language
   };
+  const postOf = XH.posts.of;
+  const findPosts = XH.posts.find;
 
   let S = null; // cached state
   const views = new Map(); // post id -> { n: views, at: when X reported it }; memory only
@@ -46,7 +49,7 @@
   // ---------- helpers ----------
 
   function tweetInfo(article) {
-    const time = article.querySelector('a[href*="/status/"] time');
+    const time = XH.posts.ownTime(article);
     if (!time) return null;
     const href = time.closest("a").getAttribute("href");
     const parts = new URL(href, location.origin).pathname.split("/");
@@ -101,7 +104,7 @@
   }
 
   function handleAltS() {
-    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const article = postOf(document.activeElement);
     const info = article && tweetInfo(article);
     if (!info) return toast(t("key_pick"), "warn");
     if (isMe(info.handle)) return;
@@ -125,7 +128,7 @@
     const list = document.querySelectorAll(SEL.profileName);
     const expected = "@" + handle.toLowerCase();
     for (const el of list) {
-      if (el.closest(SEL.tweet)) continue;
+      if (postOf(el)) continue;
       const text = (el.textContent || "").toLowerCase();
       if (text.includes(expected)) return el;
     }
@@ -135,14 +138,14 @@
   // The profile owner's own Follow / Following button, never one in a post, hover card or "Who to follow".
   function findProfileFollowButton(handle) {
     const b = findFollowButton(handle);
-    return b && !b.closest(SEL.tweet) && !b.closest('[data-testid="HoverCard"]') && !b.closest('[data-testid="sidebarColumn"]') ? b : null;
+    return b && !postOf(b) && !b.closest('[data-testid="HoverCard"]') && !b.closest('[data-testid="sidebarColumn"]') ? b : null;
   }
 
   function findProfileFallbackArea(handle) {
     const userActions = document.querySelector(
       '[data-testid="primaryColumn"] [data-testid="userActions"], [data-testid="userActions"]'
     );
-    if (userActions && !userActions.closest(SEL.tweet) && !userActions.closest('[data-testid="HoverCard"]')) {
+    if (userActions && !postOf(userActions) && !userActions.closest('[data-testid="HoverCard"]')) {
       return { el: userActions, position: "before" };
     }
     const nameEl = findProfileHeaderName(handle);
@@ -455,7 +458,7 @@
 
   // The account the user means: the focused post's author, else the profile in the URL.
   function targetHandle() {
-    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const article = postOf(document.activeElement);
     const info = article && tweetInfo(article);
     return (info && info.handle) || profileHandleFromUrl();
   }
@@ -638,12 +641,27 @@
   function placeAsRow(article, badge) {
     if (!badge.isConnected) return;
     badge.classList.add("xh-badge-row");
-    const text = [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'));
+    const legacy = article.matches(XH.posts.LEGACY);
+    // In a quoted post: inside a link box within this post (a box around the whole post doesn't count).
+    const quoted = (el) => {
+      const b = el.closest('[role="link"]:not(a)');
+      return !!b && b !== article && article.contains(b);
+    };
+    const text = legacy
+      ? [...article.querySelectorAll(SEL.tweetText)].find((el) => !el.closest('[role="link"]'))
+      : [...article.querySelectorAll(SEL.tweetText)].find((el) => !quoted(el)) ||
+        [...article.querySelectorAll(SEL.postText)].find((el) => !quoted(el) && !el.closest(".xh-badge"));
     if (text) {
       if (badge.nextElementSibling !== text) text.before(badge);
       return;
     }
-    const name = article.querySelector(SEL.userName);
+    let name = article.querySelector(SEL.userName);
+    if (!name && !legacy) {
+      // No name row mark: the row the post's time link is in.
+      const time = XH.posts.ownTime(article);
+      const anchor = time && time.closest("a");
+      name = anchor && anchor.parentElement !== article ? anchor.parentElement : null;
+    }
     if (!name) return;
     const row = name.parentElement && name.parentElement !== article ? name.parentElement : name;
     if (row.nextElementSibling !== badge) row.after(badge);
@@ -695,9 +713,42 @@
 
   function annotateAll() {
     if (!S) return;
-    document.querySelectorAll(SEL.tweet).forEach(annotate);
+    const posts = findPosts(document);
+    posts.forEach(annotate);
+    // An element that was a post and no longer is (the post's container changed) keeps no tint or highlight.
+    const current = new Set(posts);
+    for (const el of document.querySelectorAll("[data-xh-tint], [data-xh-key]")) {
+      if (current.has(el)) continue;
+      el.removeAttribute("data-xh-tint");
+      el.removeAttribute("data-xh-key");
+    }
     updateProfileButtons();
+    trackBlind(posts);
   }
+
+  // ---------- "can't find posts" check, for the toolbar popup ----------
+  // Local only: the popup asks, and shows a line plus a structure-only report the user can copy themselves.
+
+  let blindSince = 0; // since when the page shows posts Xhandy can't find; 0 when it finds them
+  function isBlind(posts) {
+    if (posts.some((p) => tweetInfo(p))) return false;
+    const outside = (sel) => [...document.querySelectorAll(sel)].filter((el) => !el.closest('[data-testid="notification"]')).length;
+    if (outside(XH.posts.TIME) > 0) return true;
+    // X moved the time out of the link: only where posts always show, so other pages can't raise it.
+    const postPage = location.pathname === "/home" || /^\/[^/]+\/status\/\d/.test(location.pathname);
+    return postPage && (outside("time") >= 2 || outside('a[href*="/status/"]') >= 2);
+  }
+  function trackBlind(posts) {
+    if (!isBlind(posts)) blindSince = 0;
+    else if (!blindSince) blindSince = Date.now();
+  }
+  chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+    if (!msg || msg.type !== "xh-diag") return;
+    const posts = findPosts(document);
+    trackBlind(posts);
+    const blind = blindSince > 0 && Date.now() - blindSince >= 5000;
+    reply({ blind, report: blind ? XH.posts.probe(document) : null });
+  });
 
   // ---------- counting the user's own actions ----------
 
@@ -787,8 +838,16 @@
     return !!me && !!handle && me.toLowerCase() === handle.toLowerCase();
   }
 
-  function countLike(info, delta) {
-    const self = isMe(info.handle);
+  // Likes counted from a click or X's l key, so X's answer to the same like (onLiked) doesn't count it again.
+  const domLikes = new Map(); // "post id:+1|-1" -> when; memory only
+
+  // info: { handle, id } from the post; handle is null when X's answer named a post that isn't on the page.
+  function countLike(info, delta, fromPage = true) {
+    if (fromPage && info.id) {
+      remember(domLikes, info.id + ":" + delta, Date.now());
+      trim(domLikes, 200);
+    }
+    const self = !info.handle || isMe(info.handle);
     store.update(self ? ["days"] : ["days", "people"], (s) => {
       const d = store.today(s);
       d.likes = Math.max(0, d.likes + delta);
@@ -797,6 +856,30 @@
       p.likes = Math.max(0, p.likes + delta);
       if (delta > 0) p.last = Date.now();
     });
+  }
+
+  // X's answer to the user's like or unlike (page-hook.js). On X's old layout the like button is counted, exactly
+  // as before; without it (no post or button marks), this is how likes count. A like already counted from the
+  // button is not counted again.
+  function onLiked({ id, on }) {
+    if (document.querySelector(XH.posts.LEGACY)) return;
+    const delta = on ? 1 : -1;
+    const key = id + ":" + delta;
+    const at = domLikes.get(key);
+    if (at && Date.now() - at < 30000) {
+      domLikes.delete(key);
+      return;
+    }
+    let handle = null;
+    for (const time of document.querySelectorAll(XH.posts.TIME)) {
+      const parts = new URL(time.closest("a").getAttribute("href"), location.origin).pathname.split("/");
+      const i = parts.indexOf("status");
+      if (i >= 1 && parts[i + 1] === id && store.isHandle(parts[i - 1])) {
+        handle = parts[i - 1];
+        break;
+      }
+    }
+    countLike({ handle, id }, delta, false);
   }
 
   function isTyping(el) {
@@ -812,7 +895,7 @@
         [SEL.like, SEL.unlike, SEL.reply, SEL.send].join(",")
       );
       if (!el) return;
-      const article = el.closest(SEL.tweet);
+      const article = postOf(el);
       const info = article && tweetInfo(article);
 
       if (el.matches(SEL.like) && info) {
@@ -840,7 +923,7 @@
       // X's own shortcuts: j/k put focus on a post, l toggles like, r opens the reply box.
       // Read which post is focused (capture phase, before X toggles the button) and count it.
       if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "l" || e.key === "r") && !isTyping(e.target)) {
-        const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+        const article = postOf(document.activeElement);
         const info = article && tweetInfo(article);
         if (info) {
           if (e.key === "r") pendingReply = { handle: info.handle, t: Date.now() };
@@ -1187,7 +1270,7 @@
   }
 
   function startFollow() {
-    const article = document.activeElement && document.activeElement.closest(SEL.tweet);
+    const article = postOf(document.activeElement);
     const info = article && tweetInfo(article);
     if (!info) return toast(t("follow_pick"), "warn");
     const handle = info.handle;
@@ -1633,6 +1716,7 @@
     }
     const users = payload.u;
     payload.f.forEach(onFriendship);
+    payload.l.forEach(onLiked);
     if (payload.n && payload.n.length) recordInbound(payload.n);
     const me = myHandle();
     const meLower = me ? me.toLowerCase() : null;
@@ -2413,12 +2497,19 @@
     // New posts get their badge now, before the frame is drawn. Going back makes X remount a list at a
     // saved position; a post that grows after X has measured it makes X's list jump.
     const fresh = new Set();
+    const legacy = !!document.querySelector(XH.posts.LEGACY);
+    let posts = null; // without X's post mark: found once for this batch, when something was added
     for (const record of records) {
       for (const node of record.addedNodes) {
         if (node.nodeType !== 1 || node.closest(".xh-badge")) continue;
-        const article = node.closest(SEL.tweet);
-        if (article) fresh.add(article);
-        else node.querySelectorAll(SEL.tweet).forEach((a) => fresh.add(a));
+        if (legacy) {
+          const article = node.closest(XH.posts.LEGACY);
+          if (article) fresh.add(article);
+          else node.querySelectorAll(XH.posts.LEGACY).forEach((a) => fresh.add(a));
+          continue;
+        }
+        if (!posts) posts = findPosts(document);
+        for (const p of posts) if (p.contains(node) || node.contains(p)) fresh.add(p);
       }
     }
     fresh.forEach(annotate);

@@ -1,7 +1,15 @@
 // End-to-end check: loads the unpacked extension into Chromium and serves a fake
 // X timeline for https://x.com/home, so no real X account or network is touched.
 // Usage: CHROMIUM=/usr/bin/chromium npm run e2e
+//
+// Every scenario runs once per page layout X might show (XH_LAYOUT picks one; unset runs them all in parallel):
+//   old  X's layout as of 0.7.0: each post is article[data-testid="tweet"]
+//   a    the post's article has no data-testid
+//   b    each post is a plain div (no data-testid, no role) inside X's list cell, div[data-testid="cellInnerDiv"]
+//   c    each post is a plain div, no list cell, and no data-testid inside the post either (the e2e finds those
+//        elements through data-e2e, which Xhandy never reads)
 import { chromium } from "playwright-core";
+import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
@@ -9,11 +17,44 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert";
 
+const LAYOUTS = ["old", "a", "b", "c"];
+if (!process.env.XH_LAYOUT) {
+  const runs = LAYOUTS.map((l) => new Promise((done) => {
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url)], { env: { ...process.env, XH_LAYOUT: l } });
+    let out = "";
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (out += d));
+    child.on("close", (code) => done({ l, code, out }));
+  }));
+  let bad = false;
+  for (const { l, code, out } of await Promise.all(runs)) {
+    const lines = out.trimEnd().split("\n");
+    console.log(lines.map((x) => `[${l}] ${x}`).join("\n"));
+    console.log(`[${l}] ${lines.filter((x) => x.startsWith("ok ")).length} ok, ${lines.filter((x) => x.startsWith("FAIL")).length} failed, exit ${code}\n`);
+    if (code !== 0) bad = true;
+  }
+  process.exit(bad ? 1 : 0);
+}
+const LAYOUT = process.env.XH_LAYOUT;
+if (!LAYOUTS.includes(LAYOUT)) throw new Error("XH_LAYOUT must be one of " + LAYOUTS.join(", "));
+// An in-post element by the data-testid X gives it, wherever this layout put it.
+const T = (id) => `:is([data-testid="${id}"], [data-e2e="${id}"])`;
+// The fake pages in this run's layout, from the fixtures written in X's old one.
+function layout(html) {
+  if (LAYOUT === "old") return html;
+  return html.replace(/<article data-testid="tweet"([^>]*)>([\s\S]*?)<\/article>/g, (_, attrs, inner) => {
+    if (LAYOUT === "a") return `<article${attrs}>${inner}</article>`;
+    if (LAYOUT === "c") inner = inner.replace(/data-testid="/g, 'data-e2e="');
+    const post = `<div data-e2e-post${attrs}>${inner}</div>`;
+    return LAYOUT === "b" ? `<div data-testid="cellInnerDiv">${post}</div>` : post;
+  });
+}
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const fixture = readFileSync(join(root, "test/fixtures/timeline.html"), "utf8");
+const fixture = layout(readFileSync(join(root, "test/fixtures/timeline.html"), "utf8"));
 const profile = readFileSync(join(root, "test/fixtures/profile.html"), "utf8");
 const following = readFileSync(join(root, "test/fixtures/following.html"), "utf8");
-const status = readFileSync(join(root, "test/fixtures/status.html"), "utf8");
+const status = layout(readFileSync(join(root, "test/fixtures/status.html"), "utf8"));
 const api = {
   HomeTimeline: readFileSync(join(root, "test/fixtures/home-timeline.json"), "utf8"),
   UserTweets: readFileSync(join(root, "test/fixtures/user-tweets.json"), "utf8"),
@@ -100,6 +141,12 @@ try {
       const h = body.get("screen_name");
       const user = { id_str: body.get("user_id"), screen_name: h, name: h[0].toUpperCase() + h.slice(1), following: friendship[1] === "create" };
       return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(user) });
+    }
+    const like = r.request().url().match(/\/graphql\/[^/]+\/(Favorite|Unfavorite)Tweet$/);
+    if (like) {
+      // X answers a like or unlike with "Done" and nothing about the post.
+      const body = { data: { [like[1] === "Favorite" ? "favorite_tweet" : "unfavorite_tweet"]: "Done" } };
+      return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     }
     const createTweet = r.request().url().match(/\/graphql\/[^/]+\/CreateTweet(\?|$)/);
     if (createTweet) {
@@ -193,7 +240,7 @@ try {
   });
 
   await step("liking counts in the HUD and the author's badge", async () => {
-    await page.click("#fresh [data-testid=like]");
+    await page.click(`#fresh ${T("like")}`);
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "1");
     await page.waitForFunction(() => /1× · today/.test(document.querySelector("#fresh .xh-badge").textContent));
   });
@@ -225,7 +272,7 @@ try {
   await step("a post shown again keeps its badge where it was, even if the badge no longer fits there", async () => {
     // After replying, coming back to a list shows the post with a longer badge ("replied"). X restores the
     // list with the heights it remembers, so the post must not get taller than it was.
-    await page.waitForSelector('#fresh [data-testid="User-Name"] .xh-badge');
+    await page.waitForSelector(`#fresh ${T("User-Name")} .xh-badge`);
     const r = await page.evaluate(() => new Promise((res) => {
       const src = document.querySelector("#fresh");
       const clone = src.cloneNode(true);
@@ -233,7 +280,7 @@ try {
       clone.querySelectorAll(".xh-badge").forEach((n) => n.remove());
       // Like #narrow: the badge that fitted before doesn't fit in the name row now.
       clone.style.width = "150px";
-      clone.querySelector('[data-testid="User-Name"]').style.overflow = "hidden";
+      clone.querySelector(E2E.q("User-Name")).style.overflow = "hidden";
       src.before(clone);
       requestAnimationFrame(() => {
         const first = clone.getBoundingClientRect().height;
@@ -241,7 +288,7 @@ try {
           const b = clone.querySelector(".xh-badge");
           const star = b.querySelector(".xh-star");
           const out = {
-            inNameRow: !!b.closest('[data-testid="User-Name"]') && !b.classList.contains("xh-badge-row"),
+            inNameRow: !!b.closest(E2E.q("User-Name")) && !b.classList.contains("xh-badge-row"),
             growth: clone.getBoundingClientRect().height - first,
             // The star must stay visible inside the cut-off badge, so it can still be clicked.
             starVisible: !star || star.getBoundingClientRect().right <= b.getBoundingClientRect().right + 1,
@@ -255,7 +302,7 @@ try {
   });
 
   await step("sending a reply counts as a reply to that author", async () => {
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, text);
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "1");
@@ -300,15 +347,24 @@ try {
   });
 
   await step("clicks faked by a page script are not counted", async () => {
-    await page.evaluate(() => document.querySelector("#fresh [data-testid=like]").click());
+    await page.evaluate(() => document.querySelector("#fresh " + E2E.q("like")).click());
     await page.waitForTimeout(500);
-    assert.strictEqual(await page.textContent(".xh-hud [data-k=likes] b"), "1");
+    if (LAYOUT === "old") {
+      assert.strictEqual(await page.textContent(".xh-hud [data-k=likes] b"), "1");
+      return;
+    }
+    // The fake click made X like the post, and X's answer counts that like: without X's old marks, X's answer is
+    // what likes are counted from. The click itself still counts nothing (else this would be 3), and X's answer to
+    // the unlike takes it back off.
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "2", null, { timeout: 3000 });
+    await page.evaluate(() => xhFavorite("111", false));
+    await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === "1", null, { timeout: 3000 });
   });
 
   await step("nested composer text is recorded once", async () => {
     const count = await page.evaluate(() => document.querySelectorAll('[data-testid^="tweetTextarea_"]').length);
     assert.strictEqual(count, 3, "fixture has 3 nested elements");
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, "Testing nested composer recorded once");
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "3");
@@ -329,7 +385,7 @@ try {
   });
 
   await step("a rejected send is not recorded or counted", async () => {
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, "This reply will be rejected [reject]");
     await page.click('[data-testid="tweetButton"]');
     await page.waitForTimeout(600);
@@ -347,14 +403,14 @@ try {
   });
 
   await step("the third identical short reply warns", async () => {
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, "谢谢");
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "5");
 
     // The same text within 1.5 s counts as one send (click + Ctrl+Enter); a person is never that fast.
     await page.waitForTimeout(1600);
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, "谢谢");
     await page.click('[data-testid="tweetButton"]');
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "6");
@@ -369,13 +425,34 @@ try {
 
   await step("with no post request, the send is recorded from the composer after 3 s", async () => {
     await page.evaluate(() => { window.__noCreateTweet = true; });
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, "Fallback recording when no post request is seen");
     await page.click('[data-testid="tweetButton"]');
 
     await page.waitForTimeout(1000);
     assert.strictEqual(await page.textContent(".xh-hud [data-k=replies] b"), "6");
 
+    if (LAYOUT === "c") {
+      // Without X's answer, only the reply button's mark tells whom the send replied to; with no mark it counts as a post.
+      const lastSent = await (async () => {
+        for (let i = 0; i < 50; i++) {
+          const x = (await storedSent()).at(-1);
+          if (x && x.text === "Fallback recording when no post request is seen") return x;
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        return null;
+      })();
+      assert.ok(lastSent, "the send is recorded from the composer");
+      assert.strictEqual(lastSent.kind, "post");
+      assert.strictEqual(await page.textContent(".xh-hud [data-k=replies] b"), "6");
+      // Later steps count from 7 replies, as in the other layouts: X's answer to this one arrives after all.
+      await page.evaluate(() => { window.__noCreateTweet = false; });
+      await page.click(`#fresh ${T("reply")}`);
+      await page.fill(box, "One more reply, so the counts match the other layouts");
+      await page.click('[data-testid="tweetButton"]');
+      await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "7", null, { timeout: 5000 });
+      return;
+    }
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=replies] b")?.textContent === "7", null, { timeout: 5000 });
     const lastSent = (await storedSent()).at(-1);
     assert.strictEqual(lastSent.text, "Fallback recording when no post request is seen");
@@ -410,7 +487,7 @@ try {
   });
 
   await step("Shift+F focuses Follow in the hover card the user opened; Enter follows", async () => {
-    await page.hover("#old [data-testid=UserAvatar-Container-bob]"); // a real pointer, like the user's
+    await page.hover(`#old ${T("UserAvatar-Container-bob")}`); // a real pointer, like the user's
     await page.waitForSelector(".hc");
     await page.focus("#old");
     await page.keyboard.press("Shift+F");
@@ -423,7 +500,7 @@ try {
   });
 
   await step("Esc cancels the follow assistant without following", async () => {
-    await page.hover("#dan [data-testid=UserAvatar-Container-dan]");
+    await page.hover(`#dan ${T("UserAvatar-Container-dan")}`);
     await page.waitForSelector(".hc button[aria-label='Follow @dan']");
     await page.focus("#dan");
     await page.keyboard.press("Shift+F");
@@ -434,11 +511,11 @@ try {
   });
 
   await step("following from a post's ⋯ menu counts too; other menu items don't", async () => {
-    await page.click("#carol [data-testid=caret]");
+    await page.click(`#carol ${T("caret")}`);
     await page.click("#mi-mute");
     await page.waitForTimeout(500);
     assert.strictEqual(await page.textContent(".xh-hud [data-k=follows] b"), "1");
-    await page.click("#carol [data-testid=caret]");
+    await page.click(`#carol ${T("caret")}`);
     await page.click("#mi-follow");
     await page.waitForFunction(() => /Followed @carol/.test(document.querySelector(".xh-toast")?.textContent), null, { timeout: 3000 });
     await page.waitForFunction(() => document.querySelector(".xh-hud [data-k=follows] b")?.textContent === "2", null, { timeout: 3000 });
@@ -457,7 +534,7 @@ try {
     await page.evaluate(() => document.body.classList.add("dark"));
     await page.waitForFunction(() => document.documentElement.dataset.xhTheme === "dark", null, { timeout: 7000 });
     if (process.env.SHOTS) {
-      await page.hover("#dan [data-testid=UserAvatar-Container-dan]");
+      await page.hover(`#dan ${T("UserAvatar-Container-dan")}`);
       await page.waitForSelector(".hc button");
       await page.focus("#dan");
       await page.keyboard.press("Shift+F");
@@ -796,7 +873,7 @@ try {
     });
     await page.waitForFunction(() => /💬 14/.test(document.querySelector("#mine .xh-badge")?.textContent), null, { timeout: 5000 });
     const before = Number(await page.textContent(".xh-hud [data-k=likes] b"));
-    await page.click("#mine [data-testid=like]");
+    await page.click(`#mine ${T("like")}`);
     await page.waitForFunction((n) => document.querySelector(".xh-hud [data-k=likes] b")?.textContent === String(n), before + 1);
     await page.waitForTimeout(400);
     const badge = await page.textContent("#mine .xh-badge");
@@ -876,7 +953,7 @@ try {
 
   await step("two-direction interaction chip shows both sides, author-only, and honors showInbound", async () => {
     // Bob has 2 replies so far; click like on #old to bring user interactions to 3
-    await page.click("#old [data-testid=like]");
+    await page.click(`#old ${T("like")}`);
 
     await page.evaluate(() => {
       window.dispatchEvent(
@@ -1085,14 +1162,14 @@ try {
 
     // updateSettings({ showTint: false }) and wait for no article to have a tint
     await updateSettings({ showTint: false });
-    await page.waitForFunction(() => !document.querySelector("article[data-xh-tint]"), null, { timeout: 5000 });
-    assert.strictEqual(await page.$("article[data-xh-tint]"), null);
+    await page.waitForFunction(() => !document.querySelector("[data-xh-tint]"), null, { timeout: 5000 });
+    assert.strictEqual(await page.$("[data-xh-tint]"), null);
 
     // Restore showTint true and restore people/keys to clean defaults
     await updateSettings({ showTint: true });
     await setStoredPart("keys", {});
     await setStoredPart("people", {});
-    await page.waitForFunction(() => !document.querySelector("article[data-xh-tint]"), null, { timeout: 5000 });
+    await page.waitForFunction(() => !document.querySelector("[data-xh-tint]"), null, { timeout: 5000 });
   });
 
   await step("duplicate warning switch turns the warning off", async () => {
@@ -1102,7 +1179,7 @@ try {
     await updateSettings({ dupWarn: false });
 
     // 2. Open reply composer and send the first copy
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, dupText);
     const repliesBefore = Number(await page.textContent(".xh-hud [data-k=replies] b"));
     await page.click('[data-testid="tweetButton"]');
@@ -1112,7 +1189,7 @@ try {
     await page.waitForTimeout(1600);
 
     // 4. Open reply again and type the identical text
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, dupText);
     await page.waitForTimeout(600); // debounce timer is 400ms
 
@@ -1133,7 +1210,7 @@ try {
 
     // 9. Turn dupWarn back on and verify the warning now appears for identical text
     await updateSettings({ dupWarn: true });
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     await page.fill(box, dupText);
     await page.waitForSelector(".xh-dup:not([hidden])", { timeout: 3000 });
     assert.match(await page.textContent(".xh-dup"), /similar to what you sent|sent/i);
@@ -1413,15 +1490,15 @@ try {
     const r = await page.evaluate(() => {
       const b = document.querySelector("#narrow .xh-badge");
       return {
-        beforeText: b.nextElementSibling?.dataset.testid === "tweetText",
-        inNameRow: !!b.closest('[data-testid="User-Name"]'),
+        beforeText: E2E.id(b.nextElementSibling) === "tweetText",
+        inNameRow: !!b.closest(E2E.q("User-Name")),
         clipped: b.scrollWidth > b.clientWidth + 1,
         star: !!b.querySelector(".xh-star"),
       };
     });
     assert.deepStrictEqual(r, { beforeText: true, inNameRow: false, clipped: false, star: true });
     // Badges that fit stay in the name row.
-    assert.ok(await page.$('#fresh [data-testid="User-Name"] .xh-badge'));
+    assert.ok(await page.$(`#fresh ${T("User-Name")} .xh-badge`));
     assert.strictEqual(await page.$("#fresh .xh-badge-row"), null);
   });
 
@@ -1430,8 +1507,8 @@ try {
     const r = await page.evaluate(() => {
       const b = document.querySelector("#narrow2 .xh-badge");
       return {
-        inNameRow: !!b.closest('[data-testid="User-Name"]'),
-        afterName: b.previousElementSibling?.dataset.testid === "User-Name",
+        inNameRow: !!b.closest(E2E.q("User-Name")),
+        afterName: E2E.id(b.previousElementSibling) === "User-Name",
         clipped: b.scrollWidth > b.clientWidth + 1,
         star: !!b.querySelector(".xh-star"),
       };
@@ -1446,7 +1523,7 @@ try {
     await page.evaluate(() => {
       const a = document.querySelector("#narrow");
       a.style.width = "";
-      const name = a.querySelector('[data-testid="User-Name"]');
+      const name = a.querySelector(E2E.q("User-Name"));
       name.querySelector("a").setAttribute("href", "/alice");
       const link = document.createElement("a");
       link.href = "/alice/status/113";
@@ -1457,7 +1534,7 @@ try {
     });
     await page.waitForFunction(() => {
       const b = document.querySelector("#narrow .xh-badge");
-      return b && b.closest('[data-testid="User-Name"]') && !b.classList.contains("xh-badge-row");
+      return b && b.closest(E2E.q("User-Name")) && !b.classList.contains("xh-badge-row");
     }, null, { timeout: 5000 });
     await page.click("#narrow .xh-star");
     const keys = await (async () => {
@@ -1483,8 +1560,8 @@ try {
       const focal = await p.evaluate(() => {
         const b = document.querySelector("#focal .xh-badge");
         return {
-          beforeText: b.nextElementSibling?.dataset.testid === "tweetText",
-          inNameRow: !!b.closest('[data-testid="User-Name"]'),
+          beforeText: E2E.id(b.nextElementSibling) === "tweetText",
+          inNameRow: !!b.closest(E2E.q("User-Name")),
           hasRowClass: b.classList.contains("xh-badge-row"),
         };
       });
@@ -1493,7 +1570,7 @@ try {
       const reply = await p.evaluate(() => {
         const b = document.querySelector("#reply .xh-badge");
         return {
-          inNameRow: !!b.closest('[data-testid="User-Name"]'),
+          inNameRow: !!b.closest(E2E.q("User-Name")),
           hasRowClass: b.classList.contains("xh-badge-row"),
         };
       });
@@ -2246,7 +2323,7 @@ try {
       () =>
         document.activeElement &&
         (document.activeElement.classList.contains("xh-note-text") ||
-          document.activeElement.closest("article")?.id === "fresh")
+          document.activeElement.closest(E2E.post)?.id === "fresh")
     );
     assert.ok(isInsideEditor);
     const likesAfter = await page.$eval(".xh-hud-likes", (el) => el.textContent).catch(() => "0");
@@ -2810,7 +2887,7 @@ try {
     await page.waitForTimeout(500);
 
     // Send a reply to #fresh (alice, post 111)
-    await page.click("#fresh [data-testid=reply]");
+    await page.click(`#fresh ${T("reply")}`);
     const box = '[data-testid="tweetTextarea_0"]';
     await page.fill(box, "Interesting insight on automation");
     await page.click('[data-testid="tweetButton"]');
@@ -3340,6 +3417,218 @@ try {
 
     // Restore setting
     await updateSettings({ review: true, lang: "en" });
+  });
+
+  // ---------- finding posts without X's post mark (src/lib/posts.js), on hand-made pages ----------
+
+  if (LAYOUT === "old") {
+    const postsLib = readFileSync(join(root, "src/lib/posts.js"), "utf8");
+    // Runs posts.js in a blank page with this body and returns fn's result (fn gets XH.posts).
+    const onPage = async (body, fn) => {
+      const p = await ctx.newPage();
+      try {
+        await p.setContent(`<!doctype html><body>${body}</body>`);
+        await p.addScriptTag({ content: postsLib });
+        return await p.evaluate(fn);
+      } finally {
+        await p.close();
+      }
+    };
+    const t = (h, id) => `<a href="/${h}/status/${id}"><time datetime="2026-11-25T00:00:00Z"></time></a>`;
+    // The ids of found posts, and the status id of each one's own time link.
+    const summary = () => XH.posts.find(document).map((p) => (p.id || p.tagName) + ":" + XH.posts.ownTime(p).closest("a").getAttribute("href").split("/").pop());
+
+    await step("posts: X's old layout is found exactly as before; links outside its posts are left alone", async () => {
+      const r = await onPage(
+        `<main><article data-testid="tweet" id="p1"><div>${t("alice", 1)}</div><button id="b1">like</button></article>
+         <article data-testid="tweet" id="p2">${t("bob", 2)}</article>
+         <div id="stray">${t("carol", 3)}</div><article id="bare">${t("dan", 4)}</article></main>`,
+        () => ({ found: XH.posts.find(document).map((p) => p.id), b1: XH.posts.of(document.getElementById("b1"))?.id, stray: XH.posts.of(document.querySelector("#stray time")), body: XH.posts.of(document.body), none: XH.posts.of(null) })
+      );
+      assert.deepStrictEqual(r, { found: ["p1", "p2"], b1: "p1", stray: null, body: null, none: null });
+    });
+
+    await step("posts: an article without data-testid, a div[data-testid=tweet] and a div[role=article] are posts", async () => {
+      const r = await onPage(
+        `<main><article id="p1"><div><div>${t("alice", 1)}</div></div><button id="b1">like</button></article>
+         <div data-testid="tweet" id="p2"><span>${t("bob", 2)}</span></div>
+         <div role="article" id="p3">${t("carol", 3)}</div></main>`,
+        () => ({ found: XH.posts.find(document).map((p) => p.id), b1: XH.posts.of(document.getElementById("b1"))?.id })
+      );
+      assert.deepStrictEqual(r, { found: ["p1", "p2", "p3"], b1: "p1" });
+    });
+
+    await step("posts: plain divs are found from their time links, in X's list cells or without them, never nested", async () => {
+      const post = (id, h, n) => `<div id="${id}"><div><div><div>${t(h, n)}</div><div lang="en">text</div></div><div><button id="btn-${id}">like</button></div></div></div>`;
+      const cells = await onPage(
+        `<main><section><div><div data-testid="cellInnerDiv">${post("p1", "alice", 1)}</div><div data-testid="cellInnerDiv">${post("p2", "bob", 2)}</div></div></section></main>`,
+        () => ({ found: XH.posts.find(document).map((p) => p.id), btn: XH.posts.of(document.getElementById("btn-p2"))?.id })
+      );
+      assert.deepStrictEqual(cells, { found: ["p1", "p2"], btn: "p2" });
+      const bare = await onPage(
+        `<main><div id="list">${post("p1", "alice", 1)}${post("p2", "bob", 2)}${post("p3", "carol", 3)}</div></main>`,
+        () => {
+          const found = XH.posts.find(document);
+          return { found: found.map((p) => p.id), nested: found.some((p) => found.some((q) => q !== p && q.contains(p))), btn: XH.posts.of(document.getElementById("btn-p3"))?.id };
+        }
+      );
+      assert.deepStrictEqual(bare, { found: ["p1", "p2", "p3"], nested: false, btn: "p3" });
+    });
+
+    await step("posts: a quoted post stays part of the post quoting it", async () => {
+      // Old style: the quote is a div[role=link] box inside the post. Also with the whole post in a link box (a
+      // clickable post), and with the quote marked as an article inside an article.
+      const quote = (h, n) => `<div role="link" tabindex="0"><div>${t(h, n)}</div><div lang="en">quoted</div></div>`;
+      const r1 = await onPage(
+        `<main><div id="list"><div id="p1"><div>${t("alice", 1)}</div>${quote("zed", 9)}<button id="b">like</button></div><div id="p2"><div>${t("bob", 2)}</div></div></div></main>`,
+        summary
+      );
+      assert.deepStrictEqual(r1, ["p1:1", "p2:2"]);
+      const r2 = await onPage(
+        `<main><div id="list"><div id="p1" role="link"><div>${t("alice", 1)}</div>${quote("zed", 9)}</div><div id="p2" role="link"><div>${t("bob", 2)}</div>${quote("yan", 8)}</div></div></main>`,
+        summary
+      );
+      assert.deepStrictEqual(r2, ["p1:1", "p2:2"]);
+      const r3 = await onPage(
+        `<main><article id="p1"><div>${t("alice", 1)}</div><article id="q"><div>${t("zed", 9)}</div></article><span id="inq">x</span></article><article id="p2">${t("bob", 2)}</article></main>`,
+        () => ({ found: XH.posts.find(document).map((p) => p.id), inQuote: XH.posts.of(document.querySelector("#q time"))?.id, own: XH.posts.ownTime(document.getElementById("p1")).closest("a").getAttribute("href") })
+      );
+      assert.deepStrictEqual(r3, { found: ["p1", "p2"], inQuote: "p1", own: "/alice/status/1" });
+    });
+
+    await step("posts: a cell with no time link (an ad), a notification and a lone post", async () => {
+      const r = await onPage(
+        `<main><section><div><div data-testid="cellInnerDiv"><div id="ad"><a href="/brand">Promoted</a><button id="adbtn">like</button></div></div>
+         <div data-testid="cellInnerDiv"><div id="p1"><div>${t("alice", 1)}</div></div></div>
+         <div data-testid="cellInnerDiv"><article data-testid="notification" id="n">${t("me_test", 5)}</article></div></div></section></main>`,
+        () => ({ found: XH.posts.find(document).map((p) => p.id), ad: XH.posts.of(document.getElementById("adbtn")), n: XH.posts.of(document.querySelector("#n time")) })
+      );
+      assert.deepStrictEqual(r, { found: ["p1"], ad: null, n: null });
+      // Alone on the page and without cells: the post goes up to just below the column, never the page itself.
+      const lone = await onPage(
+        `<main><section><div id="wrap"><div><div>${t("alice", 1)}</div></div></div></section></main>`,
+        () => XH.posts.find(document).map((p) => p.id)
+      );
+      assert.deepStrictEqual(lone, ["wrap"]);
+    });
+
+    await step("posts: the structure report has tags, testids and roles only: no text, handles or links", async () => {
+      const r = await onPage(
+        `<main><section role="region"><div data-testid="cellInnerDiv"><div><div data-testid="UserAvatar-Container-alice"></div><div data-testid="User-Name"><span>Alice Secret</span>${t("alice", 123456)}</div><div data-testid="tweetText" lang="en">private words</div><button data-testid="1234-follow">x</button></div></div></section></main>`,
+        () => XH.posts.probe(document)
+      );
+      assert.match(r, /#1 up: a < div\[User-Name\] < div < div\[cellInnerDiv\] < section\{region\} < main < body < html/);
+      assert.match(r, /UserAvatar-Container-\*/);
+      assert.match(r, /button\[#-follow\]/);
+      assert.match(r, /div\[tweetText\]/);
+      assert.match(r, /status-time 1/);
+      for (const secret of ["alice", "Alice", "Secret", "private", "123456", "1234", "/status/", "http"]) {
+        assert.ok(!r.includes(secret), "report must not contain " + secret + ":\n" + r);
+      }
+    });
+  }
+
+  // ---------- "can't find posts" line in the popup ----------
+
+  // Opens the popup as if from the X tab with this id: in a test the active tab would be the popup page itself.
+  async function popupFor(tabId) {
+    const p = await ctx.newPage();
+    await p.addInitScript((id) => {
+      chrome.tabs.query = async () => [{ id }];
+    }, tabId);
+    await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+    await p.waitForSelector(".today-grid");
+    return p;
+  }
+  // A new X page and its tab id (without the tabs permission an extension page sees ids, not URLs or titles).
+  async function openTab(ext, url) {
+    const ids = () => ext.evaluate(async () => (await chrome.tabs.query({})).map((t) => t.id));
+    const before = new Set(await ids());
+    const p = await ctx.newPage();
+    const id = (await ids()).find((i) => !before.has(i));
+    assert.ok(id, "found the new tab");
+    await p.goto(url);
+    return { p, id };
+  }
+
+  await step("popup says when X's page changed and Xhandy can't find posts, with a report to copy", async () => {
+    // A timeline where X moved each post's time out of its link: Xhandy finds no posts on it.
+    const blind = fixture.replace(/<a href="\/(\w+)\/status\/(\d+)"><time id="([^"]+)"><\/time><\/a>/g, '<a href="/$1/status/$2">link</a> <time id="$3"></time>');
+    assert.notStrictEqual(blind, fixture);
+    const blindUrl = /^https:\/\/x\.com\/home\?blind$/;
+    await ctx.route(blindUrl, (r) => r.fulfill({ status: 200, contentType: "text/html", body: blind }));
+    const ext = await ctx.newPage();
+    await ext.goto(`chrome-extension://${extId}/src/options/options.html`);
+    const x = await openTab(ext, "https://x.com/home?blind");
+    const normal = await openTab(ext, "https://x.com/home");
+    try {
+      await normal.p.waitForSelector("#fresh .xh-badge", { timeout: 5000 });
+      // Only after a while: a page still loading is not "changed".
+      const early = await popupFor(x.id);
+      try {
+        await early.waitForTimeout(300);
+        assert.strictEqual(await early.$eval("#diag", (el) => el.hidden), true, "no line in the first seconds");
+      } finally {
+        await early.close();
+      }
+      await x.p.waitForTimeout(5200);
+      // A page where posts are found shows no such line.
+      const ok = await popupFor(normal.id);
+      try {
+        await ok.waitForTimeout(300);
+        assert.strictEqual(await ok.$eval("#diag", (el) => el.hidden), true, "no line while posts are found");
+      } finally {
+        await ok.close();
+      }
+      for (const lang of ["en", "zh"]) {
+        await updateSettings({ lang });
+        const p = await popupFor(x.id);
+        try {
+          await p.waitForSelector("#diag:not([hidden])", { timeout: 3000 });
+          const text = await p.textContent("#diag-text");
+          if (lang === "en") assert.match(text, /X's page changed and Xhandy can't find the posts on it\. .*@JackHuang47/);
+          else assert.match(text, /X 的页面改了，Xhandy 找不到上面的帖子。.*@JackHuang47/);
+          assert.strictEqual(await p.getAttribute("#diag-text a", "href"), "https://x.com/JackHuang47");
+          assert.strictEqual(await p.textContent("#diag-copy"), lang === "en" ? "Copy report" : "复制报告");
+          const report = await p.textContent("#diag-report");
+          assert.match(report, /start: time/);
+          assert.match(report, /#1 up: /);
+          for (const secret of ["alice", "bob", "/status/", "fresh post"]) assert.ok(!report.includes(secret), "report has " + secret);
+          // Copying asks nothing of X's page and clicks nothing there.
+          await p.click("#diag-copy");
+          await p.waitForFunction(() => ["Copied", "已复制"].includes(document.getElementById("diag-copy").textContent) || document.querySelector("#diag details").open, null, { timeout: 3000 });
+        } finally {
+          await p.close();
+        }
+      }
+    } finally {
+      await updateSettings({ lang: "en" });
+      await x.p.close();
+      await normal.p.close();
+      await ext.close();
+      await ctx.unroute(blindUrl);
+    }
+  });
+
+  await step("popup links to the author's X account at the bottom, in both languages", async () => {
+    const p = await ctx.newPage();
+    try {
+      for (const [lang, text] of [["zh", "有问题或建议？在 X 上找我 @JackHuang47"], ["en", "Questions or ideas? Find me on X: @JackHuang47"]]) {
+        await updateSettings({ lang });
+        await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
+        await p.waitForSelector("#contact a");
+        assert.strictEqual((await p.textContent("#contact")).trim(), text);
+        const a = await p.$eval("#contact a", (el) => ({ href: el.getAttribute("href"), target: el.target, rel: el.rel, text: el.textContent }));
+        assert.deepStrictEqual({ href: a.href, target: a.target, rel: a.rel, text: a.text }, { href: "https://x.com/JackHuang47", target: "_blank", rel: "noopener", text: "@JackHuang47" });
+        // The last thing in the popup, right under "Data stays in this browser."
+        assert.strictEqual(await p.evaluate(() => document.querySelector(".pop-footer").nextElementSibling?.id), "contact");
+        // Reachable with the keyboard.
+        assert.strictEqual(await p.evaluate(() => { document.querySelector("#contact a").focus(); return document.activeElement === document.querySelector("#contact a"); }), true);
+      }
+    } finally {
+      await updateSettings({ lang: "auto" });
+      await p.close();
+    }
   });
 } finally {
   await ctx.close();

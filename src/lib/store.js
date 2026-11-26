@@ -505,6 +505,9 @@
     const f = (Array.isArray(p.f) ? p.f : [])
       .filter((x) => isObj(x) && isHandle(x.handle) && typeof x.on === "boolean")
       .map((x) => ({ handle: x.handle, name: str(x.name, 100), id: isId(x.id) ? x.id : null, on: x.on }));
+    const l = (Array.isArray(p.l) ? p.l : [])
+      .filter((x) => isObj(x) && isId(x.id) && typeof x.on === "boolean")
+      .map((x) => ({ id: x.id, on: x.on }));
     const c = [];
     for (const x of Array.isArray(p.c) ? p.c : []) {
       if (!isObj(x)) continue;
@@ -553,7 +556,7 @@
         at: num(x.at, Date.now()),
       });
     }
-    return { u, v, f, c, n, at: num(p.at, Date.now()) };
+    return { u, v, f, l, c, n, at: num(p.at, Date.now()) };
   }
 
   function partWithDefaults(part, v) {

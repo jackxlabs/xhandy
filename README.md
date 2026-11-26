@@ -60,7 +60,7 @@ That is the point: you get faster without anything that looks like a bot to X.
   or if you are about to send the same short reply ("great!", "加油") for the third time.
   Repetitive replies are what spam filters look for.
 - **Daily stats**: a rounded pill in the bottom-right corner with today's likes, replies, posts, follows and time on X, plus an optional daily reply goal. It sits where it won't cover the reply box, and you can drag it anywhere in the window (clamped inside on resize; position saved locally and can be reset in Options). `Alt+H` hides it, and it fades while you scroll.
-- **Toolbar popup**: today's five numbers, a 7-day replies bar chart with weekly total and daily average, quick-access rows for Review (`Alt+R`), Key accounts (with quiet count and `Alt+K`) and Not following back (with count and `Alt+U`), and an Options button.
+- **Toolbar popup**: today's five numbers, a 7-day replies bar chart with weekly total and daily average, quick-access rows for Review (`Alt+R`), Key accounts (with quiet count and `Alt+K`) and Not following back (with count and `Alt+U`), an Options button, and at the bottom a link to the author's X account for questions and ideas. If X changes its page so that Xhandy can no longer find the posts on it, the popup says so and offers a report to copy and send yourself: only the page's structure (element names and X's layout marks), no text, names or links, and nothing is sent by Xhandy.
 - **Looks at home on X**: post badges use X's own colours and follow its Default, Dim and Lights out themes.
   Xhandy's own surfaces (stats bar, panels, toasts, popup, settings) share one neutral look matching X, stroke SVG icons, and proportional numbers with tabular figures. Toasts ignore the mouse
   (`pointer-events: none`), so they never block a click on X; the stats bar takes the mouse only so you can drag it.
@@ -100,8 +100,8 @@ Keep the folder where it is: the extension ID, and with it your data, is tied to
   up to 1,000 key accounts you starred, with the time each was added, up to 5,000 private notes you wrote about accounts (status, tags, text, and when each was created and last edited), and up to 2,000 records of your own posts and replies (post id, reply or post kind, created time, account replied to, the first 80 characters of your text, latest views/likes/reply count and when received, and reply context such as parent creation time, parent author followers, your followers, and parent views per hour; oldest by creation time dropped first, used for the Review view).
 - In tab session storage (`sessionStorage`): panel open state (view, search text, scroll position) across reloads within the same tab, cleared when the panel or tab is closed.
 - `src/page-hook.js` runs in the page so it can read X's own API responses (follow relationships,
-  view counts, and X's answers to your own follows, unfollows, posts and replies). It clones responses and never
-  changes or sends anything. A reply or post is recorded only after X confirms it was created.
+  view counts, and X's answers to your own follows, unfollows, likes, posts and replies; for a like, also which
+  post X's own request named). It clones responses and never changes or sends anything. A reply or post is recorded only after X confirms it was created.
 - No network requests, no analytics, no remote code.
 - Export, import or delete everything from the Options page.
 
@@ -174,7 +174,7 @@ Xhandy 是独立项目，与 X Corp. 没有任何关联，也未获其认可或�
 - **防重复回复**：写回复时如果和你最近发过的某条很像，或者同一句短回复（比如「加油」）要发第三次了，右下角会提醒。重复的回复最容易被当成垃圾内容。
 - **效果复盘**（`Alt+R`，或工具栏弹窗入口）：复盘你的回复效果与粉丝增长。显示近 7 天回复数与中位数浏览量、近 7 天和 30 天粉丝增量、近 30 天每日回复柱状图与粉丝折线图（未打开的日子保留折线缺口，不虚报为 0）、按回复时机/对方粉丝量/原帖热度三个维度的效果对比（有明显优势的标为「最佳」），以及近 30 天最受关注的前 10 条回复，附「回复」页面链接以刷新数据。数据仅保存在本浏览器，可在设置中关闭。
 - **今日统计**：页面右下角的圆角统计条显示今天的点赞、回复、发帖、关注数和在线时长，不遮挡回复框，滚动时会变淡。按住可以随意拖拽到屏幕任何位置（调整窗口大小时始终留在窗口内，设置页可一键重置回默认位置）。
-- **工具栏弹窗**：点击工具栏上的 Xhandy 图标可以看今日 5 项数据、近 7 天回复柱状图（含总计与日均），以及「效果复盘」（带 Alt+R 提示）、「重点账号」（带沉寂数和 Alt+K 提示）与「没回关我」（带未回关数和 Alt+U 提示）的快捷入口。
+- **工具栏弹窗**：点击工具栏上的 Xhandy 图标可以看今日 5 项数据、近 7 天回复柱状图（含总计与日均），以及「效果复盘」（带 Alt+R 提示）、「重点账号」（带沉寂数和 Alt+K 提示）与「没回关我」（带未回关数和 Alt+U 提示）的快捷入口；最下面有作者的 X 账号链接，有问题或建议可以找我。如果 X 改了页面、Xhandy 找不到上面的帖子，弹窗会说明，并提供一份报告让你复制后自己发给我：报告里只有页面结构（元素名和 X 的页面标记），没有文字、名字和链接，Xhandy 不会自己发送任何东西。
 
 ### 快捷键
 
